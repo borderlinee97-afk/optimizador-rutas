@@ -1,0 +1,124 @@
+### ============================================
+### VARS (ajusta según tus datos reales)
+### ============================================
+@host = http://localhost:4000
+@date = 2026-03-15
+
+# Usa IDs de farmacia reales (BIGINT) que existan en tu tabla.
+# Puedes tomar algunos de tu CSV (ej. 55,56,57) o de una consulta en pgAdmin.
+@ph1 = 55
+@ph2 = 56
+@ph3 = 57
+
+### ============================================
+### 1) PINGS (los 3 routers)
+### ============================================
+GET {{host}}/api/route-templates/__ping
+
+###
+GET {{host}}/api/assignments/__ping
+
+###
+GET {{host}}/api/computed-routes/__ping
+
+### ============================================
+### 2) LISTAR PLANTILLAS (todas / filtradas)
+### ============================================
+GET {{host}}/api/route-templates
+
+###
+GET {{host}}/api/route-templates?type=DELIVERY&active=true
+
+### ============================================
+### 3) CREAR PLANTILLA (DELIVERY) - cabecera + v1 vacía
+### ============================================
+POST {{host}}/api/route-templates
+Content-Type: application/json
+
+{
+  "type":"DELIVERY",
+  "name":"Ruta Demo REST Client",
+  "color":"#1565C0",
+  "defaultOrigin": { "pharmacyId": {{ph1}} },
+  "active": true
+}
+
+### Copia el "id" de la respuesta anterior y pégalo aquí:
+@ROUTE_ID = PON_AQUI_EL_UUID_DEVUELTO
+
+### ============================================
+### 4) CREAR NUEVA VERSIÓN (v+1) CON STOPS REALES
+### ============================================
+POST {{host}}/api/route-templates/{{ROUTE_ID}}/versions
+Content-Type: application/json
+
+{
+  "strategy": "FASTEST",
+  "options": { "avoidTolls": false, "returnToOrigin": true },
+  "stops": [
+    { "pharmacyId": {{ph1}}, "required": false },
+    { "pharmacyId": {{ph2}}, "required": true },
+    { "pharmacyId": {{ph3}}, "required": false }
+  ]
+}
+
+### ============================================
+### 5) CONSULTAR ESA VERSIÓN (usa el número que te devolvió: p.ej. 2)
+### ============================================
+GET {{host}}/api/route-templates/{{ROUTE_ID}}/versions/2
+
+### ============================================
+### 6) CREAR UNA ASIGNACIÓN (OPERADOR) PARA FECHA X
+### - Necesitas un UUID de una persona (rol=OPERADOR) ya existente.
+### - Sustituye PERSON_ID por tu UUID real de la tabla personas.
+### ============================================
+@PERSON_ID = 93a78170-1f9d-4386-ab0c-8c943ec93ba6
+
+POST {{host}}/api/assignments
+Content-Type: application/json
+
+{
+  "routeTemplateId":"{{ROUTE_ID}}",
+  "routeVersion": 2,
+  "role": "OPERADOR",
+  "personId":"{{PERSON_ID}}",
+  "date":"{{date}}",
+  "overrides": { "add": [], "remove": [] },
+  "notes":"Asignación de prueba"
+}
+
+### ============================================
+### 7) GUARDAR SNAPSHOT DE CÁLCULO (opcional)
+### ============================================
+POST {{host}}/api/computed-routes
+Content-Type: application/json
+
+{
+  "scope":"ADHOC",
+  "region":"COLOTLAN/AMECA",
+  "strategy":"FASTEST",
+  "options":{"avoidTolls":false},
+  "total":{"distanceMeters":12345, "duration":"3600s"},
+  "linkChunkSize":10,
+  "visits":[
+    { "ord":1, "pharmacyId": {{ph1}}, "name":"Farmacia A", "lat":20.6597, "lng":-103.3496, "subroute_idx":1 },
+    { "ord":2, "pharmacyId": {{ph2}}, "name":"Farmacia B", "lat":20.6600, "lng":-103.3600, "subroute_idx":1 },
+    { "ord":3, "pharmacyId": {{ph3}}, "name":"Farmacia C", "lat":20.6700, "lng":-103.3650, "subroute_idx":1 }
+  ],
+  "legs":[
+    { "ord":1, "distanceMeters":6000, "duration":"1200s" },
+    { "ord":2, "distanceMeters":6345, "duration":"2400s" }
+  ],
+  "links":[
+    { "ord":1, "from":1, "to":3, "url":"https://www.google.com/maps/dir/?api=1&origin=20.6597,-103.3496&destination=20.6700,-103.3650&waypoints=20.6600,-103.3600" }
+  ]
+}
+
+### Si quieres leer ese snapshot, copia el "id" devuelto aquí:
+@SNAPSHOT_ID = PON_AQUI_EL_UUID_SNAPSHOT
+
+### ============================================
+### 8) LEER SNAPSHOT POR ID
+### ============================================
+GET {{host}}/api/computed-routes/{{SNAPSHOT_ID}}
+``
