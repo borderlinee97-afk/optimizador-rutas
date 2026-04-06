@@ -25,32 +25,16 @@ const allowedOrigins = [
 ].filter(Boolean)
 
 // ================== Middlewares globales ==================
-app.use((req, res, next) => {
-  const origin = req.headers.origin
-
-  if (origin && allowedOrigins.includes(origin)) {
-    res.header('Access-Control-Allow-Origin', origin)
-  }
-
-  res.header('Vary', 'Origin')
-  res.header('Access-Control-Allow-Methods', 'GET,POST,PUT,PATCH,DELETE,OPTIONS')
-  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization')
-  res.header('Access-Control-Allow-Credentials', 'true')
-
-  if (req.method === 'OPTIONS') {
-    return res.sendStatus(204)
-  }
-
-  next()
-})
-
 app.use(cors({
   origin(origin, callback) {
     if (!origin) return callback(null, true)
     if (allowedOrigins.includes(origin)) return callback(null, true)
     return callback(new Error(`CORS blocked for origin: ${origin}`))
   },
-  credentials: true
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  optionsSuccessStatus: 204
 }))
 
 app.use(express.json({ limit: '10mb' }))
@@ -80,7 +64,8 @@ app.get('/api/health', async (req, res) => {
 
     res.status(500).json({
       ok: false,
-      db: false
+      db: false,
+      error: error.message
     })
   }
 })
@@ -108,14 +93,7 @@ app.use((req, res) => {
 // ================== Error handler global ==================
 app.use((err, req, res, next) => {
   console.error('Unhandled error:', err)
-
-  const origin = req.headers.origin
-  if (origin && allowedOrigins.includes(origin)) {
-    res.header('Access-Control-Allow-Origin', origin)
-  }
-
-  res.header('Vary', 'Origin')
-  res.header('Access-Control-Allow-Credentials', 'true')
+  console.error(err?.stack)
 
   res.status(err.status || 500).json({
     error: err.message || 'Internal Server Error'
@@ -127,6 +105,7 @@ const port = Number(process.env.PORT || 4000)
 
 app.listen(port, async () => {
   console.log(`✅ API listening on port ${port}`)
+  console.log('✅ Allowed origins:', allowedOrigins)
 
   try {
     const result = await pool.query('SELECT NOW() AS now')

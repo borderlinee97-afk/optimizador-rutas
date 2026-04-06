@@ -1,15 +1,5 @@
-import pkg from 'pg'
+import { pool } from './db/pool.js'
 import { chunkArray } from './utils/chunk.js'
-
-const { Pool } = pkg
-
-const pool = new Pool({
-  host: process.env.PGHOST,
-  port: Number(process.env.PGPORT || 5432),
-  database: process.env.PGDATABASE,
-  user: process.env.PGUSER,
-  password: process.env.PGPASSWORD,
-})
 
 function haversine(a, b) {
   const toRad = d => (d * Math.PI) / 180
@@ -110,6 +100,14 @@ function sumTollTotals(items = []) {
   }
 }
 
+function isValidLatLng(point) {
+  return (
+    point &&
+    Number.isFinite(Number(point.lat)) &&
+    Number.isFinite(Number(point.lng))
+  )
+}
+
 export async function computeRoutes(req, res) {
   try {
     const {
@@ -119,10 +117,13 @@ export async function computeRoutes(req, res) {
       options = {},
       origin,
       manualOrderIds
-    } = req.body
+    } = req.body || {}
+
+    console.log('==== POST /api/routes/compute ====')
+    console.log('body:', JSON.stringify(req.body, null, 2))
 
     if (!process.env.GMAPS_API_KEY) {
-      return res.status(500).json({ error: 'Falta GMAPS_API_KEY en backend/.env' })
+      return res.status(500).json({ error: 'Falta GMAPS_API_KEY en backend' })
     }
 
     const STRAT = String(strategy || 'FASTEST').toUpperCase()
@@ -163,7 +164,7 @@ export async function computeRoutes(req, res) {
     }
 
     if (applyAvoidHard) {
-      clauses.push(`fda.clues IS NULL`)
+      clauses.push('fda.clues IS NULL')
     }
 
     const sql = `
@@ -178,6 +179,8 @@ export async function computeRoutes(req, res) {
       ORDER BY f.clues
       LIMIT 2000
     `
+
+    console.log('Executing SQL with params:', params)
 
     const { rows } = await pool.query(sql, params)
 
@@ -223,12 +226,25 @@ export async function computeRoutes(req, res) {
       }
     }))
 
-    const start =
-      origin && typeof origin.lat === 'number' && typeof origin.lng === 'number'
-        ? origin
-        : { lat: points[0].lat, lng: points[0].lng }
+    const validPoints = points.filter(isValidLatLng)
 
-    let ordered = [...points]
+    if (!validPoints.length) {
+      return res.status(400).json({
+        error: 'No hay puntos con coordenadas válidas'
+      })
+    }
+
+    const start = isValidLatLng(origin)
+      ? {
+          lat: Number(origin.lat),
+          lng: Number(origin.lng)
+        }
+      : {
+          lat: validPoints[0].lat,
+          lng: validPoints[0].lng
+        }
+
+    let ordered = [...validPoints]
 
     if (hasManualSubset) {
       const byId = new Map(ordered.map(p => [p.id, p]))
@@ -341,22 +357,44 @@ export async function computeRoutes(req, res) {
     const MAX_INTERMEDIATES = Math.min(Number(options.maxStopsPerSubroute || 25) || 25, 25)
 
     async function callComputeRoutes(originLL, destinationLL, intermediatesLL) {
+      if (!isValidLatLng(originLL)) {
+        throw new Error(`Origen inválido: ${JSON.stringify(originLL)}`)
+      }
+
+      if (!isValidLatLng(destinationLL)) {
+        throw new Error(`Destino inválido: ${JSON.stringify(destinationLL)}`)
+      }
+
+      const invalidIntermediate = (intermediatesLL || []).find(p => !isValidLatLng(p))
+      if (invalidIntermediate) {
+        throw new Error(`Intermedio inválido: ${JSON.stringify(invalidIntermediate)}`)
+      }
+
       const shouldAvoidTolls = isResources ? true : !!options.avoidTolls
 
       const routesReq = {
         origin: {
           location: {
-            latLng: { latitude: originLL.lat, longitude: originLL.lng }
+            latLng: {
+              latitude: Number(originLL.lat),
+              longitude: Number(originLL.lng)
+            }
           }
         },
         destination: {
           location: {
-            latLng: { latitude: destinationLL.lat, longitude: destinationLL.lng }
+            latLng: {
+              latitude: Number(destinationLL.lat),
+              longitude: Number(destinationLL.lng)
+            }
           }
         },
-        intermediates: intermediatesLL.map(p => ({
+        intermediates: (intermediatesLL || []).map(p => ({
           location: {
-            latLng: { latitude: p.lat, longitude: p.lng }
+            latLng: {
+              latitude: Number(p.lat),
+              longitude: Number(p.lng)
+            }
           }
         })),
         travelMode: 'DRIVE',
@@ -370,6 +408,8 @@ export async function computeRoutes(req, res) {
         },
         optimizeWaypointOrder: isFastest || isResources
       }
+
+      console.log('Calling Google Routes API with payload:', JSON.stringify(routesReq, null, 2))
 
       const gmRes = await fetch(
         'https://routes.googleapis.com/directions/v2:computeRoutes',
@@ -396,13 +436,15 @@ export async function computeRoutes(req, res) {
 
       const text = await gmRes.text()
       let data
+
       try {
         data = JSON.parse(text)
       } catch {
-        throw new Error(`Routes non-JSON: ${text.slice(0, 200)}`)
+        throw new Error(`Routes non-JSON: ${text.slice(0, 500)}`)
       }
 
       if (!gmRes.ok) {
+        console.error('Google Routes API error response:', data)
         throw new Error(`Routes API ${gmRes.status}: ${JSON.stringify(data)}`)
       }
 
@@ -547,6 +589,7 @@ export async function computeRoutes(req, res) {
         if (rBack) {
           const legs = Array.isArray(rBack.legs) ? rBack.legs : []
           mergedLegs.push(...legs)
+
           subroutes.push({
             polyline: rBack.polyline?.encodedPolyline,
             distance: rBack.distanceMeters || 0,
@@ -554,9 +597,11 @@ export async function computeRoutes(req, res) {
             count: 0,
             tolls: normalizeTollInfo(rBack.travelAdvisory?.tollInfo)
           })
+
           totalDistance += rBack.distanceMeters || 0
           totalDuration += parseDurationSec(rBack.duration || '0s')
         }
+
         finalOrderPoints.push({ name: 'ORIGEN', lat: start.lat, lng: start.lng })
       }
 
@@ -591,8 +636,13 @@ export async function computeRoutes(req, res) {
       visitOrder: finalOrderPoints
     })
   } catch (e) {
-    console.error(e)
-    res.status(500).json({ error: 'Error calculando rutas', details: String(e) })
+    console.error('computeRoutes error:', e)
+    console.error(e?.stack)
+
+    return res.status(500).json({
+      error: 'Error calculando rutas',
+      details: e?.message || String(e)
+    })
   }
 }
 
@@ -618,7 +668,7 @@ function buildStaticMapUrl({ subroutes = [], center, zoom, width = 640, height =
 export async function getStaticRouteMap(req, res) {
   try {
     if (!process.env.GMAPS_API_KEY) {
-      return res.status(500).json({ error: 'Falta GMAPS_API_KEY en backend/.env' })
+      return res.status(500).json({ error: 'Falta GMAPS_API_KEY en backend' })
     }
 
     const {
@@ -652,6 +702,7 @@ export async function getStaticRouteMap(req, res) {
     })
 
     const response = await fetch(url)
+
     if (!response.ok) {
       const txt = await response.text()
       throw new Error(`Static Maps ${response.status}: ${txt.slice(0, 300)}`)
@@ -664,10 +715,12 @@ export async function getStaticRouteMap(req, res) {
     res.setHeader('Cache-Control', 'no-store')
     return res.send(buffer)
   } catch (e) {
-    console.error(e)
+    console.error('getStaticRouteMap error:', e)
+    console.error(e?.stack)
+
     return res.status(500).json({
       error: 'Error generando mapa estático',
-      details: String(e)
+      details: e?.message || String(e)
     })
   }
 }
