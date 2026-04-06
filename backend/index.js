@@ -16,14 +16,40 @@ import personasRouter from './routes/personas.route.js'
 
 const app = express()
 
-// ================== Middlewares globales ==================
-app.use(cors({
-  origin: true,
-  credentials: true
-}))
+const allowedOrigins = [
+  'http://localhost:5173',
+  'http://localhost:5174',
+  'https://optimizador-rutas-theta.vercel.app',
+  process.env.FRONTEND_URL,
+  process.env.CORS_ORIGIN
+].filter(Boolean)
 
-app.options('*', cors({
-  origin: true,
+// ================== Middlewares globales ==================
+app.use((req, res, next) => {
+  const origin = req.headers.origin
+
+  if (origin && allowedOrigins.includes(origin)) {
+    res.header('Access-Control-Allow-Origin', origin)
+  }
+
+  res.header('Vary', 'Origin')
+  res.header('Access-Control-Allow-Methods', 'GET,POST,PUT,PATCH,DELETE,OPTIONS')
+  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization')
+  res.header('Access-Control-Allow-Credentials', 'true')
+
+  if (req.method === 'OPTIONS') {
+    return res.sendStatus(204)
+  }
+
+  next()
+})
+
+app.use(cors({
+  origin(origin, callback) {
+    if (!origin) return callback(null, true)
+    if (allowedOrigins.includes(origin)) return callback(null, true)
+    return callback(new Error(`CORS blocked for origin: ${origin}`))
+  },
   credentials: true
 }))
 
@@ -82,6 +108,14 @@ app.use((req, res) => {
 // ================== Error handler global ==================
 app.use((err, req, res, next) => {
   console.error('Unhandled error:', err)
+
+  const origin = req.headers.origin
+  if (origin && allowedOrigins.includes(origin)) {
+    res.header('Access-Control-Allow-Origin', origin)
+  }
+
+  res.header('Vary', 'Origin')
+  res.header('Access-Control-Allow-Credentials', 'true')
 
   res.status(err.status || 500).json({
     error: err.message || 'Internal Server Error'
