@@ -16,23 +16,14 @@ import personasRouter from './routes/personas.route.js'
 
 const app = express()
 
-const allowedOrigins = [
-  'http://localhost:5173',
-  process.env.FRONTEND_URL,
-  process.env.CORS_ORIGIN
-].filter(Boolean)
-
 // ================== Middlewares globales ==================
 app.use(cors({
-  origin(origin, callback) {
-    if (!origin) return callback(null, true)
+  origin: true,
+  credentials: true
+}))
 
-    if (allowedOrigins.includes(origin)) {
-      return callback(null, true)
-    }
-
-    return callback(new Error(`CORS blocked for origin: ${origin}`))
-  },
+app.options('*', cors({
+  origin: true,
   credentials: true
 }))
 
@@ -41,15 +32,6 @@ app.use(express.json({ limit: '10mb' }))
 app.use(helmet({
   crossOriginResourcePolicy: false
 }))
-
-// ================== Routers ==================
-app.use('/api/mobile', mobileRouter)
-app.use('/api/work-plans', workPlansRouter)
-app.use('/api/route-templates', routeTemplatesRouter)
-app.use('/api/assignments', assignmentsRouter)
-app.use('/api/computed-routes', computedRoutesRouter)
-app.use('/api/personas', personasRouter)
-app.use('/api', farmaciasRouter)
 
 // ================== Endpoints de utilidad ==================
 app.get('/api/__ping', (req, res) => {
@@ -76,6 +58,15 @@ app.get('/api/health', async (req, res) => {
     })
   }
 })
+
+// ================== Routers ==================
+app.use('/api/mobile', mobileRouter)
+app.use('/api/work-plans', workPlansRouter)
+app.use('/api/route-templates', routeTemplatesRouter)
+app.use('/api/assignments', assignmentsRouter)
+app.use('/api/computed-routes', computedRoutesRouter)
+app.use('/api/personas', personasRouter)
+app.use('/api', farmaciasRouter)
 
 // ================== Cálculo de rutas ==================
 app.post('/api/routes/compute', computeRoutes)
