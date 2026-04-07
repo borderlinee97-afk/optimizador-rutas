@@ -10,7 +10,7 @@
       @open-criteria="openCriteria"
       @toggle-traffic="toggleTraffic"
       @toggle-markers="toggleMarkers"
-      @close-route="onCloseRoute"
+      @close-route="handleCloseRoute"
     />
 
     <Legend
@@ -22,26 +22,28 @@
       :collapsed="panelCollapsed"
       @toggle-collapsed="onPanelToggle"
     >
-      <RouteCart
-        :customPoints="customPoints"
-        :customStrategy="customStrategy"
-        :customOriginMode="customOriginMode"
-        :customOriginPharmacyId="customOriginPharmacyId"
-        :customOriginCoords="customOriginCoords"
-        :customOriginCandidates="customOriginCandidates"
-        :canGeneratePdf="canGeneratePdf"
-        @update:customPoints="setCustomPoints"
-        @update:customStrategy="val => customStrategy = val"
-        @update:customOriginMode="val => customOriginMode = val"
-        @update:customOriginPharmacyId="val => customOriginPharmacyId = val"
-        @update:customOriginCoords="val => customOriginCoords = val"
-        @add-stops="openAddStopsModal"
-        @clear="clearCustomPoints"
-        @calculate="runCustomRoute"
-        @generate-pdf="openPlanPdf"
-      />
+      <template v-if="showRouteCart">
+        <RouteCart
+          :customPoints="customPoints"
+          :customStrategy="customStrategy"
+          :customOriginMode="customOriginMode"
+          :customOriginPharmacyId="customOriginPharmacyId"
+          :customOriginCoords="customOriginCoords"
+          :customOriginCandidates="customOriginCandidates"
+          :canGeneratePdf="canGeneratePdf"
+          @update:customPoints="setCustomPoints"
+          @update:customStrategy="val => customStrategy = val"
+          @update:customOriginMode="val => customOriginMode = val"
+          @update:customOriginPharmacyId="val => customOriginPharmacyId = val"
+          @update:customOriginCoords="val => customOriginCoords = val"
+          @add-stops="openAddStopsModal"
+          @clear="clearCustomPoints"
+          @calculate="handleRunCustomRoute"
+          @generate-pdf="openPlanPdf"
+        />
 
-      <hr class="panel-separator" />
+        <hr class="panel-separator" />
+      </template>
 
       <PanelGeneral
         :routeTotal="routeTotal"
@@ -79,7 +81,7 @@
       @drag-enter="onDragEnter"
       @drop="onDrop"
       @close="criteriaOpen = false"
-      @calculate="runCompute"
+      @calculate="handleRunCompute"
     />
 
     <AddStopsModal
@@ -169,6 +171,14 @@ function onPanelToggle() {
 const addStopsOpen = ref(false)
 const addStopsItems = ref([])
 
+/**
+ * Controla si se muestra el bloque de ruta personalizada.
+ * - Se oculta cuando el cálculo viene del flujo general (CriteriaModal)
+ * - Se vuelve a mostrar al cerrar la ruta
+ * - Se mantiene visible cuando se usa el flujo personalizado
+ */
+const showRouteCart = ref(true)
+
 const customPointIds = computed(() =>
   customPoints.value.map(p => Number(p.id))
 )
@@ -198,6 +208,7 @@ const canGeneratePdf = computed(() =>
 )
 
 function openAddStopsModal() {
+  showRouteCart.value = true
   addStopsItems.value = []
   addStopsOpen.value = true
 }
@@ -218,6 +229,7 @@ function loadAddStopsRegion(region) {
 }
 
 function handleAddStops(ids) {
+  showRouteCart.value = true
   addCustomStops(ids)
   closeAddStopsModal()
 }
@@ -238,6 +250,21 @@ function togglePostItem(i) {
 
 const formatKm = m => fmtKm(m)
 const formatDur = d => fmtDur(d)
+
+async function handleRunCompute() {
+  showRouteCart.value = false
+  await runCompute()
+}
+
+async function handleRunCustomRoute() {
+  showRouteCart.value = true
+  await runCustomRoute()
+}
+
+function handleCloseRoute() {
+  onCloseRoute()
+  showRouteCart.value = true
+}
 
 async function exportToExcel() {
   if (!lastRawData.value) {
