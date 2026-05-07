@@ -1,5 +1,64 @@
-# Vue 3 + Vite
+# Optimizador de Rutas
 
-This template should help get you started developing with Vue 3 in Vite. The template uses Vue 3 `<script setup>` SFCs, check out the [script setup docs](https://v3.vuejs.org/api/sfc-script-setup.html#sfc-script-setup) to learn more.
+Aplicación web para visualizar unidades en mapa, calcular rutas optimizadas y generar planes de trabajo operativos mediante rutas personalizadas y exportación PDF.
 
-Learn more about IDE Support for Vue in the [Vue Docs Scaling up Guide](https://vuejs.org/guide/scaling-up/tooling.html#ide-support).
+---
+
+## Descripción
+
+El sistema permite consultar farmacias/unidades georreferenciadas, visualizarlas en Google Maps y calcular recorridos optimizados de acuerdo con diferentes criterios operativos.
+
+La aplicación está enfocada en facilitar la planeación de visitas de supervisión mediante herramientas de visualización, optimización y exportación de rutas.
+
+La versión incluida en este repositorio contempla el flujo web estable hasta la funcionalidad de rutas personalizadas mediante carrito temporal y generación de planes de trabajo.
+
+---
+
+## Tecnologías principales
+
+### Frontend
+- Vue 3
+- Vite
+- Google Maps JavaScript API
+
+### Backend
+- Node.js
+- Express
+
+### Base de datos
+- PostgreSQL
+- Supabase
+
+### APIs externas
+- Google Maps JavaScript API
+- Google Routes API
+
+---
+
+## Funcionalidades incluidas
+
+- Visualización de unidades en Google Maps.
+- Marcadores por región sanitaria.
+- Identificación visual de unidades de difícil acceso.
+- Cálculo de rutas optimizadas.
+- Configuración de origen de ruta.
+- Ruta personalizada mediante carrito temporal.
+- Reordenamiento manual de puntos.
+- Generación de enlaces de Google Maps.
+- División automática por subrutas.
+- Generación de plan de trabajo en PDF.
+- Exportación de rutas con mapa y detalle operativo.
+- Exportación de resultados a Excel y CSV.
+- Visualización de distancia, duración, subrutas y peajes estimados.
+
+---
+
+## Estructura general del proyecto
+
+```txt
+.
+├── backend/              # API Node.js + Express
+├── public/               # Archivos públicos
+├── src/                  # Aplicación frontend Vue
+├── package.json          # Dependencias frontend
+└── README.md

@@ -6,7 +6,6 @@ import { pool } from './db/pool.js'
 import { computeRoutes, getStaticRouteMap } from './routes.controller.js'
 
 // ================== Routers ==================
-import mobileRouter from './routes/mobile.route.js'
 import workPlansRouter from './routes/workPlans.route.js'
 import routeTemplatesRouter from './routes/routeTemplates.route.js'
 import assignmentsRouter from './routes/assignments.route.js'
@@ -71,7 +70,6 @@ app.get('/api/health', async (req, res) => {
 })
 
 // ================== Routers ==================
-app.use('/api/mobile', mobileRouter)
 app.use('/api/work-plans', workPlansRouter)
 app.use('/api/route-templates', routeTemplatesRouter)
 app.use('/api/assignments', assignmentsRouter)

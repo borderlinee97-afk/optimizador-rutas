@@ -119,9 +119,6 @@ export async function computeRoutes(req, res) {
       manualOrderIds
     } = req.body || {}
 
-    console.log('==== POST /api/routes/compute ====')
-    console.log('body:', JSON.stringify(req.body, null, 2))
-
     if (!process.env.GMAPS_API_KEY) {
       return res.status(500).json({ error: 'Falta GMAPS_API_KEY en backend' })
     }
@@ -179,8 +176,6 @@ export async function computeRoutes(req, res) {
       ORDER BY f.clues
       LIMIT 2000
     `
-
-    console.log('Executing SQL with params:', params)
 
     const { rows } = await pool.query(sql, params)
 
@@ -408,8 +403,6 @@ export async function computeRoutes(req, res) {
         },
         optimizeWaypointOrder: isFastest || isResources
       }
-
-      console.log('Calling Google Routes API with payload:', JSON.stringify(routesReq, null, 2))
 
       const gmRes = await fetch(
         'https://routes.googleapis.com/directions/v2:computeRoutes',
