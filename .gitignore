@@ -10,22 +10,34 @@ pnpm-debug.log*
 lerna-debug.log*
 
 # ======================
-# Node
+# Dependencies
 # ======================
 node_modules
+backend/node_modules
 
 # ======================
 # Build
 # ======================
 dist
 dist-ssr
+backend/dist
+build
 
 # ======================
-# Env (CRÍTICO 🔥)
+# Environment variables (CRÍTICO)
 # ======================
 .env
 .env.*
 !.env.example
+
+# ======================
+# Mobile / Expo (NO subir aún)
+# ======================
+mobile/
+.expo/
+.expo/*
+mobile/.expo/
+mobile/node_modules/
 
 # ======================
 # Local files
@@ -33,16 +45,23 @@ dist-ssr
 *.local
 
 # ======================
-# Editor
+# Editor / OS
 # ======================
 .vscode/*
 !.vscode/extensions.json
 .idea
 .DS_Store
+Thumbs.db
 *.suo
 *.ntvs*
 *.njsproj
 *.sln
 *.sw?
-mobile/
-git
+
+# ======================
+# Temporary / cache
+# ======================
+.cache
+.tmp
+temp
+coverage
