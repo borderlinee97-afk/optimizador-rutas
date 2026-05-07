@@ -102,13 +102,13 @@ app.use((err, req, res, next) => {
 const port = Number(process.env.PORT || 4000)
 
 app.listen(port, async () => {
-  console.log(`✅ API listening on port ${port}`)
-  console.log('✅ Allowed origins:', allowedOrigins)
+  console.log(`API listening on port ${port}`)
+  console.log('Allowed origins:', allowedOrigins)
 
   try {
     const result = await pool.query('SELECT NOW() AS now')
-    console.log(`✅ DB connected at ${result.rows[0].now}`)
+    console.log(`DB connected at ${result.rows[0].now}`)
   } catch (error) {
-    console.error('❌ DB connection failed:', error.message)
+    console.error('DB connection failed:', error.message)
   }
 })
