@@ -150,6 +150,7 @@ const {
 } = useMap()
 
 const routing = useRouting({ map, trackOverlay, detachOverlay, clearAllOverlays })
+
 const {
   farmacias, regiones, farmaciasRegion,
   criteriaOpen, criteria, originMode, originPharmacyId,
@@ -240,6 +241,7 @@ async function handleProjectChange() {
   handleCloseRoute()
   clearCustomPoints()
   addStopsItems.value = []
+  criteria.value.proyecto = selectedProject.value
   await loadProjectFarmacias()
 }
 
@@ -370,6 +372,7 @@ onMounted(async () => {
   const el = await waitForEl(mapEl)
   if (!el) return
 
+  criteria.value.proyecto = selectedProject.value
   await loadProjectFarmacias()
 })
 </script>

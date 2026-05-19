@@ -3,7 +3,12 @@ import { ref, computed } from 'vue'
 import { computeRoute } from '../services/api.js'
 import { copyToClipboard as copyLinkToClipboard } from '../utils/links.js'
 
-export function useRouting({ map, trackOverlay, detachOverlay, clearAllOverlays }) {
+export function useRouting({ 
+  map, 
+  trackOverlay, 
+  detachOverlay, 
+  clearAllOverlays
+}) {
   // ====== Estado base / UI ======
   const criteriaOpen = ref(false)
   const criteria = ref({
@@ -408,7 +413,44 @@ export function useRouting({ map, trackOverlay, detachOverlay, clearAllOverlays 
     await google.maps.importLibrary('geometry')
 
     const paletteSR = ['#1565C0', '#2E7D32', '#6A1B9A', '#EF6C00', '#00897B', '#D81B60', '#5D4037']
-    const colors = data.subroutes.map((_, i) => paletteSR[i % paletteSR.length])
+
+    const routeRegion = data?.input?.region_sanitaria || null
+
+    const regionColorMap = {
+      '01 - COLOTLÁN': '#1E88E5',
+      '02 - LAGOS DE MORENO': '#43A047',
+      '03 - TEPATITLÁN': '#8E24AA',
+      '04 - LA BARCA': '#F4511E',
+      '05 - TAMAZULA': '#3949AB',
+      '06 - CIUDAD GUZMÁN': '#00897B',
+      '07 - AUTLÁN': '#6D4C41',
+      '08 - PUERTO VALLARTA': '#FDD835',
+      '09 - AMECA': '#5E35B1',
+      '10 - CENTRO - ZAPOPAN': '#00ACC1',
+      '11 - CENTRO - TONALÁ': '#EF5350',
+      '12 - CENTRO - TLAQUEPAQUE': '#7CB342',
+      '13 - CENTRO - GUADALAJARA': '#FF7043',
+
+      '01 - TIERRA CALIENTE': '#1E88E5',
+      '02 - NORTE': '#43A047',
+      '03 - CENTRO': '#8E24AA',
+      '04 - MONTAÑA': '#F4511E',
+      '05 - COSTA GRANDE': '#3949AB',
+      '06 - COSTA CHICA': '#00897B',
+      '07 - ACAPULCO': '#6D4C41'
+    }
+
+const regionColor = regionColorMap[routeRegion]
+
+const useSingleRegionColor =
+  routeRegion &&
+  data?.input?.strategy !== 'MANUAL'
+
+const colors = data.subroutes.map((_, i) =>
+  useSingleRegionColor
+    ? (regionColor || '#1565C0')
+    : paletteSR[i % paletteSR.length]
+)
 
     const bounds = new google.maps.LatLngBounds()
     const polys = []
