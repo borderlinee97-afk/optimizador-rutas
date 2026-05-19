@@ -1,6 +1,12 @@
 import { pool } from './db/pool.js'
 import { chunkArray } from './utils/chunk.js'
 
+const DEFAULT_PROJECT = 'JALISCO'
+
+function normalizeProject(value) {
+  return String(value || DEFAULT_PROJECT).trim().toUpperCase()
+}
+
 function haversine(a, b) {
   const toRad = d => (d * Math.PI) / 180
   const R = 6371000
@@ -116,9 +122,12 @@ export async function computeRoutes(req, res) {
       strategy = 'FASTEST',
       options = {},
       origin,
-      manualOrderIds
+      manualOrderIds,
+      proyecto = DEFAULT_PROJECT
     } = req.body || {}
 
+    const projectCode = normalizeProject(proyecto)
+    
     console.log('==== POST /api/routes/compute ====')
     console.log('body:', JSON.stringify(req.body, null, 2))
 
@@ -146,9 +155,13 @@ export async function computeRoutes(req, res) {
     const avoidDificilAcceso = options.avoidDificilAcceso !== false
     const applyAvoidHard = avoidDificilAcceso && !isManual && !hasManualSubset
 
-    const clauses = ['f.latitud IS NOT NULL', 'f.longitud IS NOT NULL']
-    const params = []
-    let idx = 1
+    const clauses = [
+      'f.latitud IS NOT NULL',
+      'f.longitud IS NOT NULL',
+      'f.proyecto = $1'
+    ]
+    const params = [projectCode]
+    let idx = 2
 
     if (hasManualSubset) {
       clauses.push(`f.id = ANY($${idx++}::bigint[])`)
@@ -169,8 +182,16 @@ export async function computeRoutes(req, res) {
 
     const sql = `
       SELECT
-        f.id, f.clues, f.unidad, f.region_sanitaria, f.estatus, f.supervisor,
-        f.direccion, f.latitud, f.longitud,
+        f.id,
+        f.clues,
+        f.unidad,
+        f.region_sanitaria,
+        f.estatus,
+        f.supervisor,
+        f.direccion,
+        f.latitud,
+        f.longitud,
+        f.proyecto,
         (fda.clues IS NOT NULL) AS dificil_acceso
       FROM public.farmacia f
       LEFT JOIN public.farmacia_dificil_acceso fda
@@ -187,6 +208,7 @@ export async function computeRoutes(req, res) {
     if (!rows || !rows.length) {
       return res.json({
         input: {
+          proyecto: projectCode,
           region_sanitaria: region_sanitaria ?? null,
           strategy: STRAT,
           options,
@@ -222,6 +244,7 @@ export async function computeRoutes(req, res) {
         unidad: r.unidad,
         direccion: r.direccion,
         region_sanitaria: r.region_sanitaria,
+        proyecto: r.proyecto,
         dificil: !!r.dificil_acceso
       }
     }))
@@ -253,6 +276,7 @@ export async function computeRoutes(req, res) {
       if (!ordered.length) {
         return res.json({
           input: {
+            proyecto: projectCode,
             region_sanitaria: region_sanitaria ?? null,
             strategy: STRAT,
             options,
@@ -298,6 +322,7 @@ export async function computeRoutes(req, res) {
       if (!ordered.length) {
         return res.json({
           input: {
+            proyecto: projectCode,
             region_sanitaria: region_sanitaria ?? null,
             strategy: STRAT,
             options,
@@ -328,6 +353,7 @@ export async function computeRoutes(req, res) {
     if (!returnToOrigin && ordered.length < 1) {
       return res.json({
         input: {
+          proyecto: projectCode,
           region_sanitaria: region_sanitaria ?? null,
           strategy: STRAT,
           options,
@@ -468,6 +494,7 @@ export async function computeRoutes(req, res) {
       if (!r) {
         return res.json({
           input: {
+            proyecto: projectCode,
             region_sanitaria: region_sanitaria ?? null,
             strategy: STRAT,
             options,
@@ -620,6 +647,7 @@ export async function computeRoutes(req, res) {
 
     return res.json({
       input: {
+        proyecto: projectCode,
         region_sanitaria: region_sanitaria ?? null,
         strategy: STRAT,
         options,

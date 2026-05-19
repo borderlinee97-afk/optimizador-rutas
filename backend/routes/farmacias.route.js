@@ -3,14 +3,29 @@ import { pool } from '../db/pool.js'
 
 const router = Router()
 
+const DEFAULT_PROJECT = 'JALISCO'
+
+function normalizeProject(value) {
+  return String(value || DEFAULT_PROJECT).trim().toUpperCase()
+}
+
 // ==============================
 // GET /api/farmacias
 // ==============================
 router.get('/farmacias', async (req, res) => {
   try {
     const { withCoords } = req.query
+    const proyecto = normalizeProject(req.query.proyecto)
 
-    let query = `
+    const conditions = ['proyecto = $1']
+    const params = [proyecto]
+
+    if (withCoords === 'true') {
+      conditions.push('latitud IS NOT NULL')
+      conditions.push('longitud IS NOT NULL')
+    }
+
+    const query = `
       SELECT
         id,
         clues,
@@ -22,19 +37,21 @@ router.get('/farmacias', async (req, res) => {
         direccion,
         latitud,
         longitud,
-        estado
-      FROM farmacia
+        estado,
+        proyecto
+      FROM public.farmacia
+      WHERE ${conditions.join(' AND ')}
+      ORDER BY region_sanitaria NULLS LAST, clues ASC
     `
 
-    if (withCoords === 'true') {
-      query += ' WHERE latitud IS NOT NULL AND longitud IS NOT NULL'
-    }
-
-    const { rows } = await pool.query(query)
-    res.json(rows)
+    const { rows } = await pool.query(query, params)
+    return res.json(rows)
   } catch (err) {
     console.error('[farmacias][GET]', err)
-    res.status(500).json({ error: 'Error obteniendo farmacias' })
+    return res.status(500).json({
+      error: 'Error obteniendo farmacias',
+      details: err.message
+    })
   }
 })
 
@@ -49,15 +66,21 @@ router.post('/farmacias/dificil-acceso/bulk', async (req, res) => {
       return res.status(400).json({ error: 'ids debe ser un arreglo no vacío' })
     }
 
+    // Nota: este endpoint se deja igual de funcionalidad general.
+    // Si difícil acceso se maneja con tabla farmacia_dificil_acceso,
+    // conviene ajustarlo después.
     await pool.query(
-      'UPDATE farmacia SET dificult_acceso = $1 WHERE id = ANY($2)',
+      'UPDATE public.farmacia SET dificil_acceso = $1 WHERE id = ANY($2)',
       [dificilAcceso, ids]
     )
 
-    res.json({ ok: true })
+    return res.json({ ok: true })
   } catch (err) {
     console.error('[farmacias][BULK]', err)
-    res.status(500).json({ error: 'Error actualizando farmacias' })
+    return res.status(500).json({
+      error: 'Error actualizando farmacias',
+      details: err.message
+    })
   }
 })
 

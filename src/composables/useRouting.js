@@ -9,6 +9,7 @@ export function useRouting({ map, trackOverlay, detachOverlay, clearAllOverlays 
   const criteria = ref({
     scope: 'single',
     region: '',
+    proyecto: 'JALISCO',
     strategy: 'FASTEST',
     options: {
       avoidTolls: false,
@@ -354,6 +355,7 @@ export function useRouting({ map, trackOverlay, detachOverlay, clearAllOverlays 
     }
 
     const payload = {
+      proyecto: criteria.value.proyecto || 'JALISCO',
       region_sanitaria: region,
       strategy: criteria.value.strategy,
       options: {
@@ -734,6 +736,7 @@ export function useRouting({ map, trackOverlay, detachOverlay, clearAllOverlays 
 
     const payload = {
       strategy: customStrategy.value || 'FASTEST',
+      proyecto: criteria.value.proyecto || 'JALISCO',
       manualOrderIds: ids,
       options: {
         ...criteria.value.options,
@@ -770,6 +773,7 @@ export function useRouting({ map, trackOverlay, detachOverlay, clearAllOverlays 
     }
 
     const payload = {
+      proyecto: criteria.value.proyecto || 'JALISCO',
       strategy: 'MANUAL',
       options: { ...criteria.value.options },
       manualOrderIds: ids

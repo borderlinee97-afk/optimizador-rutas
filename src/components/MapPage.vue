@@ -3,6 +3,14 @@
   <div id="map-wrapper">
     <div ref="mapEl" class="map"></div>
 
+    <div class="project-switch">
+      <label>Proyecto</label>
+      <select v-model="selectedProject" @change="handleProjectChange">
+        <option value="JALISCO">Jalisco</option>
+        <option value="GUERRERO">Guerrero</option>
+      </select>
+    </div>
+
     <FabGroup
       :trafficEnabled="trafficEnabled"
       :markersVisible="markersVisible"
@@ -132,10 +140,12 @@ import CriteriaModal from './modals/CriteriaModal.vue'
 import AddStopsModal from './modals/AddStopsModal.vue'
 import PlanTrabajoPrintView from './print/PlanTrabajoPrintView.vue'
 
+const selectedProject = ref('JALISCO')
+
 const {
   mapEl, map, initMap,
   toggleTraffic, toggleMarkers,
-  trafficEnabled, markersVisible,
+  trafficEnabled, markersVisible, markers,
   trackOverlay, detachOverlay, clearAllOverlays
 } = useMap()
 
@@ -170,13 +180,6 @@ function onPanelToggle() {
 
 const addStopsOpen = ref(false)
 const addStopsItems = ref([])
-
-/**
- * Controla si se muestra el bloque de ruta personalizada.
- * - Se oculta cuando el cálculo viene del flujo general (CriteriaModal)
- * - Se vuelve a mostrar al cerrar la ruta
- * - Se mantiene visible cuando se usa el flujo personalizado
- */
 const showRouteCart = ref(true)
 
 const customPointIds = computed(() =>
@@ -206,6 +209,39 @@ const canGeneratePdf = computed(() =>
     lastRawData.value.subroutes.length
   )
 )
+
+async function loadProjectFarmacias() {
+  clearAllOverlays()
+
+  for (const marker of markers.value || []) {
+    try {
+      marker.map = null
+    } catch {}
+  }
+
+  markers.value = []
+
+  const data = await getFarmacias({
+    withCoords: true,
+    proyecto: selectedProject.value
+  })
+
+  farmacias.value = Array.isArray(data)
+    ? data.map(f => ({ ...f, id: Number(f.id) }))
+    : []
+
+  reset()
+  farmacias.value.forEach(f => getColorForRegion(f.region_sanitaria))
+
+  await initMap({ getColorForRegion, farmacias })
+}
+
+async function handleProjectChange() {
+  handleCloseRoute()
+  clearCustomPoints()
+  addStopsItems.value = []
+  await loadProjectFarmacias()
+}
 
 function openAddStopsModal() {
   showRouteCart.value = true
@@ -253,11 +289,13 @@ const formatDur = d => fmtDur(d)
 
 async function handleRunCompute() {
   showRouteCart.value = false
+  criteria.value.proyecto = selectedProject.value
   await runCompute()
 }
 
 async function handleRunCustomRoute() {
   showRouteCart.value = true
+  criteria.value.proyecto = selectedProject.value
   await runCustomRoute()
 }
 
@@ -332,15 +370,7 @@ onMounted(async () => {
   const el = await waitForEl(mapEl)
   if (!el) return
 
-  const data = await getFarmacias({ withCoords: true })
-
-  farmacias.value = Array.isArray(data)
-    ? data.map(f => ({ ...f, id: Number(f.id) }))
-    : []
-
-  reset()
-  farmacias.value.forEach(f => getColorForRegion(f.region_sanitaria))
-  await initMap({ getColorForRegion, farmacias })
+  await loadProjectFarmacias()
 })
 </script>
 
@@ -355,6 +385,34 @@ html, body, #app, #map-wrapper {
 .map {
   width: 100%;
   height: 100%;
+}
+
+.project-switch {
+  position: absolute;
+  top: 86px;
+  left: 20px;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #ffffff;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  padding: 10px 12px;
+  box-shadow: 0 2px 6px rgba(0,0,0,.15);
+  font-weight: 600;
+}
+
+.project-switch label {
+  font-size: 13px;
+}
+
+.project-switch select {
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  padding: 6px 8px;
+  background: #ffffff;
+  font-weight: 600;
 }
 
 * {
