@@ -79,6 +79,8 @@ export function useMap() {
         content: pin
       })
 
+      marker.__farmaciaId = Number(f.id)
+
       marker.__data = {
         clues: f.clues,
         unidad: f.unidad ?? '',
@@ -117,10 +119,35 @@ export function useMap() {
     trafficEnabled.value = !trafficEnabled.value
   }
 
+  function setMarkerVisibility(marker, visible) {
+    try {
+      marker.map = visible ? map.value : null
+    } catch {}
+  }
+
+  function filterPharmacyMarkersByIds(ids = []) {
+    const allowed = new Set(ids.map(Number).filter(Number.isFinite))
+
+    for (const marker of markers.value) {
+      const markerId = Number(marker.__farmaciaId)
+      const visible =
+        markersVisible.value &&
+        allowed.has(markerId)
+
+      setMarkerVisibility(marker, visible)
+    }
+  }
+
+  function clearPharmacyMarkerFilter() {
+    for (const marker of markers.value) {
+      setMarkerVisibility(marker, markersVisible.value)
+    }
+  }
+
   function toggleMarkers() {
     markersVisible.value = !markersVisible.value
     for (const m of markers.value) {
-      try { m.map = markersVisible.value ? map.value : null } catch {}
+      setMarkerVisibility(m, markersVisible.value)
     }
   }
 
@@ -135,6 +162,7 @@ export function useMap() {
     mapEl, map, infoWindow,
     trafficEnabled, markersVisible, markers,
     initMap, toggleTraffic, toggleMarkers,
+    filterPharmacyMarkersByIds, clearPharmacyMarkerFilter,
     trackOverlay, detachOverlay, clearAllOverlays
   }
 }

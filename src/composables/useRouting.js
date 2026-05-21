@@ -7,7 +7,9 @@ export function useRouting({
   map, 
   trackOverlay, 
   detachOverlay, 
-  clearAllOverlays
+  clearAllOverlays,
+  filterPharmacyMarkersByIds,
+  clearPharmacyMarkerFilter
 }) {
   // ====== Estado base / UI ======
   const criteriaOpen = ref(false)
@@ -16,6 +18,12 @@ export function useRouting({
     region: '',
     proyecto: 'JALISCO',
     strategy: 'FASTEST',
+    operatorCount: 1,
+    kmPerLiter: 12,
+    originCoords: {
+      lat: '',
+      lng: ''
+    },
     options: {
       avoidTolls: false,
       showAlternatives: true,
@@ -253,6 +261,9 @@ export function useRouting({
   const routeTotal = ref(null)
   const routeLegs = ref([])
   const readableOrder = ref([])
+  const operatorRoutes = ref([])
+  const routeFuel = ref(null)
+  const selectedOperator = ref(null)
   const routeTolls = ref({
     hasTolls: false,
     known: false,
@@ -266,8 +277,11 @@ export function useRouting({
   const sequenceMarkers = ref([])
 
   const subroutesUi = ref([])
+  const allSubroutesUi = ref([])
   const subrouteColors = ref([])
   const unifyColors = ref(false)
+
+  const allMapsLinks = ref([])
 
   const hasAnyRoute = computed(() =>
     !!(
@@ -309,6 +323,9 @@ export function useRouting({
     routeTotal.value = null
     routeLegs.value = []
     readableOrder.value = []
+    operatorRoutes.value = []
+    routeFuel.value = null
+    selectedOperator.value = null
     routeTolls.value = {
       hasTolls: false,
       known: false,
@@ -317,10 +334,15 @@ export function useRouting({
       text: 'Sin peajes estimados'
     }
     subroutesUi.value = []
+    allSubroutesUi.value = []
     subrouteColors.value = []
 
     postOrder.value = []
     mapsLinks.value = []
+    allMapsLinks.value = []
+    if (typeof clearPharmacyMarkerFilter === 'function') {
+     clearPharmacyMarkerFilter()
+    }
   }
 
   const computeRunId = ref(0)
@@ -346,10 +368,17 @@ export function useRouting({
   function buildPayload(region) {
     let origin
 
-    if (originMode.value === 'center' && map.value) {
-      const c = map.value.getCenter()
-      origin = { lat: c.lat(), lng: c.lng() }
-    } else if (originMode.value === 'pharmacy') {
+if (originMode.value === 'center' && map.value) {
+  const c = map.value.getCenter()
+  origin = { lat: c.lat(), lng: c.lng() }
+} else if (originMode.value === 'coords') {
+  const lat = Number(criteria.value.originCoords?.lat)
+  const lng = Number(criteria.value.originCoords?.lng)
+
+  if (Number.isFinite(lat) && Number.isFinite(lng)) {
+    origin = { lat, lng }
+  }
+} else if (originMode.value === 'pharmacy') {
       const all = farmacias.value.filter(f => f.region_sanitaria === region)
       const chosen =
         all.find(f => Number(f.id) === Number(originPharmacyId.value)) || all[0]
@@ -363,6 +392,10 @@ export function useRouting({
       proyecto: criteria.value.proyecto || 'JALISCO',
       region_sanitaria: region,
       strategy: criteria.value.strategy,
+
+      operatorCount: Number(criteria.value.operatorCount || 1),
+      kmPerLiter: Number(criteria.value.kmPerLiter || 10),
+
       options: {
         ...criteria.value.options,
         avoidDificilAcceso: criteria.value.options.avoidDificilAcceso !== false
@@ -467,6 +500,8 @@ const colors = data.subroutes.map((_, i) =>
         map: map.value
       })
 
+      pl.__operator = sr.operator || null
+
       polys.push(pl)
       trackOverlay(pl)
       path.forEach(ll => bounds.extend(ll))
@@ -479,15 +514,20 @@ const colors = data.subroutes.map((_, i) =>
       const { AdvancedMarkerElement, PinElement } = await google.maps.importLibrary('marker')
 
       let i = 1
+      const operatorCounters = new Map()
+
       for (const p of data.visitOrder) {
-        if (p.name === 'ORIGEN') continue
+        if (p.name === 'ORIGEN' || String(p.name || '').includes('ORIGEN')) continue
+        if (!p.id) continue
         if (typeof p.lat !== 'number' || typeof p.lng !== 'number') continue
 
         const pin = new PinElement({
           background: '#111827',
           borderColor: '#ffffff',
           glyphColor: '#ffffff',
-          glyphText: String(i++)
+          glyphText: p.operator
+            ? String(operatorCounters.set(p.operator, (operatorCounters.get(p.operator) || 0) + 1).get(p.operator))
+            : String(i++)
         })
 
         const m = new AdvancedMarkerElement({
@@ -496,6 +536,8 @@ const colors = data.subroutes.map((_, i) =>
           title: p.name,
           content: pin
         })
+
+        m.__operator = p.operator || null
 
         seq.push(m)
         trackOverlay(m)
@@ -508,16 +550,34 @@ const colors = data.subroutes.map((_, i) =>
 
   function buildSubroutesUi(data) {
     subroutesUi.value = []
+    allSubroutesUi.value = []
+
     if (!data || !Array.isArray(data.subroutes)) return
 
-    let acc = 1
-    data.subroutes.forEach((sr, idx) => {
-      const start = acc
-      const end = acc + Number(sr.count || 0) - 1
-      acc = end + 1
+    const countersByOperator = new Map()
+    let globalAcc = 1
 
-      subroutesUi.value.push({
+    data.subroutes.forEach((sr, idx) => {
+      const operator = sr.operator || null
+
+      let start
+      let end
+
+      if (operator) {
+        const current = countersByOperator.get(operator) || 1
+        start = current
+        end = current + Number(sr.count || 0) - 1
+        countersByOperator.set(operator, end + 1)
+      } else {
+        start = globalAcc
+        end = globalAcc + Number(sr.count || 0) - 1
+        globalAcc = end + 1
+      }
+
+      allSubroutesUi.value.push({
         idx,
+        operator,
+        label: sr.label || (operator ? `Operador ${operator}` : `Sub-ruta ${idx + 1}`),
         color: subrouteColors.value[idx] || '#1565C0',
         distance: sr.distance || 0,
         duration: sr.duration || '0s',
@@ -531,6 +591,8 @@ const colors = data.subroutes.map((_, i) =>
         }
       })
     })
+
+    subroutesUi.value = [...allSubroutesUi.value]
   }
 
   function recolorCurrent() {
@@ -609,14 +671,53 @@ const colors = data.subroutes.map((_, i) =>
   }
 
   function rebuildLinks(data) {
-    if (!data || !Array.isArray(data.visitOrder) || !data.visitOrder.length) {
-      mapsLinks.value = []
+    if (Array.isArray(data?.operatorRoutes) && data.operatorRoutes.length) {
+      const links = []
+      const origin = normalizePoint(data.start)
+      const maxIntermediate = Math.max(1, Number(linkChunkSize.value) || 8)
+
+      for (const op of data.operatorRoutes) {
+        const points = (op.points || []).map(normalizePoint).filter(Boolean)
+        if (!origin || !points.length) continue
+
+        let fullRoute = [origin, ...points]
+
+        if (criteria.value.options?.returnToOrigin) {
+          fullRoute.push(origin)
+        }
+
+        let startIdx = 0
+
+        while (startIdx < fullRoute.length - 1) {
+          const endIdx = Math.min(startIdx + maxIntermediate + 1, fullRoute.length - 1)
+          const chunk = fullRoute.slice(startIdx, endIdx + 1)
+
+          if (chunk.length >= 2) {
+            const chunkOrigin = chunk[0]
+            const chunkDestination = chunk[chunk.length - 1]
+            const chunkWaypoints = chunk.slice(1, -1)
+
+            links.push({
+              operator: op.operator,
+              label: op.label || `Operador ${op.operator}`,
+              url: buildGoogleMapsDirUrl(chunkOrigin, chunkDestination, chunkWaypoints),
+              from: startIdx + 1,
+              to: endIdx + 1
+            })
+          }
+
+          startIdx = endIdx
+        }
+      }
+
+      mapsLinks.value = links
+      allMapsLinks.value = links
       return
     }
 
     const origin = normalizePoint(data.start)
     const visitPoints = data.visitOrder
-      .filter(p => p && p.name !== 'ORIGEN')
+      .filter(p => p && p.name !== 'ORIGEN' && !String(p.name || '').includes('ORIGEN'))
       .map(normalizePoint)
       .filter(Boolean)
 
@@ -664,7 +765,10 @@ const colors = data.subroutes.map((_, i) =>
         const chunkDestination = chunk[chunk.length - 1]
         const chunkWaypoints = chunk.slice(1, -1)
 
+        const operator = chunk.find(p => p.operator)?.operator || null
+
         links.push({
+          operator,
           url: buildGoogleMapsDirUrl(chunkOrigin, chunkDestination, chunkWaypoints),
           from: startIdx + 1,
           to: endIdx + 1
@@ -675,6 +779,7 @@ const colors = data.subroutes.map((_, i) =>
     }
 
     mapsLinks.value = links
+    allMapsLinks.value = links
   }
 
   function copyToClipboard(url) {
@@ -688,6 +793,8 @@ const colors = data.subroutes.map((_, i) =>
     routeTotal.value = data.total
     routeLegs.value = Array.isArray(data.legs) ? data.legs : []
     readableOrder.value = data.readableOrder || []
+    operatorRoutes.value = Array.isArray(data.operatorRoutes) ? data.operatorRoutes : []
+    routeFuel.value = data.fuel || null
     routeTolls.value = data.tolls || {
       hasTolls: false,
       known: false,
@@ -720,6 +827,20 @@ const colors = data.subroutes.map((_, i) =>
 
     if (criteria.value.scope === 'single') {
       const payload = buildPayload(criteria.value.region)
+      const data = await postCompute(payload, runId)
+      await applyComputedRoute(data, runId)
+      return
+    }
+
+    const operatorCount = Number(criteria.value.operatorCount || 1)
+
+    if (criteria.value.scope === 'all' && operatorCount > 1) {
+      const payload = buildPayload(null)
+
+      payload.region_sanitaria = null
+      payload.scope = 'PROJECT'
+      payload.projectWide = true
+
       const data = await postCompute(payload, runId)
       await applyComputedRoute(data, runId)
       return
@@ -777,8 +898,12 @@ const colors = data.subroutes.map((_, i) =>
     const ids = rotateIdsFromCustomOrigin(idsBase)
 
     const payload = {
-      strategy: customStrategy.value || 'FASTEST',
       proyecto: criteria.value.proyecto || 'JALISCO',
+
+      operatorCount: 1,
+      kmPerLiter: Number(criteria.value.kmPerLiter || 10),
+
+      strategy: customStrategy.value || 'FASTEST',
       manualOrderIds: ids,
       options: {
         ...criteria.value.options,
@@ -816,6 +941,10 @@ const colors = data.subroutes.map((_, i) =>
 
     const payload = {
       proyecto: criteria.value.proyecto || 'JALISCO',
+
+      operatorCount: Number(criteria.value.operatorCount || 1),
+      kmPerLiter: Number(criteria.value.kmPerLiter || 10),
+
       strategy: 'MANUAL',
       options: { ...criteria.value.options },
       manualOrderIds: ids
@@ -857,6 +986,66 @@ const colors = data.subroutes.map((_, i) =>
     }
   }
 
+  function applyOperatorFilter(operator) {
+    selectedOperator.value =
+      selectedOperator.value === operator ? null : operator
+
+    const active = selectedOperator.value
+    const bounds = new google.maps.LatLngBounds()
+
+    currentPolylines.value.forEach(pl => {
+      if (!pl) return
+
+      const op = pl.__operator || null
+      const visible = !active || op === active
+
+      pl.setMap(map.value)
+
+      pl.setOptions({
+        strokeOpacity: visible ? 0.95 : 0.05,
+        strokeWeight: visible ? 7 : 2,
+        zIndex: visible ? 999 : 1
+      })
+
+      if (visible && active) {
+        const path = pl.getPath()
+        for (let i = 0; i < path.getLength(); i++) {
+          bounds.extend(path.getAt(i))
+        }
+      }
+    })
+
+    sequenceMarkers.value.forEach(marker => {
+      if (!marker) return
+
+      const op = marker.__operator || null
+      marker.map = !active || op === active ? map.value : null
+    })
+
+    subroutesUi.value = active
+      ? allSubroutesUi.value.filter(sr => sr.operator === active)
+      : [...allSubroutesUi.value]
+
+    mapsLinks.value = active
+      ? allMapsLinks.value.filter(link => link.operator === active)
+      : [...allMapsLinks.value]
+
+    if (active) {
+      const op = operatorRoutes.value.find(r => Number(r.operator) === Number(active))
+      const ids = (op?.points || []).map(p => Number(p.id)).filter(Number.isFinite)
+
+      if (typeof filterPharmacyMarkersByIds === 'function') {
+        filterPharmacyMarkersByIds(ids)
+      }
+
+      if (!bounds.isEmpty()) {
+        map.value.fitBounds(bounds)
+      }
+    } else if (typeof clearPharmacyMarkerFilter === 'function') {
+      clearPharmacyMarkerFilter()
+    }
+  }
+
   return {
     farmacias,
     regiones,
@@ -892,6 +1081,10 @@ const colors = data.subroutes.map((_, i) =>
     routeTotal,
     routeLegs,
     readableOrder,
+    operatorRoutes,
+    routeFuel,
+    selectedOperator,
+    applyOperatorFilter,
     routeTolls,
     massiveResults,
     currentPolylines,

@@ -61,6 +61,36 @@
             <p v-if="criteria.scope === 'all'" class="hint">
               La estrategia manual solo está disponible cuando calculas una sola región.
             </p>
+
+            <div class="operator-grid">
+              <div class="field-block">
+                <label class="field-label">Número de operadores</label>
+                <input
+                  type="number"
+                  min="1"
+                  max="50"
+                  v-model.number="criteria.operatorCount"
+                  class="field-control field-control-sm"
+                />
+                <p class="hint">
+                  Si indicas más de 1 operador, el sistema dividirá las unidades en rutas operativas.
+                </p>
+              </div>
+
+              <div class="field-block">
+                <label class="field-label">Rendimiento km/L</label>
+                <input
+                  type="number"
+                  min="1"
+                  step="0.1"
+                  v-model.number="criteria.kmPerLiter"
+                  class="field-control field-control-sm"
+                />
+                <p class="hint">
+                  Se usará para estimar litros necesarios por ruta y total.
+                </p>
+              </div>
+            </div>
           </div>
         </details>
 
@@ -80,9 +110,41 @@
               </label>
 
               <label class="radio-line">
+                <input type="radio" value="coords" v-model="originModeProxy" />
+                <span>Coordenadas personalizadas</span>
+              </label>
+
+              <label class="radio-line">
                 <input type="radio" value="pharmacy" v-model="originModeProxy" />
                 <span>Elegir farmacia</span>
               </label>
+            </div>
+
+            <div
+              v-if="originModeProxy === 'coords'"
+              class="coords-grid nested-block"
+            >
+              <div class="field-block">
+                <label class="field-label">Latitud</label>
+                <input
+                  type="number"
+                  step="0.000001"
+                  v-model.number="criteria.originCoords.lat"
+                  class="field-control"
+                  placeholder="Ej. 16.8615"
+                />
+              </div>
+
+              <div class="field-block">
+                <label class="field-label">Longitud</label>
+                <input
+                  type="number"
+                  step="0.000001"
+                  v-model.number="criteria.originCoords.lng"
+                  class="field-control"
+                  placeholder="Ej. -99.9013"
+                />
+              </div>
             </div>
 
             <div
@@ -460,6 +522,32 @@ const originPharmacyIdProxy = computed({
   font-size: 0.76rem;
   font-weight: 700;
   white-space: nowrap;
+}
+
+.coords-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  margin-top: 10px;
+}
+
+@media (max-width: 640px) {
+  .coords-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.operator-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  margin-top: 14px;
+}
+
+@media (max-width: 640px) {
+  .operator-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 .options-grid {

@@ -55,7 +55,10 @@
 
       <PanelGeneral
         :routeTotal="routeTotal"
+        :routeFuel="routeFuel"
         :routeTolls="routeTolls"
+        :operatorRoutes="operatorRoutes"
+        :selectedOperator="selectedOperator"
         :subroutesUi="subroutesUi"
         :readableOrder="readableOrder"
         :routeLegs="routeLegs"
@@ -72,6 +75,7 @@
         @copy-link="copyToClipboard"
         @export-excel="exportToExcel"
         @export-csv="exportCsvVisits"
+        @select-operator="applyOperatorFilter"
       />
     </PanelSandbox>
 
@@ -146,10 +150,18 @@ const {
   mapEl, map, initMap,
   toggleTraffic, toggleMarkers,
   trafficEnabled, markersVisible, markers,
+  filterPharmacyMarkersByIds, clearPharmacyMarkerFilter,
   trackOverlay, detachOverlay, clearAllOverlays
 } = useMap()
 
-const routing = useRouting({ map, trackOverlay, detachOverlay, clearAllOverlays })
+const routing = useRouting({
+  map,
+  trackOverlay,
+  detachOverlay,
+  clearAllOverlays,
+  filterPharmacyMarkersByIds,
+  clearPharmacyMarkerFilter
+})
 
 const {
   farmacias, regiones, farmaciasRegion,
@@ -162,7 +174,7 @@ const {
   addCustomStops, setCustomPoints, clearCustomPoints, runCustomRoute,
 
   postOrder, postDragStart, postDragEnter, postDrop,
-  routeTotal, routeLegs, readableOrder, routeTolls,
+  routeTotal, routeLegs, readableOrder, operatorRoutes, routeFuel, selectedOperator, applyOperatorFilter, routeTolls,
   subroutesUi,
   focusSubroute, hasAnyRoute,
   mapsLinks, linkChunkSize, copyToClipboard,

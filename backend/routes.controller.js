@@ -114,6 +114,185 @@ function isValidLatLng(point) {
   )
 }
 
+function clampOperatorCount(value, totalPoints) {
+  const n = Math.floor(Number(value || 1))
+  if (!Number.isFinite(n) || n < 1) return 1
+  return Math.min(n, Math.max(1, totalPoints))
+}
+
+function estimateFuelLiters(distanceMeters, kmPerLiter) {
+  const km = Number(distanceMeters || 0) / 1000
+  const rendimiento = Number(kmPerLiter || 0)
+
+  if (!Number.isFinite(rendimiento) || rendimiento <= 0) {
+    return null
+  }
+
+  return km / rendimiento
+}
+
+function nearestNeighborOrder(points, origin) {
+  const pending = [...points]
+  const ordered = []
+  let current = origin
+
+  while (pending.length) {
+    let bestIdx = 0
+    let bestDist = Infinity
+
+    for (let i = 0; i < pending.length; i++) {
+      const d = haversine(current, pending[i])
+      if (d < bestDist) {
+        bestDist = d
+        bestIdx = i
+      }
+    }
+
+    const next = pending.splice(bestIdx, 1)[0]
+    ordered.push(next)
+    current = next
+  }
+
+  return ordered
+}
+
+function getPointRegion(point) {
+  return point?.meta?.region_sanitaria || 'SIN REGIÓN'
+}
+
+function getCentroid(points = []) {
+  const total = points.length || 1
+
+  return {
+    lat: points.reduce((acc, p) => acc + Number(p.lat || 0), 0) / total,
+    lng: points.reduce((acc, p) => acc + Number(p.lng || 0), 0) / total
+  }
+}
+
+function estimateClusterWorkload(points = [], origin) {
+  if (!points.length) return 0
+
+  const centroid = getCentroid(points)
+  const roundTrip = haversine(origin, centroid) * 2
+
+  const ordered = nearestNeighborOrder(points, centroid)
+  let internal = 0
+
+  for (let i = 1; i < ordered.length; i++) {
+    internal += haversine(ordered[i - 1], ordered[i])
+  }
+
+  return roundTrip + internal
+}
+
+function splitClusterGeographically(cluster) {
+  const points = cluster.points || []
+  if (points.length <= 1) return [cluster]
+
+  const centroid = getCentroid(points)
+
+  const sorted = [...points].sort((a, b) => {
+    const angleA = Math.atan2(a.lat - centroid.lat, a.lng - centroid.lng)
+    const angleB = Math.atan2(b.lat - centroid.lat, b.lng - centroid.lng)
+    return angleA - angleB
+  })
+
+  const mid = Math.ceil(sorted.length / 2)
+
+  return [
+    {
+      region: `${cluster.region} A`,
+      sourceRegion: cluster.sourceRegion || cluster.region,
+      points: sorted.slice(0, mid)
+    },
+    {
+      region: `${cluster.region} B`,
+      sourceRegion: cluster.sourceRegion || cluster.region,
+      points: sorted.slice(mid)
+    }
+  ]
+}
+
+function splitPointsByOperators(points, operatorCount, origin) {
+  const count = clampOperatorCount(operatorCount, points.length)
+
+  if (count <= 1) {
+    return [
+      {
+        operator: 1,
+        label: 'Operador 1',
+        regions: Array.from(new Set(points.map(getPointRegion))),
+        points: nearestNeighborOrder(points, origin)
+      }
+    ]
+  }
+
+  const byRegion = new Map()
+
+  for (const point of points) {
+    const region = getPointRegion(point)
+    if (!byRegion.has(region)) byRegion.set(region, [])
+    byRegion.get(region).push(point)
+  }
+
+  let clusters = Array.from(byRegion.entries()).map(([region, regionPoints]) => ({
+    region,
+    sourceRegion: region,
+    points: regionPoints
+  }))
+
+  while (clusters.length < count) {
+    clusters.sort((a, b) => b.points.length - a.points.length)
+
+    const biggest = clusters.shift()
+    if (!biggest || biggest.points.length <= 1) {
+      if (biggest) clusters.unshift(biggest)
+      break
+    }
+
+    clusters.push(...splitClusterGeographically(biggest))
+  }
+
+  clusters = clusters.map(cluster => ({
+    ...cluster,
+    workload: estimateClusterWorkload(cluster.points, origin),
+    centroid: getCentroid(cluster.points)
+  }))
+
+  clusters.sort((a, b) => {
+    const angleA = Math.atan2(a.centroid.lat - origin.lat, a.centroid.lng - origin.lng)
+    const angleB = Math.atan2(b.centroid.lat - origin.lat, b.centroid.lng - origin.lng)
+    return angleA - angleB
+  })
+
+  const operators = Array.from({ length: count }, (_, i) => ({
+    operator: i + 1,
+    label: `Operador ${i + 1}`,
+    workload: 0,
+    regions: [],
+    points: []
+  }))
+
+  for (const cluster of clusters) {
+    operators.sort((a, b) => a.workload - b.workload)
+
+    operators[0].points.push(...cluster.points)
+    operators[0].regions.push(cluster.region)
+    operators[0].workload += cluster.workload
+  }
+
+  operators.sort((a, b) => a.operator - b.operator)
+
+  return operators
+    .filter(op => op.points.length)
+    .map(op => ({
+      operator: op.operator,
+      label: op.label,
+      regions: op.regions,
+      points: nearestNeighborOrder(op.points, origin)
+    }))
+}
+
 export async function computeRoutes(req, res) {
   try {
     const {
@@ -123,7 +302,9 @@ export async function computeRoutes(req, res) {
       options = {},
       origin,
       manualOrderIds,
-      proyecto = DEFAULT_PROJECT
+      proyecto = DEFAULT_PROJECT,
+      operatorCount = 1,
+      kmPerLiter = 10
     } = req.body || {}
 
     const projectCode = normalizeProject(proyecto)
@@ -148,7 +329,12 @@ export async function computeRoutes(req, res) {
 
     const hasManualSubset = wantedIds.length > 0
 
-    if (!hasManualSubset && !region_sanitaria) {
+    const isProjectWideOperators =
+      !hasManualSubset &&
+      !region_sanitaria &&
+      Number(operatorCount || 1) > 1
+
+    if (!hasManualSubset && !region_sanitaria && !isProjectWideOperators) {
       return res.status(400).json({ error: 'region_sanitaria es requerida' })
     }
 
@@ -166,7 +352,7 @@ export async function computeRoutes(req, res) {
     if (hasManualSubset) {
       clauses.push(`f.id = ANY($${idx++}::bigint[])`)
       params.push(wantedIds)
-    } else {
+    } else if (region_sanitaria) {
       clauses.push(`f.region_sanitaria = $${idx++}`)
       params.push(region_sanitaria)
     }
@@ -479,6 +665,205 @@ export async function computeRoutes(req, res) {
       }
 
       return data.routes[0]
+    }
+
+    const effectiveOperatorCount = clampOperatorCount(operatorCount, ordered.length)
+    const fuelKmPerLiter = Number(kmPerLiter || 0)
+
+    if (effectiveOperatorCount > 1 && !hasManualSubset && STRAT !== 'MANUAL') {
+      const operatorGroups = splitPointsByOperators(ordered, effectiveOperatorCount, start)
+
+      const operatorRoutes = []
+      const allSubroutes = []
+      const allLegs = []
+      const allVisitOrder = [{ name: 'ORIGEN', lat: start.lat, lng: start.lng }]
+      const allReadableOrder = ['ORIGEN']
+
+      let operatorTotalDistance = 0
+      let operatorTotalDuration = 0
+
+      for (const group of operatorGroups) {
+        if (!group.points.length) continue
+
+        const operatorStart = start
+        const operatorDest = returnToOrigin
+          ? start
+          : group.points[group.points.length - 1]
+
+        const operatorIntermediates = returnToOrigin
+          ? group.points
+          : group.points.slice(0, -1)
+
+        const operatorChunks = chunkArray(operatorIntermediates, MAX_INTERMEDIATES)
+
+        let operatorDistance = 0
+        let operatorDuration = 0
+        let operatorLegs = []
+        let operatorSubroutePolylines = []
+        let operatorTollItems = []
+        let operatorOrder = []
+
+        let currentOperatorOrigin = operatorStart
+
+        for (let chunkIndex = 0; chunkIndex < operatorChunks.length; chunkIndex++) {
+          const chunk = operatorChunks[chunkIndex]
+          const isLastChunk = chunkIndex === operatorChunks.length - 1
+
+          const chunkDestination = isLastChunk
+            ? operatorDest
+            : chunk[chunk.length - 1]
+
+          const chunkIntermediates = isLastChunk
+            ? chunk
+            : chunk.slice(0, -1)
+
+          const r = await callComputeRoutes(
+            currentOperatorOrigin,
+            chunkDestination,
+            chunkIntermediates
+          )
+
+          if (!r) continue
+
+          operatorDistance += Number(r.distanceMeters || 0)
+          operatorDuration += parseDurationSec(r.duration || '0s')
+          operatorLegs.push(...(Array.isArray(r.legs) ? r.legs : []))
+
+          operatorSubroutePolylines.push({
+            polyline: r.polyline?.encodedPolyline,
+            distance: Number(r.distanceMeters || 0),
+            duration: r.duration || '0s',
+            count: chunk.length,
+            tolls: normalizeTollInfo(r.travelAdvisory?.tollInfo)
+          })
+
+          operatorTollItems.push({
+            tolls: normalizeTollInfo(r.travelAdvisory?.tollInfo)
+          })
+
+          let chunkOrder = chunkIntermediates
+
+          if (
+            Array.isArray(r.optimizedIntermediateWaypointIndex) &&
+            r.optimizedIntermediateWaypointIndex.length
+          ) {
+            chunkOrder = r.optimizedIntermediateWaypointIndex
+              .map(i => chunkIntermediates[i])
+              .filter(Boolean)
+          }
+
+        if (!isLastChunk && chunkDestination?.id) {
+          operatorOrder.push(...chunkOrder, chunkDestination)
+        } else {
+          operatorOrder.push(...chunkOrder)
+        }
+
+          currentOperatorOrigin = chunkDestination
+        }
+
+        if (!operatorSubroutePolylines.length) continue
+
+        const operatorFuel = estimateFuelLiters(operatorDistance, fuelKmPerLiter)
+        const operatorTolls = sumTollTotals(operatorTollItems)
+        const operatorVisitOrder = [
+          { name: `OPERADOR ${group.operator} - ORIGEN`, lat: start.lat, lng: start.lng },
+          ...operatorOrder.map(p => ({
+            id: p.id,
+            name: p.name,
+            lat: p.lat,
+            lng: p.lng,
+            operator: group.operator
+          }))
+        ]
+
+        if (returnToOrigin) {
+          operatorVisitOrder.push({
+            name: `OPERADOR ${group.operator} - ORIGEN`,
+            lat: start.lat,
+            lng: start.lng
+          })
+        }
+
+        for (const part of operatorSubroutePolylines) {
+          allSubroutes.push({
+            operator: group.operator,
+            label: `Operador ${group.operator}`,
+            polyline: part.polyline,
+            distance: part.distance,
+            duration: part.duration,
+            count: part.count,
+            fuelLiters: operatorFuel,
+            tolls: part.tolls
+          })
+        }
+
+        allLegs.push(...operatorLegs)
+        allVisitOrder.push(...operatorVisitOrder)
+        allReadableOrder.push(
+          `Operador ${group.operator}`,
+          ...operatorOrder.map(p => p.name),
+          returnToOrigin ? `Operador ${group.operator} - ORIGEN` : (operatorDest?.name || 'DESTINO')
+        )
+
+        operatorRoutes.push({
+          operator: group.operator,
+          label: `Operador ${group.operator}`,
+          regions: group.regions || [],
+          pointCount: group.points.length,
+          distanceMeters: operatorDistance,
+          duration: `${operatorDuration}s`,
+          durationSeconds: operatorDuration,
+          fuelLiters: operatorFuel,
+          tolls: operatorTolls,
+          points: operatorOrder.map((p, index) => ({
+            order: index + 1,
+            id: p.id,
+            name: p.name,
+            lat: p.lat,
+            lng: p.lng,
+            meta: p.meta
+          }))
+        })
+
+        operatorTotalDistance += operatorDistance
+        operatorTotalDuration += operatorDuration
+      }
+
+      const totalFuelLiters = estimateFuelLiters(operatorTotalDistance, fuelKmPerLiter)
+      const tolls = sumTollTotals(allSubroutes)
+
+      return res.json({
+        input: {
+          proyecto: projectCode,
+          region_sanitaria: region_sanitaria ?? null,
+          scope: isProjectWideOperators ? 'PROJECT' : 'REGION',
+          strategy: STRAT,
+          operatorCount: effectiveOperatorCount,
+          kmPerLiter: fuelKmPerLiter,
+          options,
+          manualOrderIds: wantedIds
+        },
+        mode: 'OPERATORS',
+        start,
+        dest: returnToOrigin ? start : null,
+        points: ordered,
+        operatorRoutes,
+        subroutes: allSubroutes,
+        legs: allLegs,
+        total: {
+          distanceMeters: operatorTotalDistance,
+          duration: `${operatorTotalDuration}s`,
+          fuelLiters: totalFuelLiters
+        },
+        fuel: {
+          kmPerLiter: fuelKmPerLiter,
+          totalLiters: totalFuelLiters
+        },
+        tolls,
+        readableOrder: allReadableOrder,
+        visitOrder: allVisitOrder,
+        info: `Ruta dividida en ${operatorRoutes.length} operadores`
+      })
     }
 
     const subroutes = []

@@ -6,12 +6,63 @@
         {{ formatKm(routeTotal.distanceMeters) }} · {{ formatDur(routeTotal.duration) }}
       </div>
 
+      <div v-if="routeFuel?.totalLiters != null" class="fuel-block">
+        <b>Combustible estimado:</b>
+        {{ Number(routeFuel.totalLiters).toFixed(2) }} L
+        <span v-if="routeFuel.kmPerLiter">
+          · Rendimiento {{ routeFuel.kmPerLiter }} km/L
+        </span>
+      </div>
+
       <div v-if="routeTolls" class="tolls-block">
         <b>Peajes estimados:</b>
         <span v-if="routeTolls.known">{{ routeTolls.text }}</span>
         <span v-else>{{ routeTolls.text || 'Sin peajes estimados' }}</span>
       </div>
     </div>
+
+    <section v-if="operatorRoutes.length" class="module-block">
+      <details open>
+        <summary><b>Rutas por operador</b></summary>
+
+        <div class="operator-list">
+          <div
+            v-for="op in operatorRoutes"
+            :key="op.operator"
+            class="operator-card"
+            :class="{ selected: selectedOperator === op.operator }"
+            @click="$emit('select-operator', op.operator)"
+          >
+            <div class="operator-header">
+              <b>{{ op.label || `Operador ${op.operator}` }}</b>
+              <span>{{ op.pointCount || 0 }} unidades</span>
+            </div>
+
+            <div v-if="op.regions?.length" class="operator-regions">
+              {{ op.regions.join(' · ') }}
+            </div>
+
+            <div class="operator-metrics">
+              <span><b>Distancia:</b> {{ formatKm(op.distanceMeters) }}</span>
+              <span><b>Tiempo:</b> {{ formatDur(op.duration) }}</span>
+              <span v-if="op.fuelLiters != null">
+                <b>Litros:</b> {{ Number(op.fuelLiters).toFixed(2) }} L
+              </span>
+            </div>
+
+            <details class="operator-points">
+              <summary>Ver unidades asignadas</summary>
+              <ol>
+                <li v-for="p in op.points" :key="p.id">
+                  {{ p.order }}. {{ p.name }}
+                  <span v-if="p.meta?.unidad"> — {{ p.meta.unidad }}</span>
+                </li>
+              </ol>
+            </details>
+          </div>
+        </div>
+      </details>
+    </section>
 
     <section v-if="subroutesUi.length" class="module-block">
       <details open>
@@ -46,15 +97,16 @@
     </section>
 
     <section v-if="routeLegs.length" class="module-block">
-      <div class="module-title">
-        <b>Tramos (punto → punto)</b>
-      </div>
-      <ol class="legs">
-        <li v-for="(leg, i) in routeLegs" :key="i">
-          {{ i + 1 }}) {{ formatKm(leg.distanceMeters) }} ·
-          {{ formatDur(leg.duration) }}
-        </li>
-      </ol>
+      <details>
+        <summary><b>Tramos (punto → punto)</b> (ver más)</summary>
+
+        <ol class="legs">
+          <li v-for="(leg, i) in routeLegs" :key="i">
+            {{ i + 1 }}) {{ formatKm(leg.distanceMeters) }} ·
+            {{ formatDur(leg.duration) }}
+          </li>
+        </ol>
+      </details>
     </section>
 
     <section v-if="postOrder.length" class="module-block">
@@ -115,7 +167,7 @@
         <ol class="links-list">
           <li v-for="(l, idx) in mapsLinks" :key="idx" class="link-item">
             <div class="link-text">
-              Enlace {{ idx + 1 }} (puntos {{ l.from }}→{{ l.to }})
+              Enlace {{ l.label ? `${l.label} · ` : '' }}Enlace {{ idx + 1 }} (puntos {{ l.from }}→{{ l.to }})
             </div>
 
             <div class="link-actions">
@@ -158,6 +210,9 @@
 <script setup>
 defineProps({
   routeTotal: { type: Object, default: null },
+  routeFuel: { type: Object, default: null },
+  operatorRoutes: { type: Array, default: () => [] },
+  selectedOperator: { type: [Number, null], default: null },
   routeTolls: {
     type: Object,
     default: () => ({
@@ -178,6 +233,7 @@ defineProps({
 })
 
 defineEmits([
+  'select-operator',
   'focus-subroute',
   'post-drag-start',
   'post-drag-enter',
@@ -215,9 +271,59 @@ defineEmits([
   line-height: 1.4;
 }
 
-.tolls-block {
+.tolls-block,
+.fuel-block {
   font-size: 14px;
   color: #374151;
+}
+
+.operator-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.operator-card {
+  border: 1px solid #edf1f5;
+  border-radius: 10px;
+  background: #fafbfc;
+  padding: 12px;
+}
+
+.operator-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 14px;
+  margin-bottom: 8px;
+}
+
+.operator-header span {
+  color: #6b7280;
+  font-size: 12px;
+}
+
+.operator-metrics {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 13px;
+  color: #374151;
+}
+
+.operator-points {
+  margin-top: 10px;
+  font-size: 13px;
+}
+
+.operator-points ol {
+  margin: 8px 0 0;
+  padding-left: 18px;
+}
+
+.operator-points li + li {
+  margin-top: 4px;
 }
 
 .module-block {
@@ -478,5 +584,23 @@ details summary:hover {
   .export-actions {
     width: 100%;
   }
+}
+
+.operator-card {
+  cursor: pointer;
+  transition: border-color 0.18s ease, box-shadow 0.18s ease, background 0.18s ease;
+}
+
+.operator-card.selected {
+  border-color: #111827;
+  background: #eef2ff;
+  box-shadow: 0 0 0 2px rgba(17, 24, 39, 0.08);
+}
+
+.operator-regions {
+  margin-bottom: 8px;
+  font-size: 12px;
+  color: #4b5563;
+  line-height: 1.35;
 }
 </style>
