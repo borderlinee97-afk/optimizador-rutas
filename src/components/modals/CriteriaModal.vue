@@ -100,13 +100,8 @@
           <div class="section-content">
             <div class="radio-stack">
               <label class="radio-line">
-                <input type="radio" value="first" v-model="originModeProxy" />
-                <span>Primer punto</span>
-              </label>
-
-              <label class="radio-line">
-                <input type="radio" value="center" v-model="originModeProxy" />
-                <span>Centro del mapa</span>
+                <input type="radio" value="cedis" v-model="originModeProxy" />
+                <span>CEDIS del proyecto</span>
               </label>
 
               <label class="radio-line">
@@ -118,6 +113,43 @@
                 <input type="radio" value="pharmacy" v-model="originModeProxy" />
                 <span>Elegir farmacia</span>
               </label>
+            </div>
+
+            <div v-if="originModeProxy === 'cedis'" class="field-block nested-block">
+              <label class="field-label">CEDIS de origen</label>
+
+              <select
+                v-model.number="selectedCedisIdProxy"
+                class="field-control"
+              >
+                <option
+                  v-for="c in proyectoCedis"
+                  :key="c.id"
+                  :value="c.id"
+                >
+                  {{ c.nombre }}{{ c.clues ? ` — ${c.clues}` : '' }}
+                </option>
+              </select>
+
+              <div v-if="selectedCedis" class="cedis-card">
+                <b>{{ selectedCedis.nombre }}</b>
+                <span v-if="selectedCedis.clues">CLUES: {{ selectedCedis.clues }}</span>
+                <span>
+                  Coordenadas:
+                  {{ Number(selectedCedis.latitud).toFixed(6) }},
+                  {{ Number(selectedCedis.longitud).toFixed(6) }}
+                </span>
+                <span>
+                  Límite última unidad:
+                  {{ selectedCedis.hora_limite_llegada_ultima_unidad || '16:00' }}
+                  · Servicio:
+                  {{ selectedCedis.minutos_servicio_por_unidad || 45 }} min
+                </span>
+              </div>
+
+              <p v-else class="hint">
+                No hay CEDIS activo configurado para este proyecto.
+              </p>
             </div>
 
             <div
@@ -163,19 +195,8 @@
             </div>
 
             <p v-if="originModeProxy === 'pharmacy' && criteria.scope === 'all'" class="hint">
-              Si la farmacia elegida no pertenece a la región en curso, se usará la primera de esa región.
+              Para calcular todas las regiones, se recomienda usar CEDIS del proyecto o coordenadas personalizadas.
             </p>
-
-            <div class="field-block">
-              <label class="field-label">Paradas por sub-ruta (máx. 25)</label>
-              <input
-                type="number"
-                min="5"
-                max="25"
-                v-model.number="criteria.options.maxStopsPerSubroute"
-                class="field-control field-control-sm"
-              />
-            </div>
           </div>
         </details>
 
@@ -253,6 +274,9 @@ const props = defineProps({
   criteria:         { type: Object,  required: true },
   originMode:       { type: String,  required: true },
   originPharmacyId: { type: [Number, null], default: null },
+  proyectoCedis:    { type: Array,   default: () => [] },
+  selectedCedisId:  { type: [Number, null], default: null },
+  selectedCedis:    { type: Object,  default: null },
   farmaciasRegion:  { type: Array,   default: () => [] },
   manualPoints:     { type: Array,   default: () => [] },
 })
@@ -260,7 +284,7 @@ const props = defineProps({
 const emit = defineEmits([
   'close', 'calculate',
   'drag-start', 'drag-enter', 'drop',
-  'update:originMode', 'update:originPharmacyId'
+  'update:originMode', 'update:originPharmacyId', 'update:selectedCedisId'
 ])
 
 const originModeProxy = computed({
@@ -271,6 +295,11 @@ const originModeProxy = computed({
 const originPharmacyIdProxy = computed({
   get: () => props.originPharmacyId,
   set: (v) => emit('update:originPharmacyId', v),
+})
+
+const selectedCedisIdProxy = computed({
+  get: () => props.selectedCedisId,
+  set: (v) => emit('update:selectedCedisId', v),
 })
 </script>
 
@@ -522,6 +551,19 @@ const originPharmacyIdProxy = computed({
   font-size: 0.76rem;
   font-weight: 700;
   white-space: nowrap;
+}
+
+.cedis-card {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 10px;
+  padding: 12px 14px;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  background: #f8fafc;
+  font-size: 0.9rem;
+  color: #374151;
 }
 
 .coords-grid {

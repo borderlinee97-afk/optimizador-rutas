@@ -213,6 +213,154 @@ function splitClusterGeographically(cluster) {
   ]
 }
 
+async function getProjectCedis(projectCode, selectedCedisId = null) {
+  const params = [projectCode]
+  let idFilter = ''
+
+  if (selectedCedisId) {
+    params.push(Number(selectedCedisId))
+    idFilter = `AND id = $2`
+  }
+
+  const { rows } = await pool.query(
+    `
+      SELECT
+        id,
+        proyecto,
+        nombre,
+        clues,
+        latitud,
+        longitud,
+        timezone,
+        horas_turno,
+        hora_limite_llegada_ultima_unidad,
+        minutos_servicio_por_unidad
+      FROM public.proyecto_cedis
+      WHERE proyecto = $1
+        ${idFilter}
+        AND activo = true
+      ORDER BY es_principal DESC, id ASC
+      LIMIT 1
+    `,
+    params
+  )
+
+  return rows[0] || null
+}
+
+function timeToSeconds(value = '16:00') {
+  const [h, m] = String(value).split(':').map(Number)
+  return ((h || 0) * 3600) + ((m || 0) * 60)
+}
+
+function secondsToClock(seconds) {
+  const safe = Math.max(0, Math.round(seconds || 0))
+  const h = Math.floor(safe / 3600)
+  const m = Math.floor((safe % 3600) / 60)
+  return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`
+}
+
+function getWorkdayConfig(start) {
+  const cedis = start?.cedis || {}
+
+  return {
+    serviceSeconds: Number(cedis.minutosServicioPorUnidad || 45) * 60,
+    shiftSeconds: Number(cedis.horasTurno || 8) * 3600,
+    limitSeconds: timeToSeconds(cedis.horaLimiteLlegadaUltimaUnidad || '16:00')
+  }
+}
+
+function estimateTravelSeconds(a, b) {
+  const meters = haversine(a, b)
+  const avgMetersPerSecond = 45_000 / 3600
+  return meters / avgMetersPerSecond
+}
+
+function estimateArrivalToLastSeconds(origin, points, serviceSeconds) {
+  if (!points.length) return 0
+
+  let total = 0
+  let current = origin
+
+  points.forEach((point, index) => {
+    total += estimateTravelSeconds(current, point)
+
+    if (index < points.length - 1) {
+      total += serviceSeconds
+    }
+
+    current = point
+  })
+
+  return total
+}
+
+function splitPointsIntoWorkDays(points, origin, start) {
+  const { serviceSeconds, shiftSeconds } = getWorkdayConfig(start)
+  const ordered = nearestNeighborOrder(points, origin)
+  const days = []
+
+  let currentDay = []
+
+  for (const point of ordered) {
+    const candidate = [...currentDay, point]
+    const estimatedArrival = estimateArrivalToLastSeconds(origin, candidate, serviceSeconds)
+
+    if (currentDay.length && estimatedArrival > shiftSeconds) {
+      days.push(currentDay)
+      currentDay = [point]
+    } else {
+      currentDay = candidate
+    }
+  }
+
+  if (currentDay.length) days.push(currentDay)
+
+  return days.map((dayPoints, index) => ({
+    day: index + 1,
+    points: nearestNeighborOrder(dayPoints, origin)
+  }))
+}
+
+function buildDaySchedule({ dayPoints, route, start }) {
+  const { serviceSeconds, shiftSeconds, limitSeconds } = getWorkdayConfig(start)
+  const legs = Array.isArray(route?.legs) ? route.legs : []
+
+  let arrivalLastSeconds = 0
+
+  for (let i = 0; i < dayPoints.length; i++) {
+    const leg = legs[i]
+    arrivalLastSeconds += parseDurationSec(leg?.duration || '0s')
+
+    if (i < dayPoints.length - 1) {
+      arrivalLastSeconds += serviceSeconds
+    }
+  }
+
+  const returnSeconds = parseDurationSec(legs[dayPoints.length]?.duration || '0s')
+  const totalServiceSeconds = dayPoints.length * serviceSeconds
+  const driveSeconds = parseDurationSec(route?.duration || '0s')
+  const totalSeconds = driveSeconds + totalServiceSeconds
+
+  const suggestedStartSeconds = limitSeconds - arrivalLastSeconds
+  const shiftStartSeconds = limitSeconds - shiftSeconds
+
+  return {
+    suggestedStart: secondsToClock(suggestedStartSeconds),
+    earliestShiftStart: secondsToClock(shiftStartSeconds),
+    limitLastArrival: secondsToClock(limitSeconds),
+    arrivalLastSeconds,
+    returnSeconds,
+    serviceSeconds,
+    serviceMinutesPerUnit: Math.round(serviceSeconds / 60),
+    totalServiceSeconds,
+    driveSeconds,
+    totalSeconds,
+    exceedsShift: arrivalLastSeconds > shiftSeconds,
+    exceedsLastArrivalLimit: suggestedStartSeconds < shiftStartSeconds
+  }
+}
+
 function splitPointsByOperators(points, operatorCount, origin) {
   const count = clampOperatorCount(operatorCount, points.length)
 
@@ -304,7 +452,9 @@ export async function computeRoutes(req, res) {
       manualOrderIds,
       proyecto = DEFAULT_PROJECT,
       operatorCount = 1,
-      kmPerLiter = 10
+      kmPerLiter = 10,
+      originMode = 'cedis',
+      selectedCedisId = null
     } = req.body || {}
 
     const projectCode = normalizeProject(proyecto)
@@ -443,15 +593,38 @@ export async function computeRoutes(req, res) {
       })
     }
 
-    const start = isValidLatLng(origin)
+    const cedisConfig =
+      originMode === 'cedis'
+        ? await getProjectCedis(projectCode, selectedCedisId)
+        : null
+
+    const start = originMode === 'cedis' && cedisConfig
       ? {
-          lat: Number(origin.lat),
-          lng: Number(origin.lng)
+          lat: Number(cedisConfig.latitud),
+          lng: Number(cedisConfig.longitud),
+          isCedis: true,
+          cedis: {
+            id: Number(cedisConfig.id),
+            proyecto: cedisConfig.proyecto,
+            nombre: cedisConfig.nombre,
+            clues: cedisConfig.clues,
+            timezone: cedisConfig.timezone,
+            horasTurno: Number(cedisConfig.horas_turno || 8),
+            horaLimiteLlegadaUltimaUnidad: String(cedisConfig.hora_limite_llegada_ultima_unidad || '16:00'),
+            minutosServicioPorUnidad: Number(cedisConfig.minutos_servicio_por_unidad || 45)
+          }
         }
-      : {
-          lat: validPoints[0].lat,
-          lng: validPoints[0].lng
-        }
+      : isValidLatLng(origin)
+        ? {
+            lat: Number(origin.lat),
+            lng: Number(origin.lng),
+            isCedis: false
+          }
+        : {
+            lat: validPoints[0].lat,
+            lng: validPoints[0].lng,
+            isCedis: false
+          }
 
     let ordered = [...validPoints]
 
@@ -686,135 +859,133 @@ export async function computeRoutes(req, res) {
         if (!group.points.length) continue
 
         const operatorStart = start
-        const operatorDest = returnToOrigin
-          ? start
-          : group.points[group.points.length - 1]
-
-        const operatorIntermediates = returnToOrigin
-          ? group.points
-          : group.points.slice(0, -1)
-
-        const operatorChunks = chunkArray(operatorIntermediates, MAX_INTERMEDIATES)
+        const workDays = splitPointsIntoWorkDays(group.points, operatorStart, start)
 
         let operatorDistance = 0
         let operatorDuration = 0
         let operatorLegs = []
-        let operatorSubroutePolylines = []
         let operatorTollItems = []
         let operatorOrder = []
+        const operatorDays = []
 
-        let currentOperatorOrigin = operatorStart
+        for (const workDay of workDays) {
+          const dayPoints = workDay.points || []
+          if (!dayPoints.length) continue
 
-        for (let chunkIndex = 0; chunkIndex < operatorChunks.length; chunkIndex++) {
-          const chunk = operatorChunks[chunkIndex]
-          const isLastChunk = chunkIndex === operatorChunks.length - 1
-
-          const chunkDestination = isLastChunk
-            ? operatorDest
-            : chunk[chunk.length - 1]
-
-          const chunkIntermediates = isLastChunk
-            ? chunk
-            : chunk.slice(0, -1)
+          const dayDestination = start
+          const dayIntermediates = dayPoints
 
           const r = await callComputeRoutes(
-            currentOperatorOrigin,
-            chunkDestination,
-            chunkIntermediates
+            operatorStart,
+            dayDestination,
+            dayIntermediates
           )
 
           if (!r) continue
 
-          operatorDistance += Number(r.distanceMeters || 0)
-          operatorDuration += parseDurationSec(r.duration || '0s')
-          operatorLegs.push(...(Array.isArray(r.legs) ? r.legs : []))
-
-          operatorSubroutePolylines.push({
-            polyline: r.polyline?.encodedPolyline,
-            distance: Number(r.distanceMeters || 0),
-            duration: r.duration || '0s',
-            count: chunk.length,
-            tolls: normalizeTollInfo(r.travelAdvisory?.tollInfo)
-          })
-
-          operatorTollItems.push({
-            tolls: normalizeTollInfo(r.travelAdvisory?.tollInfo)
-          })
-
-          let chunkOrder = chunkIntermediates
+          let dayOrder = dayIntermediates
 
           if (
             Array.isArray(r.optimizedIntermediateWaypointIndex) &&
             r.optimizedIntermediateWaypointIndex.length
           ) {
-            chunkOrder = r.optimizedIntermediateWaypointIndex
-              .map(i => chunkIntermediates[i])
+            dayOrder = r.optimizedIntermediateWaypointIndex
+              .map(i => dayIntermediates[i])
               .filter(Boolean)
           }
 
-        if (!isLastChunk && chunkDestination?.id) {
-          operatorOrder.push(...chunkOrder, chunkDestination)
-        } else {
-          operatorOrder.push(...chunkOrder)
+          const dayDistance = Number(r.distanceMeters || 0)
+          const dayDriveSeconds = parseDurationSec(r.duration || '0s')
+          const daySchedule = buildDaySchedule({
+            dayPoints: dayOrder,
+            route: r,
+            start
+          })
+
+          const dayFuel = estimateFuelLiters(dayDistance, fuelKmPerLiter)
+          const dayTolls = normalizeTollInfo(r.travelAdvisory?.tollInfo)
+          const dayLegs = Array.isArray(r.legs) ? r.legs : []
+
+          operatorDistance += dayDistance
+          operatorDuration += daySchedule.totalSeconds
+          operatorLegs.push(...dayLegs)
+          operatorTollItems.push({ tolls: dayTolls })
+
+          operatorOrder.push(...dayOrder)
+
+          allSubroutes.push({
+            operator: group.operator,
+            day: workDay.day,
+            label: `Operador ${group.operator} · Día ${workDay.day}`,
+            polyline: r.polyline?.encodedPolyline,
+            distance: dayDistance,
+            duration: `${daySchedule.totalSeconds}s`,
+            driveDuration: r.duration || '0s',
+            count: dayOrder.length,
+            fuelLiters: dayFuel,
+            tolls: dayTolls,
+            schedule: daySchedule
+          })
+
+          operatorDays.push({
+            day: workDay.day,
+            label: `Día ${workDay.day}`,
+            pointCount: dayOrder.length,
+            distanceMeters: dayDistance,
+            duration: `${daySchedule.totalSeconds}s`,
+            driveDuration: r.duration || '0s',
+            durationSeconds: daySchedule.totalSeconds,
+            fuelLiters: dayFuel,
+            tolls: dayTolls,
+            schedule: daySchedule,
+            points: dayOrder.map((p, index) => ({
+              order: index + 1,
+              id: p.id,
+              name: p.name,
+              lat: p.lat,
+              lng: p.lng,
+              meta: p.meta
+            }))
+          })
+
+          allVisitOrder.push(
+            { name: `OPERADOR ${group.operator} - DÍA ${workDay.day} - ORIGEN`, lat: start.lat, lng: start.lng },
+            ...dayOrder.map(p => ({
+              id: p.id,
+              name: p.name,
+              lat: p.lat,
+              lng: p.lng,
+              operator: group.operator,
+              day: workDay.day
+            })),
+            { name: `OPERADOR ${group.operator} - DÍA ${workDay.day} - ORIGEN`, lat: start.lat, lng: start.lng }
+          )
+
+          allReadableOrder.push(
+            `Operador ${group.operator} · Día ${workDay.day}`,
+            ...dayOrder.map(p => p.name),
+            `Operador ${group.operator} · Día ${workDay.day} · ORIGEN`
+          )
         }
 
-          currentOperatorOrigin = chunkDestination
-        }
-
-        if (!operatorSubroutePolylines.length) continue
+        if (!operatorDays.length) continue
 
         const operatorFuel = estimateFuelLiters(operatorDistance, fuelKmPerLiter)
         const operatorTolls = sumTollTotals(operatorTollItems)
-        const operatorVisitOrder = [
-          { name: `OPERADOR ${group.operator} - ORIGEN`, lat: start.lat, lng: start.lng },
-          ...operatorOrder.map(p => ({
-            id: p.id,
-            name: p.name,
-            lat: p.lat,
-            lng: p.lng,
-            operator: group.operator
-          }))
-        ]
-
-        if (returnToOrigin) {
-          operatorVisitOrder.push({
-            name: `OPERADOR ${group.operator} - ORIGEN`,
-            lat: start.lat,
-            lng: start.lng
-          })
-        }
-
-        for (const part of operatorSubroutePolylines) {
-          allSubroutes.push({
-            operator: group.operator,
-            label: `Operador ${group.operator}`,
-            polyline: part.polyline,
-            distance: part.distance,
-            duration: part.duration,
-            count: part.count,
-            fuelLiters: operatorFuel,
-            tolls: part.tolls
-          })
-        }
 
         allLegs.push(...operatorLegs)
-        allVisitOrder.push(...operatorVisitOrder)
-        allReadableOrder.push(
-          `Operador ${group.operator}`,
-          ...operatorOrder.map(p => p.name),
-          returnToOrigin ? `Operador ${group.operator} - ORIGEN` : (operatorDest?.name || 'DESTINO')
-        )
 
         operatorRoutes.push({
           operator: group.operator,
           label: `Operador ${group.operator}`,
           regions: group.regions || [],
-          pointCount: group.points.length,
+          pointCount: operatorOrder.length,
           distanceMeters: operatorDistance,
           duration: `${operatorDuration}s`,
           durationSeconds: operatorDuration,
           fuelLiters: operatorFuel,
           tolls: operatorTolls,
+          days: operatorDays,
           points: operatorOrder.map((p, index) => ({
             order: index + 1,
             id: p.id,
@@ -840,12 +1011,14 @@ export async function computeRoutes(req, res) {
           strategy: STRAT,
           operatorCount: effectiveOperatorCount,
           kmPerLiter: fuelKmPerLiter,
+          originMode,
+          selectedCedisId,
           options,
           manualOrderIds: wantedIds
         },
         mode: 'OPERATORS',
         start,
-        dest: returnToOrigin ? start : null,
+        dest: start,
         points: ordered,
         operatorRoutes,
         subroutes: allSubroutes,
@@ -862,7 +1035,7 @@ export async function computeRoutes(req, res) {
         tolls,
         readableOrder: allReadableOrder,
         visitOrder: allVisitOrder,
-        info: `Ruta dividida en ${operatorRoutes.length} operadores`
+        info: `Ruta dividida en ${operatorRoutes.length} operadores con jornadas laborales`
       })
     }
 

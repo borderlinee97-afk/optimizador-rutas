@@ -56,6 +56,48 @@ router.get('/farmacias', async (req, res) => {
 })
 
 // ==============================
+// GET /api/proyecto-cedis
+// Ejemplo:
+// /api/proyecto-cedis?proyecto=JALISCO
+// ==============================
+router.get('/proyecto-cedis', async (req, res) => {
+  try {
+    const proyecto = normalizeProject(req.query.proyecto)
+
+    const { rows } = await pool.query(
+      `
+        SELECT
+          id,
+          proyecto,
+          nombre,
+          clues,
+          latitud,
+          longitud,
+          timezone,
+          horas_turno,
+          hora_limite_llegada_ultima_unidad,
+          minutos_servicio_por_unidad,
+          activo,
+          es_principal
+        FROM public.proyecto_cedis
+        WHERE proyecto = $1
+          AND activo = true
+        ORDER BY es_principal DESC, nombre ASC
+      `,
+      [proyecto]
+    )
+
+    return res.json(rows)
+  } catch (err) {
+    console.error('[proyecto-cedis][GET]', err)
+    return res.status(500).json({
+      error: 'Error obteniendo CEDIS del proyecto',
+      details: err.message
+    })
+  }
+})
+
+// ==============================
 // POST /api/farmacias/dificil-acceso/bulk
 // ==============================
 router.post('/farmacias/dificil-acceso/bulk', async (req, res) => {

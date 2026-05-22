@@ -59,6 +59,7 @@
         :routeTolls="routeTolls"
         :operatorRoutes="operatorRoutes"
         :selectedOperator="selectedOperator"
+        :selectedOperatorDay="selectedOperatorDay"
         :subroutesUi="subroutesUi"
         :readableOrder="readableOrder"
         :routeLegs="routeLegs"
@@ -76,6 +77,7 @@
         @export-excel="exportToExcel"
         @export-csv="exportCsvVisits"
         @select-operator="applyOperatorFilter"
+        @select-operator-day="applyOperatorDayFilter"
       />
     </PanelSandbox>
 
@@ -85,10 +87,14 @@
       :criteria="criteria"
       :originMode="originMode"
       :originPharmacyId="originPharmacyId"
+      :proyectoCedis="proyectoCedis"
+      :selectedCedisId="selectedCedisId"
+      :selectedCedis="selectedCedis"
       :farmaciasRegion="farmaciasRegion"
       :manualPoints="manualPoints"
       @update:originMode="val => originMode = val"
       @update:originPharmacyId="val => originPharmacyId = val"
+      @update:selectedCedisId="val => selectedCedisId = val"
       @drag-start="onDragStart"
       @drag-enter="onDragEnter"
       @drop="onDrop"
@@ -131,7 +137,7 @@ import { ref, onMounted, nextTick, computed } from 'vue'
 import { waitForEl, formatKm as fmtKm, formatDur as fmtDur } from '../utils/format.js'
 import { createRegionColorer } from '../utils/colors.js'
 import { exportToExcelSingle, exportCsv } from '../utils/export.js'
-import { getFarmacias } from '../services/api.js'
+import { getFarmacias, listProyectoCedis } from '../services/api.js'
 import { useMap } from '../composables/useMap.js'
 import { useRouting } from '../composables/useRouting.js'
 
@@ -145,6 +151,13 @@ import AddStopsModal from './modals/AddStopsModal.vue'
 import PlanTrabajoPrintView from './print/PlanTrabajoPrintView.vue'
 
 const selectedProject = ref('JALISCO')
+
+const proyectoCedis = ref([])
+const selectedCedisId = ref(null)
+
+const selectedCedis = computed(() =>
+  proyectoCedis.value.find(c => Number(c.id) === Number(selectedCedisId.value)) || null
+)
 
 const {
   mapEl, map, initMap,
@@ -174,7 +187,7 @@ const {
   addCustomStops, setCustomPoints, clearCustomPoints, runCustomRoute,
 
   postOrder, postDragStart, postDragEnter, postDrop,
-  routeTotal, routeLegs, readableOrder, operatorRoutes, routeFuel, selectedOperator, applyOperatorFilter, routeTolls,
+  routeTotal, routeLegs, readableOrder, operatorRoutes, routeFuel, selectedOperator, selectedOperatorDay, applyOperatorFilter, applyOperatorDayFilter, routeTolls,
   subroutesUi,
   focusSubroute, hasAnyRoute,
   mapsLinks, linkChunkSize, copyToClipboard,
@@ -223,6 +236,20 @@ const canGeneratePdf = computed(() =>
   )
 )
 
+async function loadProjectCedis() {
+  const data = await listProyectoCedis({
+    proyecto: selectedProject.value
+  })
+
+  proyectoCedis.value = Array.isArray(data)
+    ? data.map(c => ({ ...c, id: Number(c.id) }))
+    : []
+
+  selectedCedisId.value = proyectoCedis.value[0]?.id ?? null
+
+  criteria.value.selectedCedisId = selectedCedisId.value
+}
+
 async function loadProjectFarmacias() {
   clearAllOverlays()
 
@@ -254,6 +281,8 @@ async function handleProjectChange() {
   clearCustomPoints()
   addStopsItems.value = []
   criteria.value.proyecto = selectedProject.value
+
+  await loadProjectCedis()
   await loadProjectFarmacias()
 }
 
@@ -304,6 +333,7 @@ const formatDur = d => fmtDur(d)
 async function handleRunCompute() {
   showRouteCart.value = false
   criteria.value.proyecto = selectedProject.value
+  criteria.value.selectedCedisId = selectedCedisId.value
   await runCompute()
 }
 
@@ -385,6 +415,7 @@ onMounted(async () => {
   if (!el) return
 
   criteria.value.proyecto = selectedProject.value
+  await loadProjectCedis()
   await loadProjectFarmacias()
 })
 </script>

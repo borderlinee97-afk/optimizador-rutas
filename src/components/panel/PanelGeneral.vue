@@ -44,10 +44,52 @@
 
             <div class="operator-metrics">
               <span><b>Distancia:</b> {{ formatKm(op.distanceMeters) }}</span>
-              <span><b>Tiempo:</b> {{ formatDur(op.duration) }}</span>
+              <span><b>Tiempo total:</b> {{ formatDur(op.duration) }}</span>
               <span v-if="op.fuelLiters != null">
                 <b>Litros:</b> {{ Number(op.fuelLiters).toFixed(2) }} L
               </span>
+            </div>
+
+            <div v-if="op.days?.length" class="operator-days">
+              <details
+                v-for="day in op.days"
+                :key="day.day"
+                class="day-card"
+                :open="selectedOperator === op.operator && selectedOperatorDay === day.day"
+                :class="{
+                  selected: selectedOperator === op.operator && selectedOperatorDay === day.day
+                }"
+              >
+                <summary @click.prevent.stop="$emit('select-operator-day', op.operator, day.day)">
+                  <b>{{ day.label || `Día ${day.day}` }}</b>
+                  <span>{{ day.pointCount || 0 }} unidades</span>
+                </summary>
+
+                <div class="day-metrics">
+                  <span><b>Distancia:</b> {{ formatKm(day.distanceMeters) }}</span>
+                  <span><b>Tiempo con servicio:</b> {{ formatDur(day.duration) }}</span>
+                  <span><b>Recorrido:</b> {{ formatDur(day.driveDuration) }}</span>
+                  <span v-if="day.fuelLiters != null">
+                    <b>Litros:</b> {{ Number(day.fuelLiters).toFixed(2) }} L
+                  </span>
+                  <span v-if="day.schedule">
+                    <b>Salida sugerida:</b> {{ day.schedule.suggestedStart }}
+                  </span>
+                  <span v-if="day.schedule">
+                    <b>Límite última unidad:</b> {{ day.schedule.limitLastArrival }}
+                  </span>
+                  <span v-if="day.schedule">
+                    <b>Servicio:</b> {{ day.schedule.serviceMinutesPerUnit }} min por unidad
+                  </span>
+                </div>
+
+                <ol class="day-points">
+                  <li v-for="p in day.points" :key="p.id">
+                    {{ p.order }}. {{ p.name }}
+                    <span v-if="p.meta?.unidad"> — {{ p.meta.unidad }}</span>
+                  </li>
+                </ol>
+              </details>
             </div>
 
             <details class="operator-points">
@@ -213,6 +255,7 @@ defineProps({
   routeFuel: { type: Object, default: null },
   operatorRoutes: { type: Array, default: () => [] },
   selectedOperator: { type: [Number, null], default: null },
+  selectedOperatorDay: { type: [Number, null], default: null },
   routeTolls: {
     type: Object,
     default: () => ({
@@ -234,6 +277,7 @@ defineProps({
 
 defineEmits([
   'select-operator',
+  'select-operator-day',
   'focus-subroute',
   'post-drag-start',
   'post-drag-enter',
@@ -602,5 +646,61 @@ details summary:hover {
   font-size: 12px;
   color: #4b5563;
   line-height: 1.35;
+}
+
+.operator-days {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.day-card {
+  border: 1px solid #e5e7eb;
+  border-radius: 9px;
+  background: #ffffff;
+  padding: 8px 10px;
+}
+
+.day-card summary {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 13px;
+}
+
+.day-card summary span {
+  color: #6b7280;
+  font-size: 12px;
+}
+
+.day-metrics {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  margin-top: 8px;
+  font-size: 12px;
+  color: #374151;
+}
+
+.day-points {
+  margin: 8px 0 0;
+  padding-left: 18px;
+  font-size: 12px;
+}
+
+.day-points li + li {
+  margin-top: 3px;
+}
+
+.day-card {
+  cursor: pointer;
+  transition: border-color 0.18s ease, box-shadow 0.18s ease, background 0.18s ease;
+}
+
+.day-card.selected {
+  border-color: #111827;
+  background: #eef2ff;
+  box-shadow: 0 0 0 2px rgba(17, 24, 39, 0.08);
 }
 </style>

@@ -24,6 +24,7 @@ export function useRouting({
       lat: '',
       lng: ''
     },
+    selectedCedisId: null,
     options: {
       avoidTolls: false,
       showAlternatives: true,
@@ -33,7 +34,7 @@ export function useRouting({
     }
   })
 
-  const originMode = ref('first')
+  const originMode = ref('cedis')
   const originPharmacyId = ref(null)
 
   // ====== Inyección desde MapPage ======
@@ -50,7 +51,7 @@ export function useRouting({
   function openCriteria() {
     criteria.value.scope = 'single'
     criteria.value.region = regiones.value[0] || ''
-    originMode.value = 'first'
+    originMode.value = 'cedis'
     originPharmacyId.value =
       farmaciasRegion.value[0]?.id != null
         ? Number(farmaciasRegion.value[0].id)
@@ -264,6 +265,7 @@ export function useRouting({
   const operatorRoutes = ref([])
   const routeFuel = ref(null)
   const selectedOperator = ref(null)
+  const selectedOperatorDay = ref(null)
   const routeTolls = ref({
     hasTolls: false,
     known: false,
@@ -326,6 +328,7 @@ export function useRouting({
     operatorRoutes.value = []
     routeFuel.value = null
     selectedOperator.value = null
+    selectedOperatorDay.value = null
     routeTolls.value = {
       hasTolls: false,
       known: false,
@@ -392,6 +395,8 @@ if (originMode.value === 'center' && map.value) {
       proyecto: criteria.value.proyecto || 'JALISCO',
       region_sanitaria: region,
       strategy: criteria.value.strategy,
+      originMode: originMode.value,
+      selectedCedisId: criteria.value.selectedCedisId || null,
 
       operatorCount: Number(criteria.value.operatorCount || 1),
       kmPerLiter: Number(criteria.value.kmPerLiter || 10),
@@ -501,6 +506,7 @@ const colors = data.subroutes.map((_, i) =>
       })
 
       pl.__operator = sr.operator || null
+      pl.__day = sr.day || null
 
       polys.push(pl)
       trackOverlay(pl)
@@ -510,6 +516,32 @@ const colors = data.subroutes.map((_, i) =>
     if (!bounds.isEmpty()) map.value.fitBounds(bounds)
 
     const seq = []
+
+    if (data.start && typeof data.start.lat === 'number' && typeof data.start.lng === 'number') {
+      const { AdvancedMarkerElement, PinElement } = await google.maps.importLibrary('marker')
+
+      const originPin = new PinElement({
+        background: '#000000',
+        borderColor: '#ffffff',
+        glyphColor: '#ffffff',
+        glyphText: data.start?.isCedis ? 'C' : 'O',
+        scale: 1.35
+      })
+
+      const originMarker = new AdvancedMarkerElement({
+        map: map.value,
+        position: { lat: data.start.lat, lng: data.start.lng },
+        title: data.start?.cedis?.nombre || 'Origen',
+        content: originPin
+      })
+
+      originMarker.__operator = null
+      originMarker.__isOriginMarker = true
+
+      seq.push(originMarker)
+      trackOverlay(originMarker)
+    }
+
     if (Array.isArray(data.visitOrder) && data.visitOrder.length) {
       const { AdvancedMarkerElement, PinElement } = await google.maps.importLibrary('marker')
 
@@ -538,6 +570,7 @@ const colors = data.subroutes.map((_, i) =>
         })
 
         m.__operator = p.operator || null
+        m.__day = p.day || null
 
         seq.push(m)
         trackOverlay(m)
@@ -987,17 +1020,49 @@ const colors = data.subroutes.map((_, i) =>
   }
 
   function applyOperatorFilter(operator) {
-    selectedOperator.value =
-      selectedOperator.value === operator ? null : operator
+    if (selectedOperator.value === operator) {
+      selectedOperator.value = null
+      selectedOperatorDay.value = null
+    } else {
+      selectedOperator.value = operator
+      selectedOperatorDay.value = null
+    }
 
-    const active = selectedOperator.value
+    applyRouteVisualFilter()
+  }
+
+  function applyOperatorDayFilter(operator, day) {
+    const sameOperator = selectedOperator.value === operator
+    const sameDay = selectedOperatorDay.value === day
+
+    if (sameOperator && sameDay) {
+      selectedOperator.value = operator
+      selectedOperatorDay.value = null
+    } else {
+      selectedOperator.value = operator
+      selectedOperatorDay.value = day
+    }
+
+    applyRouteVisualFilter()
+  }
+
+  function applyRouteVisualFilter() {
+    const activeOperator = selectedOperator.value
+    const activeDay = selectedOperatorDay.value
     const bounds = new google.maps.LatLngBounds()
 
     currentPolylines.value.forEach(pl => {
       if (!pl) return
 
       const op = pl.__operator || null
-      const visible = !active || op === active
+      const day = pl.__day || null
+
+      const visible =
+        !activeOperator ||
+        (
+          op === activeOperator &&
+          (!activeDay || day === activeDay)
+        )
 
       pl.setMap(map.value)
 
@@ -1007,7 +1072,7 @@ const colors = data.subroutes.map((_, i) =>
         zIndex: visible ? 999 : 1
       })
 
-      if (visible && active) {
+      if (visible && activeOperator) {
         const path = pl.getPath()
         for (let i = 0; i < path.getLength(); i++) {
           bounds.extend(path.getAt(i))
@@ -1018,29 +1083,60 @@ const colors = data.subroutes.map((_, i) =>
     sequenceMarkers.value.forEach(marker => {
       if (!marker) return
 
+      if (marker.__isOriginMarker) {
+        marker.map = map.value
+        return
+      }
+
       const op = marker.__operator || null
-      marker.map = !active || op === active ? map.value : null
+      const day = marker.__day || null
+
+      const visible =
+        !activeOperator ||
+        (
+          op === activeOperator &&
+          (!activeDay || day === activeDay)
+        )
+
+      marker.map = visible ? map.value : null
     })
 
-    subroutesUi.value = active
-      ? allSubroutesUi.value.filter(sr => sr.operator === active)
+    subroutesUi.value = activeOperator
+      ? allSubroutesUi.value.filter(sr =>
+          sr.operator === activeOperator &&
+          (!activeDay || sr.day === activeDay)
+        )
       : [...allSubroutesUi.value]
 
-    mapsLinks.value = active
-      ? allMapsLinks.value.filter(link => link.operator === active)
+    mapsLinks.value = activeOperator
+      ? allMapsLinks.value.filter(link =>
+          link.operator === activeOperator &&
+          (!activeDay || link.day === activeDay)
+        )
       : [...allMapsLinks.value]
 
-    if (active) {
-      const op = operatorRoutes.value.find(r => Number(r.operator) === Number(active))
-      const ids = (op?.points || []).map(p => Number(p.id)).filter(Number.isFinite)
+    if (activeOperator) {
+      const op = operatorRoutes.value.find(r => Number(r.operator) === Number(activeOperator))
+
+      const ids = activeDay
+        ? (op?.days || [])
+            .find(d => Number(d.day) === Number(activeDay))
+            ?.points?.map(p => Number(p.id))
+            ?.filter(Number.isFinite) || []
+        : (op?.points || []).map(p => Number(p.id)).filter(Number.isFinite)
 
       if (typeof filterPharmacyMarkersByIds === 'function') {
-        filterPharmacyMarkersByIds(ids)
+        // Ocultamos marcadores normales para que no tapen numeración.
+        filterPharmacyMarkersByIds([])
       }
 
       if (!bounds.isEmpty()) {
         map.value.fitBounds(bounds)
       }
+    } else if (operatorRoutes.value.length && typeof filterPharmacyMarkersByIds === 'function') {
+      // Si hay una ruta por operadores calculada, mantenemos ocultos los marcadores normales
+      // para que no tapen los marcadores numerados del orden de visita.
+      filterPharmacyMarkersByIds([])
     } else if (typeof clearPharmacyMarkerFilter === 'function') {
       clearPharmacyMarkerFilter()
     }
@@ -1084,7 +1180,9 @@ const colors = data.subroutes.map((_, i) =>
     operatorRoutes,
     routeFuel,
     selectedOperator,
+    selectedOperatorDay,
     applyOperatorFilter,
+    applyOperatorDayFilter,
     routeTolls,
     massiveResults,
     currentPolylines,

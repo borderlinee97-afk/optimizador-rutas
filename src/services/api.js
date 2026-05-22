@@ -84,6 +84,10 @@ export async function getFarmacias(params = {}) {
   return fetchJSON(`${BASE_API}/farmacias${buildQS(params)}`)
 }
 
+export async function listProyectoCedis(params = {}) {
+  return fetchJSON(`${BASE_API}/proyecto-cedis${buildQS(params)}`)
+}
+
 // --- personas ---
 export async function listPersonas(params = {}) {
   return fetchJSON(`${BASE_API}/personas${buildQS(params)}`)
