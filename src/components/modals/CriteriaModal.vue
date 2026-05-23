@@ -47,6 +47,18 @@
         <details open class="section-card">
           <summary><span>Estrategia</span></summary>
 
+          <div class="field-block">
+              <label class="field-label">Motor de rutas</label>
+              <select v-model="criteria.routeEngine" class="field-control">
+                <option value="GOOGLE_ROUTES_PLUS">Google Routes Plus</option>
+                <option value="OWN_OPERATIVE">Motor propio operativo</option>
+                <option value="GOOGLE_OPTIMIZATION">Google Route Optimization</option>
+            </select>
+            <p class="hint">
+              Por ahora se usa Google Routes Plus. Después podrás comparar motores con la misma operación.
+            </p>
+          </div>
+
           <div class="section-content">
             <div class="field-block">
               <label class="field-label">Modo de cálculo</label>
@@ -88,6 +100,34 @@
                 />
                 <p class="hint">
                   Se usará para estimar litros necesarios por ruta y total.
+                </p>
+              </div>
+
+              <div class="field-block">
+                <label class="field-label">Precio combustible por litro</label>
+                <input
+                  v-model.number="criteria.fuelPricePerLiter"
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  class="field-control field-control-sm"
+                />
+                <p class="hint">
+                  Se multiplicará por los litros estimados.
+                </p>
+              </div>
+
+              <div class="field-block">
+                <label class="field-label">Viático diario por operador</label>
+                <input
+                  v-model.number="criteria.dailyAllowance"
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  class="field-control field-control-sm"
+                />
+                <p class="hint">
+                  Se multiplicará por los días generados de cada operador.
                 </p>
               </div>
             </div>

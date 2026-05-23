@@ -18,8 +18,11 @@ export function useRouting({
     region: '',
     proyecto: 'JALISCO',
     strategy: 'FASTEST',
+    routeEngine: 'GOOGLE_ROUTES_PLUS',
     operatorCount: 1,
     kmPerLiter: 12,
+    fuelPricePerLiter: 24,
+    dailyAllowance: 0,
     originCoords: {
       lat: '',
       lng: ''
@@ -395,11 +398,14 @@ if (originMode.value === 'center' && map.value) {
       proyecto: criteria.value.proyecto || 'JALISCO',
       region_sanitaria: region,
       strategy: criteria.value.strategy,
+      routeEngine: criteria.value.routeEngine || 'GOOGLE_ROUTES_PLUS',
       originMode: originMode.value,
       selectedCedisId: criteria.value.selectedCedisId || null,
 
       operatorCount: Number(criteria.value.operatorCount || 1),
       kmPerLiter: Number(criteria.value.kmPerLiter || 10),
+      fuelPricePerLiter: Number(criteria.value.fuelPricePerLiter || 0),
+      dailyAllowance: Number(criteria.value.dailyAllowance || 0),
 
       options: {
         ...criteria.value.options,
@@ -932,9 +938,12 @@ const colors = data.subroutes.map((_, i) =>
 
     const payload = {
       proyecto: criteria.value.proyecto || 'JALISCO',
+      routeEngine: criteria.value.routeEngine || 'GOOGLE_ROUTES_PLUS',
 
       operatorCount: 1,
       kmPerLiter: Number(criteria.value.kmPerLiter || 10),
+      fuelPricePerLiter: Number(criteria.value.fuelPricePerLiter || 0),
+      dailyAllowance: Number(criteria.value.dailyAllowance || 0),
 
       strategy: customStrategy.value || 'FASTEST',
       manualOrderIds: ids,
@@ -974,9 +983,12 @@ const colors = data.subroutes.map((_, i) =>
 
     const payload = {
       proyecto: criteria.value.proyecto || 'JALISCO',
+      routeEngine: criteria.value.routeEngine || 'GOOGLE_ROUTES_PLUS',
 
       operatorCount: Number(criteria.value.operatorCount || 1),
       kmPerLiter: Number(criteria.value.kmPerLiter || 10),
+      fuelPricePerLiter: Number(criteria.value.fuelPricePerLiter || 0),
+      dailyAllowance: Number(criteria.value.dailyAllowance || 0),
 
       strategy: 'MANUAL',
       options: { ...criteria.value.options },

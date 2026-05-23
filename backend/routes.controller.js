@@ -3,6 +3,22 @@ import { chunkArray } from './utils/chunk.js'
 
 const DEFAULT_PROJECT = 'JALISCO'
 
+const ROUTE_ENGINES = {
+  GOOGLE_ROUTES_PLUS: 'GOOGLE_ROUTES_PLUS',
+  OWN_OPERATIVE: 'OWN_OPERATIVE',
+  GOOGLE_OPTIMIZATION: 'GOOGLE_OPTIMIZATION'
+}
+
+function normalizeRouteEngine(value) {
+  const engine = String(
+    value || ROUTE_ENGINES.GOOGLE_ROUTES_PLUS
+  ).trim().toUpperCase()
+
+  return Object.values(ROUTE_ENGINES).includes(engine)
+    ? engine
+    : ROUTE_ENGINES.GOOGLE_ROUTES_PLUS
+}
+
 function normalizeProject(value) {
   return String(value || DEFAULT_PROJECT).trim().toUpperCase()
 }
@@ -131,6 +147,37 @@ function estimateFuelLiters(distanceMeters, kmPerLiter) {
   return km / rendimiento
 }
 
+function operativeSweepOrder(points, origin) {
+  if (!Array.isArray(points) || points.length <= 1) return [...points]
+
+  const withScore = points.map(point => {
+    const distance = haversine(origin, point)
+    const angle = Math.atan2(point.lat - origin.lat, point.lng - origin.lng)
+
+    return {
+      point,
+      distance,
+      angle
+    }
+  })
+
+  withScore.sort((a, b) => {
+    if (Math.abs(b.distance - a.distance) > 5000) {
+      return b.distance - a.distance
+    }
+
+    return a.angle - b.angle
+  })
+
+  const farthest = withScore[0]?.point
+  const remaining = withScore.slice(1).map(x => x.point)
+
+  return [
+    farthest,
+    ...nearestNeighborOrder(remaining, farthest)
+  ].filter(Boolean)
+}
+
 function nearestNeighborOrder(points, origin) {
   const pending = [...points]
   const ordered = []
@@ -211,6 +258,104 @@ function splitClusterGeographically(cluster) {
       points: sorted.slice(mid)
     }
   ]
+}
+
+function getTomorrowRfc3339Time(clock = '08:00') {
+  const [hour, minute] = String(clock || '08:00').split(':').map(Number)
+
+  const now = new Date()
+  const target = new Date(now)
+  target.setDate(target.getDate() + 1)
+  target.setHours(hour || 8, minute || 0, 0, 0)
+
+  return target.toISOString()
+}
+
+function buildOptimizeToursRequest({
+  start,
+  points,
+  operatorCount,
+  kmPerLiter
+}) {
+  const cedis = start?.cedis || {}
+  const serviceSeconds = Number(cedis.minutosServicioPorUnidad || 45) * 60
+
+  const globalStartTime = getTomorrowRfc3339Time('08:00')
+  const globalEndTime = getTomorrowRfc3339Time(
+    cedis.horaLimiteLlegadaUltimaUnidad || '16:00'
+  )
+
+  const shipments = points.map(point => ({
+    label: String(point.id),
+    deliveries: [
+      {
+        arrivalLocation: {
+          latitude: Number(point.lat),
+          longitude: Number(point.lng)
+        },
+        duration: `${serviceSeconds}s`
+      }
+    ],
+    penaltyCost: 1000000
+  }))
+
+  const vehicles = Array.from({ length: operatorCount }, (_, i) => ({
+    label: `Operador ${i + 1}`,
+    startLocation: {
+      latitude: Number(start.lat),
+      longitude: Number(start.lng)
+    },
+    endLocation: {
+      latitude: Number(start.lat),
+      longitude: Number(start.lng)
+    },
+    costPerKilometer: kmPerLiter > 0 ? 1 / kmPerLiter : 1,
+    costPerHour: 1
+  }))
+
+  return {
+    parent: `projects/${process.env.GOOGLE_CLOUD_PROJECT_ID}`,
+    model: {
+      shipments,
+      vehicles,
+      globalStartTime,
+      globalEndTime
+    },
+    searchMode: 'RETURN_FAST'
+  }
+}
+
+async function callOptimizeTours(requestBody) {
+  if (!process.env.GOOGLE_CLOUD_PROJECT_ID) {
+    throw new Error('Falta GOOGLE_CLOUD_PROJECT_ID en backend')
+  }
+
+  const url = `https://routeoptimization.googleapis.com/v1/projects/${process.env.GOOGLE_CLOUD_PROJECT_ID}:optimizeTours`
+
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-Goog-Api-Key': process.env.GMAPS_API_KEY
+    },
+    body: JSON.stringify(requestBody)
+  })
+
+  const text = await response.text()
+  let data
+
+  try {
+    data = JSON.parse(text)
+  } catch {
+    throw new Error(`Route Optimization non-JSON: ${text.slice(0, 500)}`)
+  }
+
+  if (!response.ok) {
+    console.error('Route Optimization API error response:', data)
+    throw new Error(`Route Optimization API ${response.status}: ${JSON.stringify(data)}`)
+  }
+
+  return data
 }
 
 async function getProjectCedis(projectCode, selectedCedisId = null) {
@@ -295,9 +440,50 @@ function estimateArrivalToLastSeconds(origin, points, serviceSeconds) {
   return total
 }
 
-function splitPointsIntoWorkDays(points, origin, start) {
+function splitLongDeadheadSegments(days, origin, maxDeadheadKm = 60) {
+  const maxMeters = Number(maxDeadheadKm || 60) * 1000
+  const repairedDays = []
+
+  for (const day of days) {
+    const points = day.points || []
+
+    if (points.length <= 1) {
+      repairedDays.push(points)
+      continue
+    }
+
+    let current = []
+
+    for (let i = 0; i < points.length; i++) {
+      const point = points[i]
+      const prev = current.length ? current[current.length - 1] : origin
+
+      const jumpMeters = haversine(prev, point)
+
+      if (current.length && jumpMeters > maxMeters) {
+        repairedDays.push(current)
+        current = [point]
+      } else {
+        current.push(point)
+      }
+    }
+
+    if (current.length) repairedDays.push(current)
+  }
+
+  return repairedDays
+    .filter(dayPoints => dayPoints.length)
+    .map((dayPoints, index) => ({
+      day: index + 1,
+      points: dayPoints
+    }))
+}
+
+function splitPointsIntoWorkDays(points, origin, start, routeEngine = ROUTE_ENGINES.GOOGLE_ROUTES_PLUS) {
   const { serviceSeconds, shiftSeconds } = getWorkdayConfig(start)
-  const ordered = nearestNeighborOrder(points, origin)
+  const ordered = routeEngine === ROUTE_ENGINES.OWN_OPERATIVE
+    ? operativeSweepOrder(points, origin)
+    : nearestNeighborOrder(points, origin)
   const days = []
 
   let currentDay = []
@@ -316,10 +502,18 @@ function splitPointsIntoWorkDays(points, origin, start) {
 
   if (currentDay.length) days.push(currentDay)
 
-  return days.map((dayPoints, index) => ({
+  let resultDays = days.map((dayPoints, index) => ({
     day: index + 1,
-    points: nearestNeighborOrder(dayPoints, origin)
+    points: routeEngine === ROUTE_ENGINES.OWN_OPERATIVE
+      ? operativeSweepOrder(dayPoints, origin)
+      : nearestNeighborOrder(dayPoints, origin)
   }))
+
+  if (routeEngine === ROUTE_ENGINES.OWN_OPERATIVE) {
+    resultDays = splitLongDeadheadSegments(resultDays, origin, 60)
+  }
+
+  return resultDays
 }
 
 function buildDaySchedule({ dayPoints, route, start }) {
@@ -361,7 +555,7 @@ function buildDaySchedule({ dayPoints, route, start }) {
   }
 }
 
-function splitPointsByOperators(points, operatorCount, origin) {
+function splitPointsByOperators(points, operatorCount, origin, routeEngine = ROUTE_ENGINES.GOOGLE_ROUTES_PLUS) {
   const count = clampOperatorCount(operatorCount, points.length)
 
   if (count <= 1) {
@@ -370,7 +564,9 @@ function splitPointsByOperators(points, operatorCount, origin) {
         operator: 1,
         label: 'Operador 1',
         regions: Array.from(new Set(points.map(getPointRegion))),
-        points: nearestNeighborOrder(points, origin)
+        points: routeEngine === ROUTE_ENGINES.OWN_OPERATIVE
+          ? operativeSweepOrder(points, origin)
+          : nearestNeighborOrder(points, origin)
       }
     ]
   }
@@ -453,14 +649,23 @@ export async function computeRoutes(req, res) {
       proyecto = DEFAULT_PROJECT,
       operatorCount = 1,
       kmPerLiter = 10,
+      fuelPricePerLiter = 0,
+      dailyAllowance = 0,
       originMode = 'cedis',
-      selectedCedisId = null
+      selectedCedisId = null,
+      routeEngine = ROUTE_ENGINES.GOOGLE_ROUTES_PLUS
     } = req.body || {}
 
     const projectCode = normalizeProject(proyecto)
+    const selectedRouteEngine = normalizeRouteEngine(routeEngine)
     
     console.log('==== POST /api/routes/compute ====')
     console.log('body:', JSON.stringify(req.body, null, 2))
+    console.log('Selected route engine:', selectedRouteEngine)
+
+    if (selectedRouteEngine === ROUTE_ENGINES.GOOGLE_OPTIMIZATION) {
+      console.log('Google Route Optimization seleccionado. Usando fallback temporal GOOGLE_ROUTES_PLUS.')
+    }
 
     if (!process.env.GMAPS_API_KEY) {
       return res.status(500).json({ error: 'Falta GMAPS_API_KEY en backend' })
@@ -842,9 +1047,60 @@ export async function computeRoutes(req, res) {
 
     const effectiveOperatorCount = clampOperatorCount(operatorCount, ordered.length)
     const fuelKmPerLiter = Number(kmPerLiter || 0)
+    const fuelUnitPrice = Number(fuelPricePerLiter || 0)
+    const dailyAllowanceAmount = Number(dailyAllowance || 0)
 
     if (effectiveOperatorCount > 1 && !hasManualSubset && STRAT !== 'MANUAL') {
-      const operatorGroups = splitPointsByOperators(ordered, effectiveOperatorCount, start)
+      
+      let optimizationResponse = null
+
+      if (selectedRouteEngine === ROUTE_ENGINES.GOOGLE_OPTIMIZATION) {
+        try {
+          const optimizeRequest = buildOptimizeToursRequest({
+            projectCode,
+            start,
+            points: ordered,
+            operatorCount: effectiveOperatorCount,
+            kmPerLiter
+          })
+
+          console.log(
+            'Calling Route Optimization API:',
+            JSON.stringify(optimizeRequest, null, 2)
+          )
+
+          optimizationResponse = await callOptimizeTours(optimizeRequest)
+
+          console.log(
+            'Route Optimization response received.'
+          )
+        } catch (error) {
+          console.error('Route Optimization failed:', error)
+        }
+      }
+      
+      const operatorGroups =
+        optimizationResponse?.routes?.length
+          ? optimizationResponse.routes.map((route, idx) => {
+              const visitIds = (route.visits || [])
+                .map(v => Number(v.shipmentLabel))
+                .filter(Boolean)
+
+              const routePoints = visitIds
+                .map(id => ordered.find(p => Number(p.id) === id))
+                .filter(Boolean)
+
+              return {
+                operator: idx + 1,
+                points: routePoints
+              }
+            })
+          : splitPointsByOperators(
+              ordered,
+              effectiveOperatorCount,
+              start,
+              selectedRouteEngine
+            )
 
       const operatorRoutes = []
       const allSubroutes = []
@@ -859,7 +1115,12 @@ export async function computeRoutes(req, res) {
         if (!group.points.length) continue
 
         const operatorStart = start
-        const workDays = splitPointsIntoWorkDays(group.points, operatorStart, start)
+        const workDays = splitPointsIntoWorkDays(
+          group.points,
+          operatorStart,
+          start,
+          selectedRouteEngine
+        )
 
         let operatorDistance = 0
         let operatorDuration = 0
@@ -869,7 +1130,8 @@ export async function computeRoutes(req, res) {
         const operatorDays = []
 
         for (const workDay of workDays) {
-          const dayPoints = workDay.points || []
+          const dayPoints = (workDay.points || []).filter(p => p?.id)
+
           if (!dayPoints.length) continue
 
           const dayDestination = start
@@ -889,10 +1151,18 @@ export async function computeRoutes(req, res) {
             Array.isArray(r.optimizedIntermediateWaypointIndex) &&
             r.optimizedIntermediateWaypointIndex.length
           ) {
-            dayOrder = r.optimizedIntermediateWaypointIndex
+            const optimizedOrder = r.optimizedIntermediateWaypointIndex
               .map(i => dayIntermediates[i])
-              .filter(Boolean)
+              .filter(p => p?.id)
+
+            if (optimizedOrder.length) {
+              dayOrder = optimizedOrder
+            }
           }
+
+          dayOrder = dayOrder.filter(p => p?.id)
+
+          if (!dayOrder.length) continue
 
           const dayDistance = Number(r.distanceMeters || 0)
           const dayDriveSeconds = parseDurationSec(r.duration || '0s')
@@ -972,6 +1242,18 @@ export async function computeRoutes(req, res) {
 
         const operatorFuel = estimateFuelLiters(operatorDistance, fuelKmPerLiter)
         const operatorTolls = sumTollTotals(operatorTollItems)
+        const operatorFuelCost =
+          operatorFuel != null && fuelUnitPrice > 0
+            ? operatorFuel * fuelUnitPrice
+            : 0
+
+        const operatorAllowanceCost =
+          dailyAllowanceAmount > 0
+            ? operatorDays.length * dailyAllowanceAmount
+            : 0
+
+        const operatorEstimatedCost =
+          operatorFuelCost + operatorAllowanceCost
 
         allLegs.push(...operatorLegs)
 
@@ -984,6 +1266,14 @@ export async function computeRoutes(req, res) {
           duration: `${operatorDuration}s`,
           durationSeconds: operatorDuration,
           fuelLiters: operatorFuel,
+          costs: {
+            fuelPricePerLiter: fuelUnitPrice,
+            fuelCost: operatorFuelCost,
+            dailyAllowance: dailyAllowanceAmount,
+            routeDays: operatorDays.length,
+            allowanceCost: operatorAllowanceCost,
+            totalEstimatedCost: operatorEstimatedCost
+          },
           tolls: operatorTolls,
           days: operatorDays,
           points: operatorOrder.map((p, index) => ({
@@ -1001,6 +1291,22 @@ export async function computeRoutes(req, res) {
       }
 
       const totalFuelLiters = estimateFuelLiters(operatorTotalDistance, fuelKmPerLiter)
+      const totalFuelCost =
+        totalFuelLiters != null && fuelUnitPrice > 0
+          ? totalFuelLiters * fuelUnitPrice
+          : 0
+
+      const totalRouteDays = operatorRoutes.reduce(
+        (acc, op) => acc + Number(op.days?.length || 0),
+        0
+      )
+
+      const totalAllowanceCost =
+        dailyAllowanceAmount > 0
+          ? totalRouteDays * dailyAllowanceAmount
+          : 0
+
+      const totalEstimatedCost = totalFuelCost + totalAllowanceCost
       const tolls = sumTollTotals(allSubroutes)
 
       return res.json({
@@ -1026,11 +1332,24 @@ export async function computeRoutes(req, res) {
         total: {
           distanceMeters: operatorTotalDistance,
           duration: `${operatorTotalDuration}s`,
-          fuelLiters: totalFuelLiters
+          fuelLiters: totalFuelLiters,
+          fuelCost: totalFuelCost,
+          allowanceCost: totalAllowanceCost,
+          totalEstimatedCost
         },
         fuel: {
           kmPerLiter: fuelKmPerLiter,
-          totalLiters: totalFuelLiters
+          totalLiters: totalFuelLiters,
+          totalLiters: totalFuelLiters,
+          totalFuelCost
+        },
+        costs: {
+          fuelPricePerLiter: fuelUnitPrice,
+          dailyAllowance: dailyAllowanceAmount,
+          totalRouteDays,
+          fuelCost: totalFuelCost,
+          allowanceCost: totalAllowanceCost,
+          totalEstimatedCost
         },
         tolls,
         readableOrder: allReadableOrder,

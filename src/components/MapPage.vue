@@ -8,6 +8,7 @@
       <select v-model="selectedProject" @change="handleProjectChange">
         <option value="JALISCO">Jalisco</option>
         <option value="GUERRERO">Guerrero</option>
+        <option value="CHIAPAS">Chiapas</option>
       </select>
     </div>
 

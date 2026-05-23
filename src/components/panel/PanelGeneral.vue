@@ -8,9 +8,20 @@
 
       <div v-if="routeFuel?.totalLiters != null" class="fuel-block">
         <b>Combustible estimado:</b>
-        {{ Number(routeFuel.totalLiters).toFixed(2) }} L
+        {{ Number(routeFuel.totalLiters).toFixed(2) }} LT
         <span v-if="routeFuel.kmPerLiter">
-          · Rendimiento {{ routeFuel.kmPerLiter }} km/L
+          - Rendimiento {{ routeFuel.kmPerLiter }} km/L
+        </span>
+      </div>
+
+      <div v-if="routeTotal?.totalEstimatedCost != null" class="fuel-block">
+        <b>Costo estimado total:</b>
+        ${{ Number(routeTotal.totalEstimatedCost).toFixed(2) }}
+        <span v-if="routeTotal.fuelCost != null">
+          · Combustible ${{ Number(routeTotal.fuelCost).toFixed(2) }}
+        </span>
+        <span v-if="routeTotal.allowanceCost != null">
+          · Viáticos ${{ Number(routeTotal.allowanceCost).toFixed(2) }}
         </span>
       </div>
 
@@ -47,6 +58,16 @@
               <span><b>Tiempo total:</b> {{ formatDur(op.duration) }}</span>
               <span v-if="op.fuelLiters != null">
                 <b>Litros:</b> {{ Number(op.fuelLiters).toFixed(2) }} L
+              </span>
+
+              <span v-if="op.costs?.totalEstimatedCost != null">
+                <b>Costo:</b> ${{ Number(op.costs.totalEstimatedCost).toFixed(2) }}
+              </span>
+              <span v-if="op.costs?.fuelCost != null">
+                <b>Combustible:</b> ${{ Number(op.costs.fuelCost).toFixed(2) }}
+              </span>
+              <span v-if="op.costs?.allowanceCost != null">
+                <b>Viáticos:</b> ${{ Number(op.costs.allowanceCost).toFixed(2) }}
               </span>
             </div>
 
