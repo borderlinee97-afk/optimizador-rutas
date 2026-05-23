@@ -555,6 +555,124 @@ function buildDaySchedule({ dayPoints, route, start }) {
   }
 }
 
+function estimateRouteDaysForPoints(points = [], origin, start, routeEngine = ROUTE_ENGINES.GOOGLE_ROUTES_PLUS) {
+  if (!points.length) return 0
+
+  const days = splitPointsIntoWorkDays(
+    points,
+    origin,
+    start,
+    routeEngine
+  )
+
+  return days.length || 1
+}
+
+function estimateOperatorBalancedWorkload(points = [], origin, start, routeEngine = ROUTE_ENGINES.GOOGLE_ROUTES_PLUS) {
+  if (!points.length) {
+    return {
+      days: 0,
+      meters: 0,
+      score: 0
+    }
+  }
+
+  const days = estimateRouteDaysForPoints(points, origin, start, routeEngine)
+  const meters = estimateClusterWorkload(points, origin)
+
+  // Días pesa más que km, pero sin destruir territorio.
+  const score = (days * 1_000_000) + meters
+
+  return { days, meters, score }
+}
+
+function balanceOperatorGroupsByWorkload(groups = [], origin, start, routeEngine = ROUTE_ENGINES.GOOGLE_ROUTES_PLUS) {
+  if (!Array.isArray(groups) || groups.length <= 1) return groups
+
+  const balanced = groups.map(g => ({
+    ...g,
+    points: [...(g.points || [])]
+  }))
+
+  const maxPasses = 8
+  const maxDayGapAllowed = 2
+
+  for (let pass = 0; pass < maxPasses; pass++) {
+    const scored = balanced
+      .map((group, index) => ({
+        index,
+        ...estimateOperatorBalancedWorkload(group.points, origin, start, routeEngine)
+      }))
+      .sort((a, b) => b.score - a.score)
+
+    const heavy = scored[0]
+    const light = scored[scored.length - 1]
+
+    if (!heavy || !light) break
+
+    const dayGap = heavy.days - light.days
+
+    if (dayGap < maxDayGapAllowed) break
+
+    const heavyGroup = balanced[heavy.index]
+    const lightGroup = balanced[light.index]
+
+    if (!heavyGroup?.points?.length) break
+
+    const lightCentroid = lightGroup.points.length
+      ? getCentroid(lightGroup.points)
+      : origin
+
+    const candidates = heavyGroup.points
+      .map(point => ({
+        point,
+        distanceToLight: haversine(point, lightCentroid),
+        distanceToOrigin: haversine(point, origin),
+        region: getPointRegion(point)
+      }))
+      .sort((a, b) => {
+        // Primero mueve puntos compatibles/cercanos al operador ligero.
+        if (Math.abs(a.distanceToLight - b.distanceToLight) > 1000) {
+          return a.distanceToLight - b.distanceToLight
+        }
+
+        // Si empatan, mueve puntos menos extremos.
+        return a.distanceToOrigin - b.distanceToOrigin
+      })
+
+    const candidate = candidates[0]?.point
+
+    if (!candidate) break
+
+    const candidateRegion = getPointRegion(candidate)
+
+    // Protección: no dejar un operador vacío ni romper todo un bloque territorial.
+    const sameRegionLeft = heavyGroup.points.filter(
+      p => getPointRegion(p) === candidateRegion
+    ).length
+
+    if (heavyGroup.points.length <= 1 || sameRegionLeft <= 1) {
+      break
+    }
+
+    heavyGroup.points = heavyGroup.points.filter(
+      p => Number(p.id) !== Number(candidate.id)
+    )
+
+    lightGroup.points.push(candidate)
+
+    heavyGroup.regions = Array.from(new Set(heavyGroup.points.map(getPointRegion)))
+    lightGroup.regions = Array.from(new Set(lightGroup.points.map(getPointRegion)))
+  }
+
+  return balanced.map(group => ({
+    ...group,
+    points: routeEngine === ROUTE_ENGINES.OWN_OPERATIVE
+      ? operativeSweepOrder(group.points, origin)
+      : nearestNeighborOrder(group.points, origin)
+  }))
+}
+
 function splitPointsByOperators(points, operatorCount, origin, routeEngine = ROUTE_ENGINES.GOOGLE_ROUTES_PLUS) {
   const count = clampOperatorCount(operatorCount, points.length)
 
@@ -1050,7 +1168,7 @@ export async function computeRoutes(req, res) {
     const fuelUnitPrice = Number(fuelPricePerLiter || 0)
     const dailyAllowanceAmount = Number(dailyAllowance || 0)
 
-    if (effectiveOperatorCount > 1 && !hasManualSubset && STRAT !== 'MANUAL') {
+    if (effectiveOperatorCount >= 1 && !hasManualSubset && STRAT !== 'MANUAL') {
       
       let optimizationResponse = null
 
@@ -1079,7 +1197,7 @@ export async function computeRoutes(req, res) {
         }
       }
       
-      const operatorGroups =
+      let operatorGroups =
         optimizationResponse?.routes?.length
           ? optimizationResponse.routes.map((route, idx) => {
               const visitIds = (route.visits || [])
@@ -1092,6 +1210,8 @@ export async function computeRoutes(req, res) {
 
               return {
                 operator: idx + 1,
+                label: `Operador ${idx + 1}`,
+                regions: Array.from(new Set(routePoints.map(getPointRegion))),
                 points: routePoints
               }
             })
@@ -1101,6 +1221,15 @@ export async function computeRoutes(req, res) {
               start,
               selectedRouteEngine
             )
+
+      // En modo ida/vuelta, NO balanceamos moviendo puntos individuales,
+      // porque eso rompe zonas compactas y separa unidades cercanas entre rutas.
+      if (selectedRouteEngine === ROUTE_ENGINES.OWN_OPERATIVE) {
+        operatorGroups = operatorGroups.map(group => ({
+          ...group,
+          points: operativeSweepOrder(group.points, start)
+        }))
+      }
 
       const operatorRoutes = []
       const allSubroutes = []
@@ -1186,7 +1315,7 @@ export async function computeRoutes(req, res) {
           allSubroutes.push({
             operator: group.operator,
             day: workDay.day,
-            label: `Operador ${group.operator} · Día ${workDay.day}`,
+            label: `Ruta ${group.operator} · Operador ${workDay.day}`,
             polyline: r.polyline?.encodedPolyline,
             distance: dayDistance,
             duration: `${daySchedule.totalSeconds}s`,
@@ -1199,7 +1328,7 @@ export async function computeRoutes(req, res) {
 
           operatorDays.push({
             day: workDay.day,
-            label: `Día ${workDay.day}`,
+            label: `Operador ${workDay.day}`,
             pointCount: dayOrder.length,
             distanceMeters: dayDistance,
             duration: `${daySchedule.totalSeconds}s`,
@@ -1219,7 +1348,7 @@ export async function computeRoutes(req, res) {
           })
 
           allVisitOrder.push(
-            { name: `OPERADOR ${group.operator} - DÍA ${workDay.day} - ORIGEN`, lat: start.lat, lng: start.lng },
+            { name: `RUTA ${group.operator} - OPERADOR ${workDay.day} - ORIGEN`, lat: start.lat, lng: start.lng },
             ...dayOrder.map(p => ({
               id: p.id,
               name: p.name,
@@ -1232,9 +1361,9 @@ export async function computeRoutes(req, res) {
           )
 
           allReadableOrder.push(
-            `Operador ${group.operator} · Día ${workDay.day}`,
+            `Ruta ${group.operator} · Operador ${workDay.day}`,
             ...dayOrder.map(p => p.name),
-            `Operador ${group.operator} · Día ${workDay.day} · ORIGEN`
+            `Ruta ${group.operator} · Operador ${workDay.day} · ORIGEN`
           )
         }
 
@@ -1259,7 +1388,7 @@ export async function computeRoutes(req, res) {
 
         operatorRoutes.push({
           operator: group.operator,
-          label: `Operador ${group.operator}`,
+          label: `Ruta ${group.operator}`,
           regions: group.regions || [],
           pointCount: operatorOrder.length,
           distanceMeters: operatorDistance,
@@ -1354,7 +1483,7 @@ export async function computeRoutes(req, res) {
         tolls,
         readableOrder: allReadableOrder,
         visitOrder: allVisitOrder,
-        info: `Ruta dividida en ${operatorRoutes.length} operadores con jornadas laborales`
+        info: `${operatorRoutes.length} ruta(s) calculada(s) con operadores requeridos`
       })
     }
 

@@ -76,7 +76,7 @@
 
             <div class="operator-grid">
               <div class="field-block">
-                <label class="field-label">Número de operadores</label>
+                <label class="field-label">Número de rutas</label>
                 <input
                   type="number"
                   min="1"
@@ -85,7 +85,7 @@
                   class="field-control field-control-sm"
                 />
                 <p class="hint">
-                  Si indicas más de 1 operador, el sistema dividirá las unidades en rutas operativas.
+                  Indica cuántas rutas ida/vuelta quieres generar desde el CEDIS.
                 </p>
               </div>
 

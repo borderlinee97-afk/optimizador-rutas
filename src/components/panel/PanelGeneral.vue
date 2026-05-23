@@ -34,7 +34,7 @@
 
     <section v-if="operatorRoutes.length" class="module-block">
       <details open>
-        <summary><b>Rutas por operador</b></summary>
+        <summary><b>Rutas calculadas</b></summary>
 
         <div class="operator-list">
           <div
@@ -45,7 +45,7 @@
             @click="$emit('select-operator', op.operator)"
           >
             <div class="operator-header">
-              <b>{{ op.label || `Operador ${op.operator}` }}</b>
+              <b>{{ op.label || `Ruta ${op.operator}` }}</b>
               <span>{{ op.pointCount || 0 }} unidades</span>
             </div>
 
@@ -82,7 +82,7 @@
                 }"
               >
                 <summary @click.prevent.stop="$emit('select-operator-day', op.operator, day.day)">
-                  <b>{{ day.label || `Día ${day.day}` }}</b>
+                  <b>{{ day.label || `Operador ${day.day}` }}</b>
                   <span>{{ day.pointCount || 0 }} unidades</span>
                 </summary>
 
@@ -114,7 +114,7 @@
             </div>
 
             <details class="operator-points">
-              <summary>Ver unidades asignadas</summary>
+              <summary>Ver unidades de la ruta</summary>
               <ol>
                 <li v-for="p in op.points" :key="p.id">
                   {{ p.order }}. {{ p.name }}
