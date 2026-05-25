@@ -19,6 +19,10 @@ export function useRouting({
     proyecto: 'JALISCO',
     strategy: 'FASTEST',
     routeEngine: 'GOOGLE_ROUTES_PLUS',
+    routeMode: 'ROUND_TRIP',
+    maxForeignDays: 3,
+    foreignOperatorsPerRoute: 1,
+    lodgingSearchRadiusKm: 20,
     operatorCount: 1,
     kmPerLiter: 12,
     fuelPricePerLiter: 24,
@@ -399,6 +403,10 @@ if (originMode.value === 'center' && map.value) {
       region_sanitaria: region,
       strategy: criteria.value.strategy,
       routeEngine: criteria.value.routeEngine || 'GOOGLE_ROUTES_PLUS',
+      routeMode: criteria.value.routeMode || 'ROUND_TRIP',
+      maxForeignDays: Number(criteria.value.maxForeignDays || 3),
+      foreignOperatorsPerRoute: Number(criteria.value.foreignOperatorsPerRoute || 1),
+      lodgingSearchRadiusKm: Number(criteria.value.lodgingSearchRadiusKm || 20),
       originMode: originMode.value,
       selectedCedisId: criteria.value.selectedCedisId || null,
 
@@ -524,35 +532,151 @@ const colors = data.subroutes.map((_, i) =>
     const seq = []
 
     if (data.start && typeof data.start.lat === 'number' && typeof data.start.lng === 'number') {
-      const { AdvancedMarkerElement, PinElement } = await google.maps.importLibrary('marker')
+      const { AdvancedMarkerElement } = await google.maps.importLibrary('marker')
 
-      const originPin = new PinElement({
-        background: '#000000',
-        borderColor: '#ffffff',
-        glyphColor: '#ffffff',
-        glyphText: data.start?.isCedis ? 'C' : 'O',
-        scale: 1.35
-      })
+      const originEl = document.createElement('div')
+      originEl.style.cssText = `
+        width: 42px;
+        height: 42px;
+        border-radius: 12px;
+        background: #111827;
+        color: #ffffff;
+        border: 3px solid #ffffff;
+        box-shadow: 0 4px 10px rgba(0,0,0,.25);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 22px;
+      `
+      originEl.textContent = data.start?.isCedis ? '🏬' : '📍'
 
       const originMarker = new AdvancedMarkerElement({
         map: map.value,
         position: { lat: data.start.lat, lng: data.start.lng },
         title: data.start?.cedis?.nombre || 'Origen',
-        content: originPin
+        content: originEl
       })
 
       originMarker.__operator = null
+      originMarker.__day = null
       originMarker.__isOriginMarker = true
 
       seq.push(originMarker)
       trackOverlay(originMarker)
-    }
 
-    if (Array.isArray(data.visitOrder) && data.visitOrder.length) {
-      const { AdvancedMarkerElement, PinElement } = await google.maps.importLibrary('marker')
+    if (Array.isArray(data.operatorRoutes)) {
+      const { AdvancedMarkerElement } =
+        await google.maps.importLibrary('marker')
+
+      for (const op of data.operatorRoutes) {
+        for (const day of op.days || []) {
+
+          const restMarkers = [
+            day.startRest
+              ? {
+                  ...day.startRest,
+                  markerType: 'start',
+                  title: `Inicio Operador ${op.operator} · Día ${day.day}`
+                }
+              : null,
+
+            day.lodging
+              ? {
+                  ...day.lodging,
+                  markerType: 'lodging',
+                  title: `Descanso Operador ${op.operator} · Día ${day.day}`
+                }
+              : null
+          ].filter(Boolean)
+
+          for (const lodging of restMarkers) {
+            if (!lodging?.lat || !lodging?.lng) continue
+
+            const hotelEl = document.createElement('div')
+
+            hotelEl.style.cssText = `
+              width: 38px;
+              height: 38px;
+              border-radius: 12px;
+              background: ${lodging.markerType === 'start'
+                ? '#1d4ed8'
+                : '#7c2d12'};
+              color: #ffffff;
+              border: 3px solid #ffffff;
+              box-shadow: 0 4px 10px rgba(0,0,0,.25);
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              font-size: 21px;
+            `
+
+            hotelEl.textContent =
+              lodging.markerType === 'start'
+                ? '▶️'
+                : '🏨'
+
+            const hotelMarker = new AdvancedMarkerElement({
+              map: map.value,
+              position: {
+                lat: Number(lodging.lat),
+                lng: Number(lodging.lng)
+              },
+              title: lodging.title || lodging.name || 'Hospedaje / descanso',
+              content: hotelEl
+            })
+
+            hotelMarker.__operator = op.operator || null
+            hotelMarker.__day = day.day || null
+            hotelMarker.__isRestMarker = true
+
+            seq.push(hotelMarker)
+            trackOverlay(hotelMarker)
+          }
+        }
+      }
+    }
+     
+    }
+    
+    if (Array.isArray(data.operatorRoutes) && data.operatorRoutes.length) {
+      const { AdvancedMarkerElement, PinElement } =
+        await google.maps.importLibrary('marker')
+
+      for (const op of data.operatorRoutes) {
+        for (const day of op.days || []) {
+          const dayPoints = Array.isArray(day.points) ? day.points : []
+
+          for (const p of dayPoints) {
+            if (!p?.id) continue
+            if (typeof p.lat !== 'number' || typeof p.lng !== 'number') continue
+
+            const pin = new PinElement({
+              background: '#111827',
+              borderColor: '#ffffff',
+              glyphColor: '#ffffff',
+              glyphText: String(p.order || 1)
+            })
+
+            const m = new AdvancedMarkerElement({
+              map: map.value,
+              position: { lat: p.lat, lng: p.lng },
+              title: `${p.order || ''}. ${p.name || ''}`.trim(),
+              content: pin
+            })
+
+            m.__operator = op.operator || null
+            m.__day = day.day || null
+
+            seq.push(m)
+            trackOverlay(m)
+          }
+        }
+      }
+    } else if (Array.isArray(data.visitOrder) && data.visitOrder.length) {
+      const { AdvancedMarkerElement, PinElement } =
+        await google.maps.importLibrary('marker')
 
       let i = 1
-      const operatorCounters = new Map()
 
       for (const p of data.visitOrder) {
         if (p.name === 'ORIGEN' || String(p.name || '').includes('ORIGEN')) continue
@@ -563,9 +687,7 @@ const colors = data.subroutes.map((_, i) =>
           background: '#111827',
           borderColor: '#ffffff',
           glyphColor: '#ffffff',
-          glyphText: p.operator
-            ? String(operatorCounters.set(p.operator, (operatorCounters.get(p.operator) || 0) + 1).get(p.operator))
-            : String(i++)
+          glyphText: String(i++)
         })
 
         const m = new AdvancedMarkerElement({

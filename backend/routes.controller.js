@@ -358,6 +358,139 @@ async function callOptimizeTours(requestBody) {
   return data
 }
 
+async function findLodgingNear(point, radiusKm = 20, nextPoint = null, previousLodgings = []) {
+  if (!process.env.GMAPS_API_KEY) {
+    throw new Error('Falta GMAPS_API_KEY en backend')
+  }
+
+  if (!isValidLatLng(point)) return null
+
+  const radiusMeters = Math.min(
+    Math.max(Number(radiusKm || 20) * 1000, 1000),
+    50000
+  )
+
+  const response = await fetch(
+    'https://places.googleapis.com/v1/places:searchNearby',
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Goog-Api-Key': process.env.GMAPS_API_KEY,
+        'X-Goog-FieldMask': [
+          'places.id',
+          'places.displayName',
+          'places.formattedAddress',
+          'places.location',
+          'places.rating',
+          'places.googleMapsUri',
+          'places.businessStatus',
+          'places.types'
+        ].join(',')
+      },
+      body: JSON.stringify({
+        includedTypes: ['lodging'],
+        maxResultCount: 10,
+        locationRestriction: {
+          circle: {
+            center: {
+              latitude: Number(point.lat),
+              longitude: Number(point.lng)
+            },
+            radius: radiusMeters
+          }
+        }
+      })
+    }
+  )
+
+  const text = await response.text()
+  let data
+
+  try {
+    data = JSON.parse(text)
+  } catch {
+    throw new Error(`Places non-JSON: ${text.slice(0, 500)}`)
+  }
+
+  if (!response.ok) {
+    console.error('Places API error response:', data)
+    throw new Error(`Places API ${response.status}: ${JSON.stringify(data)}`)
+  }
+
+  const lodgingKeywords = [
+    'hotel',
+    'motel',
+    'posada',
+    'hostal',
+    'hostel',
+    'hospedaje',
+    'alojamiento',
+    'inn',
+    'suites'
+  ]
+
+  const places = Array.isArray(data.places) ? data.places : []
+
+  const candidates = places
+    .map(place => {
+      const name = place.displayName?.text || ''
+      const address = place.formattedAddress || ''
+      const textValue = `${name} ${address}`.toLowerCase()
+
+      const lat = Number(place.location?.latitude)
+      const lng = Number(place.location?.longitude)
+
+      if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null
+
+      const looksLikeLodging =
+        lodgingKeywords.some(k => textValue.includes(k)) ||
+        (place.types || []).includes('lodging')
+
+      if (!looksLikeLodging) return null
+      if (place.businessStatus && place.businessStatus !== 'OPERATIONAL') return null
+
+      const lodgingPoint = { lat, lng }
+
+      const distanceFromLast = haversine(point, lodgingPoint)
+      const distanceToNext = isValidLatLng(nextPoint)
+        ? haversine(lodgingPoint, nextPoint)
+        : 0
+
+      const ratingBonus = Number(place.rating || 0) * 3000
+
+      return {
+        id: place.id || null,
+        name: name || 'Hospedaje cercano',
+        address,
+        lat,
+        lng,
+        rating: place.rating ?? null,
+        googleMapsUri: place.googleMapsUri || null,
+        score: distanceFromLast * 0.45 + distanceToNext * 1.15 - ratingBonus
+      }
+    })
+    .filter(Boolean)
+
+  for (const old of previousLodgings || []) {
+    if (!isValidLatLng(old)) continue
+
+    const distanceFromLast = haversine(point, old)
+    const distanceToNext = isValidLatLng(nextPoint)
+      ? haversine(old, nextPoint)
+      : 0
+
+    candidates.push({
+      ...old,
+      score: distanceFromLast * 0.45 + distanceToNext * 1.15 - 8000
+    })
+  }
+
+  candidates.sort((a, b) => a.score - b.score)
+
+  return candidates[0] || null
+}
+
 async function getProjectCedis(projectCode, selectedCedisId = null) {
   const params = [projectCode]
   let idFilter = ''
@@ -771,15 +904,22 @@ export async function computeRoutes(req, res) {
       dailyAllowance = 0,
       originMode = 'cedis',
       selectedCedisId = null,
-      routeEngine = ROUTE_ENGINES.GOOGLE_ROUTES_PLUS
+      routeEngine = ROUTE_ENGINES.GOOGLE_ROUTES_PLUS,
+      routeMode = 'ROUND_TRIP',
+      maxForeignDays = 3,
+      foreignOperatorsPerRoute = 1,
+      lodgingSearchRadiusKm = 20
     } = req.body || {}
 
     const projectCode = normalizeProject(proyecto)
     const selectedRouteEngine = normalizeRouteEngine(routeEngine)
+    const selectedRouteMode = String(routeMode || 'ROUND_TRIP').trim().toUpperCase()
+    const isForeignRoute = selectedRouteMode === 'FOREIGN_ROUTE'
     
     console.log('==== POST /api/routes/compute ====')
     console.log('body:', JSON.stringify(req.body, null, 2))
     console.log('Selected route engine:', selectedRouteEngine)
+    console.log('Selected route mode:', selectedRouteMode)
 
     if (selectedRouteEngine === ROUTE_ENGINES.GOOGLE_OPTIMIZATION) {
       console.log('Google Route Optimization seleccionado. Usando fallback temporal GOOGLE_ROUTES_PLUS.')
@@ -1030,7 +1170,9 @@ export async function computeRoutes(req, res) {
       }
     }
 
-    const returnToOrigin = !!options.returnToOrigin
+    const returnToOrigin = isForeignRoute
+    ? false
+    : !!options.returnToOrigin
 
     if (!returnToOrigin && ordered.length < 1) {
       return res.json({
@@ -1060,7 +1202,9 @@ export async function computeRoutes(req, res) {
       })
     }
 
-    const dest = returnToOrigin ? start : ordered[ordered.length - 1]
+    const dest = returnToOrigin
+      ? start
+      : ordered[ordered.length - 1]
     const fullIntermediates = returnToOrigin ? ordered : ordered.slice(0, -1)
     const MAX_INTERMEDIATES = Math.min(Number(options.maxStopsPerSubroute || 25) || 25, 25)
 
@@ -1163,7 +1307,11 @@ export async function computeRoutes(req, res) {
       return data.routes[0]
     }
 
-    const effectiveOperatorCount = clampOperatorCount(operatorCount, ordered.length)
+    const requestedOperatorCount = clampOperatorCount(operatorCount, ordered.length)
+
+    let effectiveOperatorCount = isForeignRoute
+      ? 1
+      : requestedOperatorCount
     const fuelKmPerLiter = Number(kmPerLiter || 0)
     const fuelUnitPrice = Number(fuelPricePerLiter || 0)
     const dailyAllowanceAmount = Number(dailyAllowance || 0)
@@ -1197,30 +1345,68 @@ export async function computeRoutes(req, res) {
         }
       }
       
-      let operatorGroups =
-        optimizationResponse?.routes?.length
-          ? optimizationResponse.routes.map((route, idx) => {
-              const visitIds = (route.visits || [])
-                .map(v => Number(v.shipmentLabel))
-                .filter(Boolean)
+      let operatorGroups = []
 
-              const routePoints = visitIds
-                .map(id => ordered.find(p => Number(p.id) === id))
-                .filter(Boolean)
+      if (isForeignRoute) {
+        const maxAllowedDays = Number(maxForeignDays || 3)
+        let bestGroups = null
+        let bestCount = 1
 
-              return {
-                operator: idx + 1,
-                label: `Operador ${idx + 1}`,
-                regions: Array.from(new Set(routePoints.map(getPointRegion))),
-                points: routePoints
-              }
-            })
-          : splitPointsByOperators(
-              ordered,
-              effectiveOperatorCount,
-              start,
-              selectedRouteEngine
+        for (let count = 1; count <= requestedOperatorCount; count++) {
+          const candidateGroups = splitPointsByOperators(
+            ordered,
+            count,
+            start,
+            selectedRouteEngine
+          )
+
+          const maxDaysNeeded = Math.max(
+            ...candidateGroups.map(group =>
+              splitPointsIntoWorkDays(
+                group.points,
+                start,
+                start,
+                selectedRouteEngine
+              ).length
             )
+          )
+
+          bestGroups = candidateGroups
+          bestCount = count
+
+          if (maxDaysNeeded <= maxAllowedDays) {
+            break
+          }
+        }
+
+        effectiveOperatorCount = bestCount
+        operatorGroups = bestGroups || []
+      } else {
+        operatorGroups =
+          optimizationResponse?.routes?.length
+            ? optimizationResponse.routes.map((route, idx) => {
+                const visitIds = (route.visits || [])
+                  .map(v => Number(v.shipmentLabel))
+                  .filter(Boolean)
+
+                const routePoints = visitIds
+                  .map(id => ordered.find(p => Number(p.id) === id))
+                  .filter(Boolean)
+
+                return {
+                  operator: idx + 1,
+                  label: `Operador ${idx + 1}`,
+                  regions: Array.from(new Set(routePoints.map(getPointRegion))),
+                  points: routePoints
+                }
+              })
+            : splitPointsByOperators(
+                ordered,
+                effectiveOperatorCount,
+                start,
+                selectedRouteEngine
+              )
+      }
 
       // En modo ida/vuelta, NO balanceamos moviendo puntos individuales,
       // porque eso rompe zonas compactas y separa unidades cercanas entre rutas.
@@ -1244,6 +1430,8 @@ export async function computeRoutes(req, res) {
         if (!group.points.length) continue
 
         const operatorStart = start
+        let currentForeignStart = start
+
         const workDays = splitPointsIntoWorkDays(
           group.points,
           operatorStart,
@@ -1258,21 +1446,60 @@ export async function computeRoutes(req, res) {
         let operatorOrder = []
         const operatorDays = []
 
+        const previousForeignLodgings = []
         for (const workDay of workDays) {
           const dayPoints = (workDay.points || []).filter(p => p?.id)
 
           if (!dayPoints.length) continue
 
-          const dayDestination = start
+          const isLastForeignDay =
+            isForeignRoute &&
+            Number(workDay.day) === Number(workDays.length)
+
+          const lastPointOfDay = dayPoints[dayPoints.length - 1]
+
+          const nextWorkDay = workDays.find(d => Number(d.day) === Number(workDay.day) + 1)
+          const nextFirstPoint = nextWorkDay?.points?.[0] || null
+
+          const needsOvernightStop =
+            isForeignRoute &&
+            !isLastForeignDay &&
+            !!nextFirstPoint
+
+          const lodging = needsOvernightStop
+            ? await findLodgingNear(
+                lastPointOfDay,
+                lodgingSearchRadiusKm,
+                nextFirstPoint,
+                previousForeignLodgings
+              )
+            : null
+
+          if (lodging) {
+            previousForeignLodgings.push(lodging)
+          }
+
+          const dayDestination = isForeignRoute
+            ? (needsOvernightStop ? (lodging || lastPointOfDay) : start)
+            : start
+
           const dayIntermediates = dayPoints
 
+          const routeStart = isForeignRoute
+            ? currentForeignStart
+            : operatorStart
+
           const r = await callComputeRoutes(
-            operatorStart,
+            routeStart,
             dayDestination,
             dayIntermediates
           )
 
           if (!r) continue
+
+          if (isForeignRoute) {
+            currentForeignStart = dayDestination
+          }
 
           let dayOrder = dayIntermediates
 
@@ -1337,6 +1564,16 @@ export async function computeRoutes(req, res) {
             fuelLiters: dayFuel,
             tolls: dayTolls,
             schedule: daySchedule,
+            startRest: isForeignRoute && routeStart !== start
+              ? {
+                  name: routeStart.name || 'Inicio desde descanso',
+                  address: routeStart.address || '',
+                  lat: routeStart.lat,
+                  lng: routeStart.lng,
+                  googleMapsUri: routeStart.googleMapsUri || null
+                }
+              : null,
+            lodging,
             points: dayOrder.map((p, index) => ({
               order: index + 1,
               id: p.id,
@@ -1348,7 +1585,13 @@ export async function computeRoutes(req, res) {
           })
 
           allVisitOrder.push(
-            { name: `RUTA ${group.operator} - OPERADOR ${workDay.day} - ORIGEN`, lat: start.lat, lng: start.lng },
+            {
+              name: isForeignRoute
+                ? `OPERADOR ${group.operator} - DÍA ${workDay.day} - INICIO`
+                : `RUTA ${group.operator} - OPERADOR ${workDay.day} - ORIGEN`,
+              lat: routeStart.lat,
+              lng: routeStart.lng
+            },
             ...dayOrder.map(p => ({
               id: p.id,
               name: p.name,
@@ -1357,7 +1600,13 @@ export async function computeRoutes(req, res) {
               operator: group.operator,
               day: workDay.day
             })),
-            { name: `OPERADOR ${group.operator} - DÍA ${workDay.day} - ORIGEN`, lat: start.lat, lng: start.lng }
+            {
+              name: isForeignRoute
+                ? `OPERADOR ${group.operator} - DÍA ${workDay.day} - FIN`
+                : `RUTA ${group.operator} - OPERADOR ${workDay.day} - ORIGEN`,
+              lat: dayDestination.lat,
+              lng: dayDestination.lng
+            }
           )
 
           allReadableOrder.push(
@@ -1444,7 +1693,11 @@ export async function computeRoutes(req, res) {
           region_sanitaria: region_sanitaria ?? null,
           scope: isProjectWideOperators ? 'PROJECT' : 'REGION',
           strategy: STRAT,
+          routeMode: selectedRouteMode,
           operatorCount: effectiveOperatorCount,
+          requestedOperators: Number(operatorCount || 1),
+          usedOperators: operatorRoutes.length,
+          maxForeignDays: Number(maxForeignDays || 3),
           kmPerLiter: fuelKmPerLiter,
           originMode,
           selectedCedisId,
@@ -1483,7 +1736,16 @@ export async function computeRoutes(req, res) {
         tolls,
         readableOrder: allReadableOrder,
         visitOrder: allVisitOrder,
-        info: `${operatorRoutes.length} ruta(s) calculada(s) con operadores requeridos`
+        info: isForeignRoute
+          ? `${operatorRoutes.length} operador(es) calculado(s) para ruta foránea`
+          : `${operatorRoutes.length} ruta(s) calculada(s) con operadores requeridos`,
+        warnings: isForeignRoute && operatorRoutes.some(op =>
+          Number(op.days?.length || 0) > Number(maxForeignDays || 3)
+        )
+          ? [
+              `La ruta foránea supera el límite de ${Number(maxForeignDays || 3)} días con los operadores disponibles.`
+            ]
+          : []
       })
     }
 

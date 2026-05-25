@@ -74,9 +74,19 @@
               La estrategia manual solo está disponible cuando calculas una sola región.
             </p>
 
+            <div class="field-block">
+              <label class="field-label">Tipo de ruta</label>
+              <select v-model="criteria.routeMode" class="field-control">
+                <option value="ROUND_TRIP">Ida y vuelta al CEDIS</option>
+                <option value="FOREIGN_ROUTE">Foránea con descanso</option>
+              </select>
+            </div>
+
             <div class="operator-grid">
               <div class="field-block">
-                <label class="field-label">Número de rutas</label>
+                <label class="field-label">
+                  {{ criteria.routeMode === 'FOREIGN_ROUTE' ? 'Operadores disponibles' : 'Número de rutas' }}
+                </label>
                 <input
                   type="number"
                   min="1"
@@ -85,9 +95,50 @@
                   class="field-control field-control-sm"
                 />
                 <p class="hint">
-                  Indica cuántas rutas ida/vuelta quieres generar desde el CEDIS.
+                  {{
+                    criteria.routeMode === 'FOREIGN_ROUTE'
+                      ? 'Indica cuántos operadores podrías enviar. El sistema usará solo los necesarios.'
+                      : 'Indica cuántas rutas ida/vuelta quieres generar desde el CEDIS.'
+                  }}
                 </p>
               </div>
+
+              <!--
+              <div v-if="criteria.routeMode === 'FOREIGN_ROUTE'" class="operator-grid">
+                <div class="field-block">
+                  <label class="field-label">Máximo de días por ruta</label>
+                  <input
+                    v-model.number="criteria.maxForeignDays"
+                    type="number"
+                    min="1"
+                    max="15"
+                    class="field-control field-control-sm"
+                  />
+                </div>
+
+                <div class="field-block">
+                  <label class="field-label">Operadores por ruta foránea</label>
+                  <input
+                    v-model.number="criteria.foreignOperatorsPerRoute"
+                    type="number"
+                    min="1"
+                    max="5"
+                    class="field-control field-control-sm"
+                  />
+                </div>
+
+                <div class="field-block">
+                  <label class="field-label">Radio búsqueda hospedaje km</label>
+                  <input
+                    v-model.number="criteria.lodgingSearchRadiusKm"
+                    type="number"
+                    min="5"
+                    max="80"
+                    class="field-control field-control-sm"
+                  />
+                </div>
+              </div>
+              -->
 
               <div class="field-block">
                 <label class="field-label">Rendimiento km/L</label>

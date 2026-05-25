@@ -15,14 +15,16 @@ function normalizeProject(value) {
 router.get('/farmacias', async (req, res) => {
   try {
     const { withCoords } = req.query
-    const proyecto = normalizeProject(req.query.proyecto)
+    const proyecto = req.query.proyecto
+      ? normalizeProject(req.query.proyecto)
+      : null
 
-    const conditions = ['proyecto = $1']
-    const params = [proyecto]
+    const conditions = []
+    const params = []
 
-    if (withCoords === 'true') {
-      conditions.push('latitud IS NOT NULL')
-      conditions.push('longitud IS NOT NULL')
+    if (proyecto) {
+      params.push(proyecto)
+      conditions.push(`proyecto = $${params.length}`)
     }
 
     const query = `
@@ -40,7 +42,7 @@ router.get('/farmacias', async (req, res) => {
         estado,
         proyecto
       FROM public.farmacia
-      WHERE ${conditions.join(' AND ')}
+      ${conditions.length ? `WHERE ${conditions.join(' AND ')}` : ''}
       ORDER BY region_sanitaria NULLS LAST, clues ASC
     `
 

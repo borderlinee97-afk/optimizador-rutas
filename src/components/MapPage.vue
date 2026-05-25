@@ -3,6 +3,7 @@
   <div id="map-wrapper">
     <div ref="mapEl" class="map"></div>
 
+    <!--
     <div class="project-switch">
       <label>Proyecto</label>
       <select v-model="selectedProject" @change="handleProjectChange">
@@ -11,6 +12,7 @@
         <option value="PUEBLA">Puebla</option>
       </select>
     </div>
+    -->
 
     <FabGroup
       :trafficEnabled="trafficEnabled"
@@ -23,8 +25,14 @@
     />
 
     <Legend
-      :regiones="regiones"
+      :projects="projects"
+      :selectedProject="selectedLegendProject"
+      :regiones="filteredRegiones"
       :getColorForRegion="getColorForRegion"
+      @select-project="handleLegendProject"
+      @select-region="handleLegendRegion"
+      @back-projects="handleLegendBackProjects"
+      @clear-filters="handleLegendClear"
     />
 
     <PanelSandbox
@@ -84,7 +92,7 @@
 
     <CriteriaModal
       :open="criteriaOpen"
-      :regiones="regiones"
+      :regiones="criteriaRegiones"
       :criteria="criteria"
       :originMode="originMode"
       :originPharmacyId="originPharmacyId"
@@ -160,11 +168,14 @@ const selectedCedis = computed(() =>
   proyectoCedis.value.find(c => Number(c.id) === Number(selectedCedisId.value)) || null
 )
 
+const selectedLegendProject = ref(null)
+const selectedLegendRegion = ref(null)
+
 const {
   mapEl, map, initMap,
   toggleTraffic, toggleMarkers,
   trafficEnabled, markersVisible, markers,
-  filterPharmacyMarkersByIds, clearPharmacyMarkerFilter,
+  filterPharmacyMarkersByIds, clearPharmacyMarkerFilter, filterPharmacyMarkers,
   trackOverlay, detachOverlay, clearAllOverlays
 } = useMap()
 
@@ -228,6 +239,34 @@ const visitOrderDetailed = computed(() => {
   })
 })
 
+const projects = computed(() =>
+  Array.from(new Set(farmacias.value.map(f => String(f.proyecto || '').toUpperCase()).filter(Boolean))).sort()
+)
+
+const filteredRegiones = computed(() =>
+  Array.from(
+    new Set(
+      farmacias.value
+        .filter(f => !selectedLegendProject.value || String(f.proyecto || '').toUpperCase() === selectedLegendProject.value)
+        .map(f => f.region_sanitaria)
+        .filter(Boolean)
+    )
+  ).sort()
+)
+
+const criteriaRegiones = computed(() =>
+  Array.from(
+    new Set(
+      farmacias.value
+        .filter(f =>
+          String(f.proyecto || '').toUpperCase() === String(criteria.value.proyecto || '').toUpperCase()
+        )
+        .map(f => f.region_sanitaria)
+        .filter(Boolean)
+    )
+  ).sort()
+)
+
 const canGeneratePdf = computed(() =>
   !!(
     routeTotal.value &&
@@ -263,8 +302,7 @@ async function loadProjectFarmacias() {
   markers.value = []
 
   const data = await getFarmacias({
-    withCoords: true,
-    proyecto: selectedProject.value
+    withCoords: true
   })
 
   farmacias.value = Array.isArray(data)
@@ -282,9 +320,69 @@ async function handleProjectChange() {
   clearCustomPoints()
   addStopsItems.value = []
   criteria.value.proyecto = selectedProject.value
+  selectedLegendProject.value = null
+  selectedLegendRegion.value = null
 
   await loadProjectCedis()
   await loadProjectFarmacias()
+}
+
+async function handleLegendProject(project) {
+  const normalized = String(project || '').toUpperCase()
+
+  handleCloseRoute()
+  clearCustomPoints()
+  addStopsItems.value = []
+
+  selectedLegendProject.value = normalized
+  selectedLegendRegion.value = null
+
+  selectedProject.value = normalized
+  criteria.value.proyecto = normalized
+  criteria.value.region = ''
+
+  await loadProjectCedis()
+
+  const firstRegion = criteriaRegiones.value[0] || ''
+  criteria.value.region = firstRegion
+
+  filterPharmacyMarkers({
+    proyecto: normalized
+  })
+}
+
+function handleLegendRegion(region) {
+  selectedLegendRegion.value = region
+  criteria.value.region = region
+
+  filterPharmacyMarkers({
+    proyecto: selectedLegendProject.value,
+    region
+  })
+}
+
+function handleLegendBackProjects() {
+  handleCloseRoute()
+  clearCustomPoints()
+  addStopsItems.value = []
+
+  selectedLegendProject.value = null
+  selectedLegendRegion.value = null
+
+  criteria.value.region = ''
+  clearPharmacyMarkerFilter()
+}
+
+function handleLegendClear() {
+  handleCloseRoute()
+  clearCustomPoints()
+  addStopsItems.value = []
+
+  selectedLegendProject.value = null
+  selectedLegendRegion.value = null
+
+  criteria.value.region = ''
+  clearPharmacyMarkerFilter()
 }
 
 function openAddStopsModal() {
@@ -332,8 +430,18 @@ const formatKm = m => fmtKm(m)
 const formatDur = d => fmtDur(d)
 
 async function handleRunCompute() {
+  if (!selectedLegendProject.value) {
+    alert('Selecciona primero un proyecto en el filtro del mapa.')
+    return
+  }
+
+  if (criteria.value.scope === 'single' && !criteria.value.region) {
+    alert('Selecciona una jurisdicción/región sanitaria.')
+    return
+  }
+
   showRouteCart.value = false
-  criteria.value.proyecto = selectedProject.value
+  criteria.value.proyecto = selectedLegendProject.value
   criteria.value.selectedCedisId = selectedCedisId.value
   await runCompute()
 }

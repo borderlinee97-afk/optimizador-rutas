@@ -80,6 +80,8 @@ export function useMap() {
       })
 
       marker.__farmaciaId = Number(f.id)
+      marker.__proyecto = String(f.proyecto || '').toUpperCase()
+      marker.__region = String(f.region_sanitaria || '')
 
       marker.__data = {
         clues: f.clues,
@@ -144,6 +146,31 @@ export function useMap() {
     }
   }
 
+  function filterPharmacyMarkers({ proyecto = null, region = null } = {}) {
+    const projectFilter = proyecto ? String(proyecto).toUpperCase() : null
+    const regionFilter = region ? String(region) : null
+
+    const bounds = new google.maps.LatLngBounds()
+    let visibleCount = 0
+
+    for (const marker of markers.value) {
+      const matchProject = !projectFilter || marker.__proyecto === projectFilter
+      const matchRegion = !regionFilter || marker.__region === regionFilter
+      const visible = markersVisible.value && matchProject && matchRegion
+
+      setMarkerVisibility(marker, visible)
+
+      if (visible && marker.position) {
+        bounds.extend(marker.position)
+        visibleCount++
+      }
+    }
+
+    if (visibleCount && !bounds.isEmpty()) {
+      map.value.fitBounds(bounds)
+    }
+  }
+
   function toggleMarkers() {
     markersVisible.value = !markersVisible.value
     for (const m of markers.value) {
@@ -163,7 +190,7 @@ export function useMap() {
     trafficEnabled, markersVisible, markers,
     initMap, toggleTraffic, toggleMarkers,
     filterPharmacyMarkersByIds, clearPharmacyMarkerFilter,
-    trackOverlay, detachOverlay, clearAllOverlays
+    trackOverlay, detachOverlay, clearAllOverlays, filterPharmacyMarkers
   }
 }
 ``
