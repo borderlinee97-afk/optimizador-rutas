@@ -21,7 +21,7 @@ router.get('/plan/today', async (req, res) => {
       SELECT id, status, period_start
       FROM work_plan
       WHERE supervisor_id = $1
-        AND status IN ('DRAFT', 'APPROVED')
+        AND status IN ('DRAFT', 'PENDING_APPROVAL', 'APPROVED')
       ORDER BY created_at DESC
       LIMIT 1
       `,
