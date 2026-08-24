@@ -1,777 +1,3921 @@
 <template>
-  <div class="modal-backdrop" v-if="open" @click.self="$emit('close')">
-    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="route-modal-title">
+  <div
+    v-if="open"
+    class="modal-backdrop"
+    @click.self="emit('close')"
+  >
+    <div
+      class="modal"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="route-modal-title"
+    >
+      <!-- ===================================================
+           HEADER
+      ==================================================== -->
       <div class="modal-header">
-        <div>
-          <h3 id="route-modal-title">Calcular ruta</h3>
-          <p class="modal-subtitle">Configura el ámbito, estrategia, origen y opciones de cálculo.</p>
+        <div class="header-copy">
+          <div class="header-kicker">
+            Calculador de rutas
+          </div>
+
+          <h3 id="route-modal-title">
+            Configurar ruta
+          </h3>
+
+          <p class="modal-subtitle">
+            Selecciona el ámbito, origen y estrategia
+            para el proyecto activo.
+          </p>
         </div>
 
-        <button class="btn-icon" @click="$emit('close')" aria-label="Cerrar modal">✕</button>
+        <button
+          type="button"
+          class="btn-icon"
+          aria-label="Cerrar modal"
+          title="Cerrar"
+          @click="emit('close')"
+        >
+          ✕
+        </button>
       </div>
 
+      <!-- ===================================================
+           CONTENIDO
+      ==================================================== -->
       <div class="modal-body">
-        <details open class="section-card">
-          <summary><span>Ámbito</span></summary>
+        <!-- =================================================
+             CONTEXTO DEL PROYECTO
+        ================================================== -->
+        <section class="project-context">
+          <div>
+            <span class="context-label">
+              Proyecto activo
+            </span>
+
+            <strong>
+              {{
+                normalizedProject ||
+                'Sin proyecto seleccionado'
+              }}
+            </strong>
+          </div>
+
+          <span
+            class="context-status"
+            :class="{
+              ready:
+                normalizedProject,
+            }"
+          >
+            {{
+              normalizedProject
+                ? 'Ámbito aplicado'
+                : 'Pendiente'
+            }}
+          </span>
+        </section>
+
+        <!-- =================================================
+             ÁMBITO
+        ================================================== -->
+        <details
+          open
+          class="section-card"
+        >
+          <summary>
+            <span>
+              1. Ámbito de cálculo
+            </span>
+          </summary>
 
           <div class="section-content">
             <div class="radio-card-group">
-              <label class="radio-card">
-                <input type="radio" value="single" v-model="criteria.scope" />
-                <span>
-                  Calcular por <b>región sanitaria</b>
+              <label
+                class="radio-card"
+                :class="{
+                  selected:
+                    criteria.scope ===
+                    'single',
+                }"
+              >
+                <input
+                  v-model="criteria.scope"
+                  type="radio"
+                  value="single"
+                />
+
+                <span class="radio-card-copy">
+                  <strong>
+                    Una jurisdicción / región
+                  </strong>
+
+                  <small>
+                    Calcula únicamente las unidades
+                    de la región seleccionada.
+                  </small>
                 </span>
               </label>
 
-              <div v-if="criteria.scope === 'single'" class="field-block nested-block">
-                <label class="field-label">Región sanitaria</label>
-                <select v-model="criteria.region" class="field-control">
-                  <option v-for="r in regiones" :key="r" :value="r">{{ r }}</option>
+              <div
+                v-if="
+                  criteria.scope ===
+                  'single'
+                "
+                class="field-block nested-block"
+              >
+                <label class="field-label">
+                  Jurisdicción / región sanitaria
+                </label>
+
+                <select
+                  v-model="criteria.region"
+                  class="field-control"
+                >
+                  <option
+                    value=""
+                    disabled
+                  >
+                    Selecciona una región
+                  </option>
+
+                  <option
+                    v-for="region in regiones"
+                    :key="region"
+                    :value="region"
+                  >
+                    {{ region }}
+                  </option>
+                </select>
+
+                <p
+                  v-if="!regiones.length"
+                  class="notice notice-warning"
+                >
+                  No se encontraron regiones para
+                  el proyecto seleccionado.
+                </p>
+              </div>
+
+              <label
+                class="radio-card"
+                :class="{
+                  selected:
+                    criteria.scope ===
+                    'all',
+                }"
+              >
+                <input
+                  v-model="criteria.scope"
+                  type="radio"
+                  value="all"
+                />
+
+                <span class="radio-card-copy">
+                  <strong>
+                    Todo el proyecto
+                  </strong>
+
+                  <small>
+                    Calcula las regiones disponibles
+                    del proyecto activo.
+                  </small>
+                </span>
+              </label>
+
+              <p
+                v-if="
+                  criteria.scope ===
+                  'all'
+                "
+                class="hint"
+              >
+                El cálculo utilizará únicamente las
+                regiones correspondientes al proyecto
+                seleccionado.
+              </p>
+            </div>
+          </div>
+        </details>
+
+        <!-- =================================================
+             ORIGEN
+        ================================================== -->
+        <details
+          open
+          class="section-card"
+        >
+          <summary>
+            <span>
+              2. Origen
+            </span>
+          </summary>
+
+          <div class="section-content">
+            <p class="section-description">
+              Define desde dónde saldrán las rutas.
+              Si el proyecto no tiene CEDIS registrado,
+              puedes buscar cualquier lugar o dirección.
+            </p>
+
+            <div class="origin-option-grid">
+              <!-- CEDIS -->
+              <label
+                class="origin-option"
+                :class="{
+                  selected:
+                    originModeProxy ===
+                    'cedis',
+
+                  disabled:
+                    !hasProjectCedis,
+                }"
+              >
+                <input
+                  v-model="originModeProxy"
+                  type="radio"
+                  value="cedis"
+                  :disabled="
+                    !hasProjectCedis
+                  "
+                />
+
+                <span class="origin-icon">
+                  C
+                </span>
+
+                <span class="origin-copy">
+                  <strong>
+                    CEDIS registrado
+                  </strong>
+
+                  <small>
+                    {{
+                      hasProjectCedis
+                        ? `${proyectoCedis.length} disponible${proyectoCedis.length === 1 ? '' : 's'}`
+                        : 'No configurado'
+                    }}
+                  </small>
+                </span>
+              </label>
+
+              <!-- BUSCAR -->
+              <label
+                class="origin-option"
+                :class="{
+                  selected:
+                    originModeProxy ===
+                    'coords',
+                }"
+              >
+                <input
+                  v-model="originModeProxy"
+                  type="radio"
+                  value="coords"
+                />
+
+                <span class="origin-icon">
+                  ⌕
+                </span>
+
+                <span class="origin-copy">
+                  <strong>
+                    Buscar otro origen
+                  </strong>
+
+                  <small>
+                    Lugar, dirección o coordenadas
+                  </small>
+                </span>
+              </label>
+
+              <!-- FARMACIA -->
+              <label
+                class="origin-option"
+                :class="{
+                  selected:
+                    originModeProxy ===
+                    'pharmacy',
+                }"
+              >
+                <input
+                  v-model="originModeProxy"
+                  type="radio"
+                  value="pharmacy"
+                />
+
+                <span class="origin-icon">
+                  U
+                </span>
+
+                <span class="origin-copy">
+                  <strong>
+                    Unidad como origen
+                  </strong>
+
+                  <small>
+                    Usar una unidad del proyecto
+                  </small>
+                </span>
+              </label>
+            </div>
+
+            <!-- =============================================
+                 CEDIS
+            ============================================== -->
+            <div
+              v-if="
+                originModeProxy ===
+                'cedis'
+              "
+              class="origin-panel"
+            >
+              <template v-if="hasProjectCedis">
+                <div class="field-block">
+                  <label class="field-label">
+                    CEDIS de origen
+                  </label>
+
+                  <select
+                    v-model.number="
+                      selectedCedisIdProxy
+                    "
+                    class="field-control"
+                  >
+                    <option
+                      v-for="cedis in proyectoCedis"
+                      :key="cedis.id"
+                      :value="cedis.id"
+                    >
+                      {{
+                        cedis.nombre ||
+                        'CEDIS'
+                      }}
+                      {{
+                        cedis.clues
+                          ? ` — ${cedis.clues}`
+                          : ''
+                      }}
+                    </option>
+                  </select>
+                </div>
+
+                <div
+                  v-if="selectedCedis"
+                  class="selected-origin-card"
+                >
+                  <div class="selected-origin-icon">
+                    C
+                  </div>
+
+                  <div class="selected-origin-copy">
+                    <strong>
+                      {{
+                        selectedCedis.nombre ||
+                        'CEDIS seleccionado'
+                      }}
+                    </strong>
+
+                    <span
+                      v-if="
+                        selectedCedis.clues
+                      "
+                    >
+                      CLUES:
+                      {{ selectedCedis.clues }}
+                    </span>
+
+                    <span>
+                      {{
+                        formatCoordinate(
+                          selectedCedis.latitud
+                        )
+                      }},
+                      {{
+                        formatCoordinate(
+                          selectedCedis.longitud
+                        )
+                      }}
+                    </span>
+
+                    <span>
+                      Servicio:
+                      {{
+                        selectedCedis
+                          .minutos_servicio_por_unidad ||
+                        45
+                      }}
+                      min
+                    </span>
+                  </div>
+                </div>
+              </template>
+
+              <div
+                v-else
+                class="notice notice-warning"
+              >
+                <strong>
+                  Este proyecto no tiene un CEDIS
+                  activo configurado.
+                </strong>
+
+                <span>
+                  Utiliza “Buscar otro origen”.
+                  No necesitas registrar previamente
+                  el lugar para calcular la ruta.
+                </span>
+
+                <button
+                  type="button"
+                  class="btn-link-action"
+                  @click="
+                    originModeProxy =
+                      'coords'
+                  "
+                >
+                  Buscar un origen
+                </button>
+              </div>
+            </div>
+
+            <!-- =============================================
+                 BUSCADOR DE LUGAR
+            ============================================== -->
+            <div
+              v-if="
+                originModeProxy ===
+                'coords'
+              "
+              class="origin-panel"
+            >
+              <div class="field-block">
+                <label class="field-label">
+                  Buscar lugar, CEDIS o dirección
+                </label>
+
+                <div class="search-row">
+                  <input
+                    v-model="originSearch"
+                    type="text"
+                    class="field-control search-input"
+                    :placeholder="
+                      searchPlaceholder
+                    "
+                    autocomplete="off"
+                    @keydown.enter.prevent="
+                      searchOriginPlace
+                    "
+                  />
+
+                  <button
+                    type="button"
+                    class="btn-search"
+                    :disabled="
+                      searchBusy ||
+                      !originSearch.trim()
+                    "
+                    @click="
+                      searchOriginPlace
+                    "
+                  >
+                    {{
+                      searchBusy
+                        ? 'Buscando...'
+                        : 'Buscar'
+                    }}
+                  </button>
+                </div>
+
+                <p class="field-help">
+                  Ejemplo:
+                  “CEDIS Aguascalientes”,
+                  “Hospital Hidalgo Aguascalientes”
+                  o una dirección completa.
+                </p>
+              </div>
+
+              <div
+                v-if="searchError"
+                class="notice notice-error"
+              >
+                {{ searchError }}
+              </div>
+
+              <div
+                v-if="
+                  searchResults.length
+                "
+                class="search-results"
+              >
+                <div class="results-title">
+                  Resultados
+                </div>
+
+                <button
+                  v-for="result in searchResults"
+                  :key="result.id"
+                  type="button"
+                  class="search-result"
+                  :class="{
+                    selected:
+                      selectedSearchResultId ===
+                      result.id,
+                  }"
+                  @click="
+                    selectOriginResult(
+                      result
+                    )
+                  "
+                >
+                  <span class="result-pin">
+                    •
+                  </span>
+
+                  <span class="result-copy">
+                    <strong>
+                      {{ result.name }}
+                    </strong>
+
+                    <small>
+                      {{
+                        result.address ||
+                        'Sin dirección disponible'
+                      }}
+                    </small>
+
+                    <small class="result-coordinates">
+                      {{
+                        result.lat.toFixed(
+                          6
+                        )
+                      }},
+                      {{
+                        result.lng.toFixed(
+                          6
+                        )
+                      }}
+                    </small>
+                  </span>
+
+                  <span class="result-action">
+                    {{
+                      selectedSearchResultId ===
+                        result.id
+                        ? 'Seleccionado'
+                        : 'Usar'
+                    }}
+                  </span>
+                </button>
+              </div>
+
+              <div
+                v-if="hasValidCustomCoordinates"
+                class="selected-origin-card success-card"
+              >
+                <div class="selected-origin-icon success">
+                  ✓
+                </div>
+
+                <div class="selected-origin-copy">
+                  <strong>
+                    {{
+                      selectedOriginName ||
+                      'Origen personalizado'
+                    }}
+                  </strong>
+
+                  <span
+                    v-if="
+                      selectedOriginAddress
+                    "
+                  >
+                    {{ selectedOriginAddress }}
+                  </span>
+
+                  <span>
+                    {{
+                      Number(
+                        criteria.originCoords.lat
+                      ).toFixed(6)
+                    }},
+                    {{
+                      Number(
+                        criteria.originCoords.lng
+                      ).toFixed(6)
+                    }}
+                  </span>
+                </div>
+              </div>
+
+              <!-- COORDENADAS MANUALES -->
+              <details class="manual-coordinates">
+                <summary>
+                  Capturar coordenadas manualmente
+                </summary>
+
+                <div class="coords-grid">
+                  <div class="field-block">
+                    <label class="field-label">
+                      Latitud
+                    </label>
+
+                    <input
+                      v-model.number="
+                        criteria.originCoords.lat
+                      "
+                      type="number"
+                      step="0.000001"
+                      class="field-control"
+                      placeholder="21.885300"
+                      @input="
+                        clearSelectedSearchLabel
+                      "
+                    />
+                  </div>
+
+                  <div class="field-block">
+                    <label class="field-label">
+                      Longitud
+                    </label>
+
+                    <input
+                      v-model.number="
+                        criteria.originCoords.lng
+                      "
+                      type="number"
+                      step="0.000001"
+                      class="field-control"
+                      placeholder="-102.291600"
+                      @input="
+                        clearSelectedSearchLabel
+                      "
+                    />
+                  </div>
+                </div>
+              </details>
+            </div>
+
+            <!-- =============================================
+                 FARMACIA COMO ORIGEN
+            ============================================== -->
+            <div
+              v-if="
+                originModeProxy ===
+                'pharmacy'
+              "
+              class="origin-panel"
+            >
+              <div
+                v-if="
+                  criteria.scope ===
+                  'single'
+                "
+                class="field-block"
+              >
+                <label class="field-label">
+                  Unidad de origen
+                </label>
+
+                <select
+                  v-model.number="
+                    originPharmacyIdProxy
+                  "
+                  class="field-control"
+                >
+                  <option
+                    value=""
+                    disabled
+                  >
+                    Selecciona una unidad
+                  </option>
+
+                  <option
+                    v-for="farmacia in farmaciasRegion"
+                    :key="farmacia.id"
+                    :value="farmacia.id"
+                  >
+                    {{
+                      farmacia.clues ||
+                      farmacia.unidad
+                    }}
+                    {{
+                      farmacia.unidad &&
+                      farmacia.clues
+                        ? ` — ${farmacia.unidad}`
+                        : ''
+                    }}
+                  </option>
+                </select>
+
+                <p
+                  v-if="
+                    !farmaciasRegion.length
+                  "
+                  class="notice notice-warning"
+                >
+                  No hay unidades disponibles en la
+                  región seleccionada.
+                </p>
+              </div>
+
+              <div
+                v-else
+                class="notice notice-warning"
+              >
+                Para calcular todo el proyecto utiliza
+                un CEDIS o un origen buscado por
+                dirección/coordenadas.
+              </div>
+            </div>
+          </div>
+        </details>
+
+        <!-- =================================================
+             ESTRATEGIA
+        ================================================== -->
+        <details
+          open
+          class="section-card"
+        >
+          <summary>
+            <span>
+              3. Estrategia y recursos
+            </span>
+          </summary>
+
+          <div class="section-content">
+            <div class="form-grid">
+              <div class="field-block">
+                <label class="field-label">
+                  Motor de rutas
+                </label>
+
+                <select
+                  v-model="
+                    criteria.routeEngine
+                  "
+                  class="field-control"
+                >
+                  <option value="GOOGLE_ROUTES_PLUS">
+                    Google Routes Plus
+                  </option>
+
+                  <option value="OWN_OPERATIVE">
+                    Motor propio operativo
+                  </option>
+
+                  <option value="GOOGLE_OPTIMIZATION">
+                    Google Route Optimization
+                  </option>
                 </select>
               </div>
 
-              <label class="radio-card">
-                <input type="radio" value="all" v-model="criteria.scope" />
-                <span>
-                  Calcular <b>TODAS</b> las regiones (una por una)
-                </span>
-              </label>
-
-              <p v-if="criteria.scope === 'all'" class="hint">
-                Se ejecutarán cálculos secuenciales por cada región. Puedes mostrar u ocultar cada resultado en el panel derecho.
-              </p>
-            </div>
-          </div>
-        </details>
-
-        <details open class="section-card">
-          <summary><span>Estrategia</span></summary>
-
-          <div class="field-block">
-              <label class="field-label">Motor de rutas</label>
-              <select v-model="criteria.routeEngine" class="field-control">
-                <option value="GOOGLE_ROUTES_PLUS">Google Routes Plus</option>
-                <option value="OWN_OPERATIVE">Motor propio operativo</option>
-                <option value="GOOGLE_OPTIMIZATION">Google Route Optimization</option>
-            </select>
-            <p class="hint">
-              Por ahora se usa Google Routes Plus. Después podrás comparar motores con la misma operación.
-            </p>
-          </div>
-
-          <div class="section-content">
-            <div class="field-block">
-              <label class="field-label">Modo de cálculo</label>
-              <select v-model="criteria.strategy" class="field-control">
-                <option value="FASTEST">Más rápido (optimizar paradas)</option>
-                <option value="NEAREST_FIRST">Más cercano → más lejano (desde origen)</option>
-                <option value="FARTHEST_FIRST">Más lejano → más cercano (desde origen)</option>
-                <option :disabled="criteria.scope === 'all'" value="MANUAL">Manual (drag & drop)</option>
-              </select>
-            </div>
-
-            <p v-if="criteria.scope === 'all'" class="hint">
-              La estrategia manual solo está disponible cuando calculas una sola región.
-            </p>
-
-            <div class="field-block">
-              <label class="field-label">Tipo de ruta</label>
-              <select v-model="criteria.routeMode" class="field-control">
-                <option value="ROUND_TRIP">Ida y vuelta al CEDIS</option>
-                <option value="FOREIGN_ROUTE">Foránea con descanso</option>
-              </select>
-            </div>
-
-            <div class="operator-grid">
               <div class="field-block">
                 <label class="field-label">
-                  {{ criteria.routeMode === 'FOREIGN_ROUTE' ? 'Operadores disponibles' : 'Número de rutas' }}
+                  Modo de cálculo
                 </label>
+
+                <select
+                  v-model="
+                    criteria.strategy
+                  "
+                  class="field-control"
+                >
+                  <option value="FASTEST">
+                    Optimizar tiempo
+                  </option>
+
+                  <option value="NEAREST_FIRST">
+                    Cercanas primero
+                  </option>
+
+                  <option value="FARTHEST_FIRST">
+                    Lejanas primero
+                  </option>
+
+                  <option
+                    value="MANUAL"
+                    :disabled="
+                      criteria.scope ===
+                      'all'
+                    "
+                  >
+                    Manual
+                  </option>
+                </select>
+              </div>
+
+              <div class="field-block">
+                <label class="field-label">
+                  Tipo de ruta
+                </label>
+
+                <select
+                  v-model="
+                    criteria.routeMode
+                  "
+                  class="field-control"
+                >
+                  <option value="ROUND_TRIP">
+                    Ida y vuelta al origen
+                  </option>
+
+                  <option value="FOREIGN_ROUTE">
+                    Ruta foránea
+                  </option>
+                </select>
+              </div>
+
+              <div class="field-block">
+                <label class="field-label">
+                  {{
+                    criteria.routeMode ===
+                    'FOREIGN_ROUTE'
+                      ? 'Operadores disponibles'
+                      : 'Número de rutas'
+                  }}
+                </label>
+
                 <input
+                  v-model.number="
+                    criteria.operatorCount
+                  "
                   type="number"
                   min="1"
                   max="50"
-                  v-model.number="criteria.operatorCount"
-                  class="field-control field-control-sm"
+                  class="field-control"
                 />
-                <p class="hint">
-                  {{
-                    criteria.routeMode === 'FOREIGN_ROUTE'
-                      ? 'Indica cuántos operadores podrías enviar. El sistema usará solo los necesarios.'
-                      : 'Indica cuántas rutas ida/vuelta quieres generar desde el CEDIS.'
-                  }}
-                </p>
               </div>
+            </div>
 
-              <!--
-              <div v-if="criteria.routeMode === 'FOREIGN_ROUTE'" class="operator-grid">
-                <div class="field-block">
-                  <label class="field-label">Máximo de días por ruta</label>
-                  <input
-                    v-model.number="criteria.maxForeignDays"
-                    type="number"
-                    min="1"
-                    max="15"
-                    class="field-control field-control-sm"
-                  />
-                </div>
-
-                <div class="field-block">
-                  <label class="field-label">Operadores por ruta foránea</label>
-                  <input
-                    v-model.number="criteria.foreignOperatorsPerRoute"
-                    type="number"
-                    min="1"
-                    max="5"
-                    class="field-control field-control-sm"
-                  />
-                </div>
-
-                <div class="field-block">
-                  <label class="field-label">Radio búsqueda hospedaje km</label>
-                  <input
-                    v-model.number="criteria.lodgingSearchRadiusKm"
-                    type="number"
-                    min="5"
-                    max="80"
-                    class="field-control field-control-sm"
-                  />
-                </div>
-              </div>
-              -->
-
+            <div class="metrics-grid">
               <div class="field-block">
-                <label class="field-label">Rendimiento km/L</label>
+                <label class="field-label">
+                  Rendimiento km/L
+                </label>
+
                 <input
+                  v-model.number="
+                    criteria.kmPerLiter
+                  "
                   type="number"
                   min="1"
                   step="0.1"
-                  v-model.number="criteria.kmPerLiter"
-                  class="field-control field-control-sm"
+                  class="field-control"
                 />
-                <p class="hint">
-                  Se usará para estimar litros necesarios por ruta y total.
-                </p>
               </div>
 
               <div class="field-block">
-                <label class="field-label">Precio combustible por litro</label>
+                <label class="field-label">
+                  Combustible $/L
+                </label>
+
                 <input
-                  v-model.number="criteria.fuelPricePerLiter"
+                  v-model.number="
+                    criteria.fuelPricePerLiter
+                  "
                   type="number"
                   min="0"
                   step="0.01"
-                  class="field-control field-control-sm"
+                  class="field-control"
                 />
-                <p class="hint">
-                  Se multiplicará por los litros estimados.
-                </p>
               </div>
 
               <div class="field-block">
-                <label class="field-label">Viático diario por operador</label>
+                <label class="field-label">
+                  Viático diario
+                </label>
+
                 <input
-                  v-model.number="criteria.dailyAllowance"
+                  v-model.number="
+                    criteria.dailyAllowance
+                  "
                   type="number"
                   min="0"
                   step="0.01"
-                  class="field-control field-control-sm"
+                  class="field-control"
                 />
-                <p class="hint">
-                  Se multiplicará por los días generados de cada operador.
-                </p>
               </div>
             </div>
           </div>
         </details>
 
-        <details open class="section-card">
-          <summary><span>Origen</span></summary>
-
-          <div class="section-content">
-            <div class="radio-stack">
-              <label class="radio-line">
-                <input type="radio" value="cedis" v-model="originModeProxy" />
-                <span>CEDIS del proyecto</span>
-              </label>
-
-              <label class="radio-line">
-                <input type="radio" value="coords" v-model="originModeProxy" />
-                <span>Coordenadas personalizadas</span>
-              </label>
-
-              <label class="radio-line">
-                <input type="radio" value="pharmacy" v-model="originModeProxy" />
-                <span>Elegir farmacia</span>
-              </label>
-            </div>
-
-            <div v-if="originModeProxy === 'cedis'" class="field-block nested-block">
-              <label class="field-label">CEDIS de origen</label>
-
-              <select
-                v-model.number="selectedCedisIdProxy"
-                class="field-control"
-              >
-                <option
-                  v-for="c in proyectoCedis"
-                  :key="c.id"
-                  :value="c.id"
-                >
-                  {{ c.nombre }}{{ c.clues ? ` — ${c.clues}` : '' }}
-                </option>
-              </select>
-
-              <div v-if="selectedCedis" class="cedis-card">
-                <b>{{ selectedCedis.nombre }}</b>
-                <span v-if="selectedCedis.clues">CLUES: {{ selectedCedis.clues }}</span>
-                <span>
-                  Coordenadas:
-                  {{ Number(selectedCedis.latitud).toFixed(6) }},
-                  {{ Number(selectedCedis.longitud).toFixed(6) }}
-                </span>
-                <span>
-                  Límite última unidad:
-                  {{ selectedCedis.hora_limite_llegada_ultima_unidad || '16:00' }}
-                  · Servicio:
-                  {{ selectedCedis.minutos_servicio_por_unidad || 45 }} min
-                </span>
-              </div>
-
-              <p v-else class="hint">
-                No hay CEDIS activo configurado para este proyecto.
-              </p>
-            </div>
-
-            <div
-              v-if="originModeProxy === 'coords'"
-              class="coords-grid nested-block"
-            >
-              <div class="field-block">
-                <label class="field-label">Latitud</label>
-                <input
-                  type="number"
-                  step="0.000001"
-                  v-model.number="criteria.originCoords.lat"
-                  class="field-control"
-                  placeholder="Ej. 16.8615"
-                />
-              </div>
-
-              <div class="field-block">
-                <label class="field-label">Longitud</label>
-                <input
-                  type="number"
-                  step="0.000001"
-                  v-model.number="criteria.originCoords.lng"
-                  class="field-control"
-                  placeholder="Ej. -99.9013"
-                />
-              </div>
-            </div>
-
-            <div
-              v-if="originModeProxy === 'pharmacy' && criteria.scope === 'single'"
-              class="field-block nested-block"
-            >
-              <label class="field-label">Farmacia de origen</label>
-              <select
-                v-model.number="originPharmacyIdProxy"
-                class="field-control"
-              >
-                <option v-for="f in farmaciasRegion" :key="f.id" :value="f.id">
-                  {{ f.clues }}{{ f.dificil_acceso ? ' • (difícil)' : '' }}
-                </option>
-              </select>
-            </div>
-
-            <p v-if="originModeProxy === 'pharmacy' && criteria.scope === 'all'" class="hint">
-              Para calcular todas las regiones, se recomienda usar CEDIS del proyecto o coordenadas personalizadas.
-            </p>
-          </div>
-        </details>
-
-        <details :open="criteria.strategy === 'MANUAL' && criteria.scope === 'single'" class="section-card">
-          <summary><span>Puntos (Manual)</span></summary>
+        <!-- =================================================
+             PUNTOS MANUALES
+        ================================================== -->
+        <details
+          v-if="
+            criteria.strategy ===
+              'MANUAL' &&
+            criteria.scope ===
+              'single'
+          "
+          open
+          class="section-card"
+        >
+          <summary>
+            <span>
+              4. Orden manual
+            </span>
+          </summary>
 
           <div class="section-content">
             <p class="hint">
-              Arrastra para reordenar y desmarca para excluir. Los puntos de difícil acceso se muestran con distintivo.
+              Arrastra para reordenar. Desmarca una
+              unidad para excluirla del cálculo.
             </p>
 
-            <div class="manual-list" @dragover.prevent @drop="$emit('drop')">
+            <div
+              class="manual-list"
+              @dragover.prevent
+              @drop="
+                emit(
+                  'drop'
+                )
+              "
+            >
               <div
-                v-for="(p, i) in manualPoints"
-                :key="p.id"
+                v-for="(
+                  point,
+                  index
+                ) in manualPoints"
+                :key="point.id"
                 class="manual-item"
                 draggable="true"
-                @dragstart="$emit('drag-start', i)"
-                @dragenter.prevent="$emit('drag-enter', i)"
+                @dragstart="
+                  emit(
+                    'drag-start',
+                    index
+                  )
+                "
+                @dragenter.prevent="
+                  emit(
+                    'drag-enter',
+                    index
+                  )
+                "
               >
                 <div class="manual-left">
-                  <input type="checkbox" v-model="p.enabled" />
-                  <span class="drag-handle">⣿</span>
-                  <span class="manual-name">{{ p.name }}</span>
-                  <span v-if="p.hard" class="badge-hard">Difícil acceso</span>
+                  <input
+                    v-model="
+                      point.enabled
+                    "
+                    type="checkbox"
+                  />
+
+                  <span class="drag-handle">
+                    ⣿
+                  </span>
+
+                  <span class="manual-name">
+                    {{ point.name }}
+                  </span>
+
+                  <span
+                    v-if="point.hard"
+                    class="badge-hard"
+                  >
+                    Difícil acceso
+                  </span>
                 </div>
+              </div>
+
+              <div
+                v-if="
+                  !manualPoints.length
+                "
+                class="empty-state"
+              >
+                No hay unidades disponibles.
               </div>
             </div>
           </div>
         </details>
 
+        <!-- =================================================
+             OPCIONES
+        ================================================== -->
         <details class="section-card">
-          <summary><span>Opciones</span></summary>
+          <summary>
+            <span>
+              Opciones adicionales
+            </span>
+          </summary>
 
           <div class="section-content">
             <div class="options-grid">
-              <label class="check-card">
-                <input type="checkbox" v-model="criteria.options.avoidTolls" />
-                <span>Evitar cuota</span>
+              <label
+                class="check-card"
+                :class="{
+                  checked:
+                    criteria.options
+                      .avoidTolls,
+                }"
+              >
+                <input
+                  v-model="
+                    criteria.options
+                      .avoidTolls
+                  "
+                  type="checkbox"
+                />
+
+                <span>
+                  Evitar cuota
+                </span>
               </label>
 
-              <label class="check-card">
-                <input type="checkbox" v-model="criteria.options.showAlternatives" />
-                <span>Mostrar alternativas</span>
+              <label
+                class="check-card"
+                :class="{
+                  checked:
+                    criteria.options
+                      .showAlternatives,
+                }"
+              >
+                <input
+                  v-model="
+                    criteria.options
+                      .showAlternatives
+                  "
+                  type="checkbox"
+                />
+
+                <span>
+                  Mostrar alternativas
+                </span>
               </label>
 
-              <label class="check-card">
-                <input type="checkbox" v-model="criteria.options.returnToOrigin" />
-                <span>Regresar al origen</span>
+              <label
+                class="check-card"
+                :class="{
+                  checked:
+                    criteria.options
+                      .returnToOrigin,
+                }"
+              >
+                <input
+                  v-model="
+                    criteria.options
+                      .returnToOrigin
+                  "
+                  type="checkbox"
+                />
+
+                <span>
+                  Regresar al origen
+                </span>
               </label>
 
-              <label class="check-card">
-                <input type="checkbox" v-model="criteria.options.avoidDificilAcceso" />
-                <span>Evitar difícil acceso</span>
+              <label
+                class="check-card"
+                :class="{
+                  checked:
+                    criteria.options
+                      .avoidDificilAcceso,
+                }"
+              >
+                <input
+                  v-model="
+                    criteria.options
+                      .avoidDificilAcceso
+                  "
+                  type="checkbox"
+                />
+
+                <span>
+                  Evitar difícil acceso
+                </span>
               </label>
             </div>
           </div>
         </details>
       </div>
 
+      <!-- ===================================================
+           FOOTER
+      ==================================================== -->
       <div class="modal-footer">
-        <button class="btn-secondary" @click="$emit('close')">Cerrar</button>
-        <button class="btn-primary" @click="$emit('calculate')">Calcular</button>
+        <div class="footer-status">
+          <span
+            class="status-dot"
+            :class="{
+              ready:
+                canCalculate,
+            }"
+          ></span>
+
+          <span>
+            {{
+              calculationStatusText
+            }}
+          </span>
+        </div>
+
+        <div class="footer-actions">
+          <button
+            type="button"
+            class="btn-secondary"
+            @click="
+              emit(
+                'close'
+              )
+            "
+          >
+            Cerrar
+          </button>
+
+          <button
+            type="button"
+            class="btn-primary"
+            :disabled="
+              !canCalculate
+            "
+            @click="
+              handleCalculate
+            "
+          >
+            Calcular ruta
+          </button>
+        </div>
       </div>
     </div>
   </div>
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import {
+  computed,
+  ref,
+  watch,
+} from 'vue'
 
-const props = defineProps({
-  open:             { type: Boolean, required: true },
-  regiones:         { type: Array,   default: () => [] },
-  criteria:         { type: Object,  required: true },
-  originMode:       { type: String,  required: true },
-  originPharmacyId: { type: [Number, null], default: null },
-  proyectoCedis:    { type: Array,   default: () => [] },
-  selectedCedisId:  { type: [Number, null], default: null },
-  selectedCedis:    { type: Object,  default: null },
-  farmaciasRegion:  { type: Array,   default: () => [] },
-  manualPoints:     { type: Array,   default: () => [] },
-})
+const props =
+  defineProps({
+    open: {
+      type:
+        Boolean,
 
-const emit = defineEmits([
-  'close', 'calculate',
-  'drag-start', 'drag-enter', 'drop',
-  'update:originMode', 'update:originPharmacyId', 'update:selectedCedisId'
-])
+      required:
+        true,
+    },
 
-const originModeProxy = computed({
-  get: () => props.originMode,
-  set: (v) => emit('update:originMode', v),
-})
+    regiones: {
+      type:
+        Array,
 
-const originPharmacyIdProxy = computed({
-  get: () => props.originPharmacyId,
-  set: (v) => emit('update:originPharmacyId', v),
-})
+      default:
+        () => [],
+    },
 
-const selectedCedisIdProxy = computed({
-  get: () => props.selectedCedisId,
-  set: (v) => emit('update:selectedCedisId', v),
-})
+    criteria: {
+      type:
+        Object,
+
+      required:
+        true,
+    },
+
+    originMode: {
+      type:
+        String,
+
+      required:
+        true,
+    },
+
+    originPharmacyId: {
+      type: [
+        Number,
+        String,
+      ],
+
+      default:
+        null,
+    },
+
+    proyectoCedis: {
+      type:
+        Array,
+
+      default:
+        () => [],
+    },
+
+    selectedCedisId: {
+      type: [
+        Number,
+        String,
+      ],
+
+      default:
+        null,
+    },
+
+    selectedCedis: {
+      type:
+        Object,
+
+      default:
+        null,
+    },
+
+    farmaciasRegion: {
+      type:
+        Array,
+
+      default:
+        () => [],
+    },
+
+    manualPoints: {
+      type:
+        Array,
+
+      default:
+        () => [],
+    },
+  })
+
+const emit =
+  defineEmits([
+    'close',
+    'calculate',
+
+    'drag-start',
+    'drag-enter',
+    'drop',
+
+    'update:originMode',
+    'update:originPharmacyId',
+    'update:selectedCedisId',
+  ])
+
+/*
+ * ============================================================
+ * PROXIES
+ * ============================================================
+ */
+
+const originModeProxy =
+  computed({
+    get:
+      () =>
+        props.originMode,
+
+    set:
+      value =>
+        emit(
+          'update:originMode',
+          value
+        ),
+  })
+
+const originPharmacyIdProxy =
+  computed({
+    get:
+      () =>
+        props.originPharmacyId,
+
+    set:
+      value =>
+        emit(
+          'update:originPharmacyId',
+          value
+        ),
+  })
+
+const selectedCedisIdProxy =
+  computed({
+    get:
+      () =>
+        props.selectedCedisId,
+
+    set:
+      value =>
+        emit(
+          'update:selectedCedisId',
+          value
+        ),
+  })
+
+/*
+ * ============================================================
+ * PROYECTO
+ * ============================================================
+ */
+
+const normalizedProject =
+  computed(
+    () =>
+      String(
+        props.criteria
+          ?.proyecto ||
+        ''
+      )
+        .trim()
+        .toUpperCase()
+  )
+
+const hasProjectCedis =
+  computed(
+    () =>
+      Array.isArray(
+        props.proyectoCedis
+      ) &&
+      props.proyectoCedis.length >
+        0
+  )
+
+/*
+ * ============================================================
+ * BUSCADOR DE ORIGEN
+ * ============================================================
+ */
+
+const originSearch =
+  ref('')
+
+const searchBusy =
+  ref(false)
+
+const searchError =
+  ref('')
+
+const searchResults =
+  ref([])
+
+const selectedSearchResultId =
+  ref(null)
+
+const selectedOriginName =
+  ref('')
+
+const selectedOriginAddress =
+  ref('')
+
+const searchPlaceholder =
+  computed(
+    () =>
+      normalizedProject.value
+        ? `Buscar en ${normalizedProject.value}...`
+        : 'Buscar lugar, dirección o CEDIS...'
+  )
+
+const hasValidCustomCoordinates =
+  computed(
+    () => {
+      const lat =
+        Number(
+          props.criteria
+            ?.originCoords
+            ?.lat
+        )
+
+      const lng =
+        Number(
+          props.criteria
+            ?.originCoords
+            ?.lng
+        )
+
+      return (
+        Number.isFinite(
+          lat
+        ) &&
+        Number.isFinite(
+          lng
+        ) &&
+        lat >=
+          -90 &&
+        lat <=
+          90 &&
+        lng >=
+          -180 &&
+        lng <=
+          180
+      )
+    }
+  )
+
+/*
+ * ============================================================
+ * VALIDACIÓN GENERAL
+ * ============================================================
+ */
+
+const hasValidScope =
+  computed(
+    () => {
+      if (
+        props.criteria
+          ?.scope ===
+        'all'
+      ) {
+        return (
+          props.regiones.length >
+          0
+        )
+      }
+
+      return Boolean(
+        props.criteria
+          ?.region
+      )
+    }
+  )
+
+const hasValidOrigin =
+  computed(
+    () => {
+      if (
+        originModeProxy.value ===
+        'cedis'
+      ) {
+        return Boolean(
+          hasProjectCedis.value &&
+          selectedCedisIdProxy.value
+        )
+      }
+
+      if (
+        originModeProxy.value ===
+        'coords'
+      ) {
+        return (
+          hasValidCustomCoordinates.value
+        )
+      }
+
+      if (
+        originModeProxy.value ===
+        'pharmacy'
+      ) {
+        return Boolean(
+          props.criteria
+            ?.scope ===
+            'single' &&
+          originPharmacyIdProxy.value
+        )
+      }
+
+      return false
+    }
+  )
+
+const canCalculate =
+  computed(
+    () =>
+      Boolean(
+        normalizedProject.value &&
+        hasValidScope.value &&
+        hasValidOrigin.value
+      )
+  )
+
+const calculationStatusText =
+  computed(
+    () => {
+      if (
+        !normalizedProject.value
+      ) {
+        return 'Selecciona un proyecto.'
+      }
+
+      if (
+        !hasValidScope.value
+      ) {
+        return 'Selecciona una jurisdicción o región.'
+      }
+
+      if (
+        !hasValidOrigin.value
+      ) {
+        if (
+          originModeProxy.value ===
+          'cedis' &&
+          !hasProjectCedis.value
+        ) {
+          return 'Este proyecto no tiene CEDIS. Busca otro origen.'
+        }
+
+        if (
+          originModeProxy.value ===
+          'coords'
+        ) {
+          return 'Busca y selecciona un origen.'
+        }
+
+        return 'Selecciona un origen válido.'
+      }
+
+      return 'Configuración lista para calcular.'
+    }
+  )
+
+/*
+ * ============================================================
+ * CAMBIO AUTOMÁTICO CUANDO NO HAY CEDIS
+ * ============================================================
+ */
+
+watch(
+  [
+    () =>
+      props.open,
+
+    () =>
+      props.proyectoCedis
+        ?.length,
+  ],
+
+  (
+    [
+      isOpen,
+      cedisCount,
+    ]
+  ) => {
+    if (
+      !isOpen
+    ) {
+      return
+    }
+
+    if (
+      Number(
+        cedisCount ||
+        0
+      ) ===
+        0 &&
+      originModeProxy.value ===
+        'cedis'
+    ) {
+      originModeProxy.value =
+        'coords'
+    }
+  },
+
+  {
+    immediate:
+      true,
+  }
+)
+
+/*
+ * ============================================================
+ * BÚSQUEDA GOOGLE
+ * ============================================================
+ */
+
+async function searchOriginPlace() {
+  const rawQuery =
+    String(
+      originSearch.value ||
+      ''
+    ).trim()
+
+  if (
+    !rawQuery ||
+    searchBusy.value
+  ) {
+    return
+  }
+
+  searchBusy.value =
+    true
+
+  searchError.value =
+    ''
+
+  searchResults.value =
+    []
+
+  selectedSearchResultId.value =
+    null
+
+  try {
+    if (
+      !window.google
+        ?.maps
+    ) {
+      throw new Error(
+        'Google Maps todavía no está disponible.'
+      )
+    }
+
+    const query =
+      buildSearchQuery(
+        rawQuery
+      )
+
+    let results =
+      []
+
+    /*
+     * Primero intentamos Places Search.
+     */
+    try {
+      results =
+        await searchWithPlaces(
+          query
+        )
+    } catch (
+      placesError
+    ) {
+      console.warn(
+        '[CriteriaModal] Places Search no disponible, usando Geocoder:',
+        placesError
+      )
+    }
+
+    /*
+     * Respaldo con Geocoder.
+     */
+    if (
+      !results.length
+    ) {
+      results =
+        await searchWithGeocoder(
+          query
+        )
+    }
+
+    searchResults.value =
+      results
+
+    if (
+      !results.length
+    ) {
+      searchError.value =
+        'No se encontraron lugares. Prueba con otro nombre o una dirección más completa.'
+    }
+  } catch (
+    error
+  ) {
+    console.error(
+      '[CriteriaModal][searchOriginPlace]',
+      error
+    )
+
+    searchError.value =
+      error?.message ||
+      'No fue posible buscar el lugar.'
+  } finally {
+    searchBusy.value =
+      false
+  }
+}
+
+function buildSearchQuery(
+  value
+) {
+  const project =
+    normalizedProject.value
+
+  const normalizedValue =
+    value.toUpperCase()
+
+  if (
+    project &&
+    !normalizedValue.includes(
+      project
+    )
+  ) {
+    return `${value}, ${project}, México`
+  }
+
+  return `${value}, México`
+}
+
+async function searchWithPlaces(
+  query
+) {
+  if (
+    typeof window.google
+      ?.maps
+      ?.importLibrary !==
+    'function'
+  ) {
+    return []
+  }
+
+  const placesLibrary =
+    await window.google.maps
+      .importLibrary(
+        'places'
+      )
+
+  const Place =
+    placesLibrary?.Place
+
+  if (
+    !Place ||
+    typeof Place.searchByText !==
+      'function'
+  ) {
+    return []
+  }
+
+  const response =
+    await Place.searchByText({
+      textQuery:
+        query,
+
+      fields: [
+        'displayName',
+        'formattedAddress',
+        'location',
+      ],
+
+      language:
+        'es',
+
+      region:
+        'MX',
+
+      maxResultCount:
+        6,
+    })
+
+  const places =
+    Array.isArray(
+      response?.places
+    )
+      ? response.places
+      : []
+
+  return places
+    .map(
+      (
+        place,
+        index
+      ) => {
+        const location =
+          place?.location
+
+        const lat =
+          typeof location?.lat ===
+            'function'
+            ? location.lat()
+            : Number(
+                location?.lat
+              )
+
+        const lng =
+          typeof location?.lng ===
+            'function'
+            ? location.lng()
+            : Number(
+                location?.lng
+              )
+
+        if (
+          !Number.isFinite(
+            lat
+          ) ||
+          !Number.isFinite(
+            lng
+          )
+        ) {
+          return null
+        }
+
+        const displayName =
+          typeof place
+            ?.displayName ===
+            'string'
+            ? place.displayName
+            : place
+                ?.displayName
+                ?.text ||
+              place
+                ?.formattedAddress ||
+              `Resultado ${index + 1}`
+
+        return {
+          id:
+            `place-${index}-${lat}-${lng}`,
+
+          name:
+            displayName,
+
+          address:
+            place
+              ?.formattedAddress ||
+            '',
+
+          lat,
+
+          lng,
+        }
+      }
+    )
+    .filter(
+      Boolean
+    )
+}
+
+async function searchWithGeocoder(
+  query
+) {
+  const Geocoder =
+    window.google
+      ?.maps
+      ?.Geocoder
+
+  if (
+    !Geocoder
+  ) {
+    return []
+  }
+
+  const geocoder =
+    new Geocoder()
+
+  const results =
+    await new Promise(
+      (
+        resolve,
+        reject
+      ) => {
+        geocoder.geocode(
+          {
+            address:
+              query,
+
+            region:
+              'MX',
+          },
+
+          (
+            geocoderResults,
+            status
+          ) => {
+            if (
+              status ===
+                'OK' ||
+              status ===
+                window.google
+                  ?.maps
+                  ?.GeocoderStatus
+                  ?.OK
+            ) {
+              resolve(
+                geocoderResults ||
+                []
+              )
+
+              return
+            }
+
+            if (
+              status ===
+              'ZERO_RESULTS'
+            ) {
+              resolve(
+                []
+              )
+
+              return
+            }
+
+            reject(
+              new Error(
+                `Google no pudo completar la búsqueda (${status}).`
+              )
+            )
+          }
+        )
+      }
+    )
+
+  return results
+    .slice(
+      0,
+      6
+    )
+    .map(
+      (
+        result,
+        index
+      ) => {
+        const location =
+          result
+            ?.geometry
+            ?.location
+
+        if (
+          !location
+        ) {
+          return null
+        }
+
+        const lat =
+          Number(
+            location.lat()
+          )
+
+        const lng =
+          Number(
+            location.lng()
+          )
+
+        if (
+          !Number.isFinite(
+            lat
+          ) ||
+          !Number.isFinite(
+            lng
+          )
+        ) {
+          return null
+        }
+
+        const firstComponent =
+          result
+            ?.address_components
+            ?.[0]
+            ?.long_name
+
+        return {
+          id:
+            `geocode-${index}-${lat}-${lng}`,
+
+          name:
+            firstComponent ||
+            result
+              ?.formatted_address ||
+            `Resultado ${index + 1}`,
+
+          address:
+            result
+              ?.formatted_address ||
+            '',
+
+          lat,
+
+          lng,
+        }
+      }
+    )
+    .filter(
+      Boolean
+    )
+}
+
+function selectOriginResult(
+  result
+) {
+  if (
+    !result
+  ) {
+    return
+  }
+
+  if (
+    !props.criteria
+      .originCoords
+  ) {
+    props.criteria
+      .originCoords = {
+        lat:
+          '',
+        lng:
+          '',
+      }
+  }
+
+  props.criteria
+    .originCoords
+    .lat =
+      Number(
+        result.lat
+      )
+
+  props.criteria
+    .originCoords
+    .lng =
+      Number(
+        result.lng
+      )
+
+  selectedSearchResultId.value =
+    result.id
+
+  selectedOriginName.value =
+    result.name ||
+    'Origen seleccionado'
+
+  selectedOriginAddress.value =
+    result.address ||
+    ''
+
+  originModeProxy.value =
+    'coords'
+}
+
+function clearSelectedSearchLabel() {
+  selectedSearchResultId.value =
+    null
+
+  selectedOriginName.value =
+    ''
+
+  selectedOriginAddress.value =
+    ''
+}
+
+/*
+ * ============================================================
+ * CALCULAR
+ * ============================================================
+ */
+
+function handleCalculate() {
+  if (
+    !canCalculate.value
+  ) {
+    return
+  }
+
+  emit(
+    'calculate'
+  )
+}
+
+/*
+ * ============================================================
+ * UTILIDADES
+ * ============================================================
+ */
+
+function formatCoordinate(
+  value
+) {
+  const number =
+    Number(
+      value
+    )
+
+  return Number.isFinite(
+    number
+  )
+    ? number.toFixed(
+        6
+      )
+    : '—'
+}
 </script>
 
 <style scoped>
+/*
+ * ============================================================
+ * MODAL
+ * ============================================================
+ */
+
 .modal-backdrop {
   position: fixed;
+
   inset: 0;
+
   z-index: 10000;
+
   display: flex;
+
   align-items: center;
   justify-content: center;
+
   padding: 20px;
+
   background:
-    linear-gradient(rgba(15, 23, 42, 0.56), rgba(15, 23, 42, 0.56)),
-    rgba(0, 0, 0, 0.35);
-  backdrop-filter: blur(3px);
+    rgba(
+      15,
+      23,
+      42,
+      .46
+    );
+
+  backdrop-filter:
+    blur(3px);
 }
 
 .modal {
-  width: min(760px, 94vw);
-  max-height: 88vh;
   display: flex;
-  flex-direction: column;
-  background: #ffffff;
-  color: #111827;
-  border-radius: 18px;
-  border: 1px solid #e5e7eb;
-  box-shadow:
-    0 24px 60px rgba(15, 23, 42, 0.24),
-    0 8px 20px rgba(15, 23, 42, 0.12);
+
+  width:
+    min(
+      780px,
+      96vw
+    );
+
+  max-height:
+    90vh;
+
   overflow: hidden;
+
+  flex-direction: column;
+
+  border:
+    1px solid #dbe4ee;
+
+  border-radius: 20px;
+
+  background: #ffffff;
+
+  color: #0f172a;
+
+  box-shadow:
+    0 24px 70px
+      rgba(
+        15,
+        23,
+        42,
+        .22
+      );
 }
+
+/*
+ * ============================================================
+ * HEADER
+ * ============================================================
+ */
 
 .modal-header {
   display: flex;
+
+  flex:
+    0
+    0
+    auto;
+
   align-items: flex-start;
   justify-content: space-between;
-  gap: 16px;
-  padding: 18px 20px 14px;
-  border-bottom: 1px solid #eef2f7;
-  background: linear-gradient(180deg, #ffffff 0%, #fbfcfe 100%);
+
+  gap: 18px;
+
+  padding:
+    18px
+    20px
+    16px;
+
+  border-bottom:
+    1px solid #e5edf5;
+
+  background:
+    linear-gradient(
+      180deg,
+      #ffffff,
+      #f8fbfe
+    );
+}
+
+.header-copy {
+  min-width: 0;
+}
+
+.header-kicker {
+  margin-bottom: 4px;
+
+  color: #0f64ad;
+
+  font-size: 11px;
+  font-weight: 850;
+
+  letter-spacing: .08em;
+
+  text-transform: uppercase;
 }
 
 .modal-header h3 {
   margin: 0;
-  font-size: 1.75rem;
+
+  color: #0f172a;
+
+  font-size: 24px;
+  font-weight: 850;
+
   line-height: 1.15;
-  font-weight: 800;
-  color: #111827;
 }
 
 .modal-subtitle {
-  margin: 6px 0 0;
-  color: #6b7280;
-  font-size: 0.95rem;
+  margin:
+    6px
+    0
+    0;
+
+  color: #64748b;
+
+  font-size: 13px;
+
+  line-height: 1.4;
 }
 
 .btn-icon {
-  width: 40px;
-  height: 40px;
-  border: 1px solid #d1d5db;
+  display: grid;
+
+  width: 38px;
+  height: 38px;
+
+  flex:
+    0
+    0
+    38px;
+
+  place-items: center;
+
+  border:
+    1px solid #d8e1ea;
+
   border-radius: 10px;
-  background: #f9fafb;
-  color: #374151;
+
+  background: #ffffff;
+
+  color: #475569;
+
   cursor: pointer;
-  font-size: 1rem;
-  transition: all 0.18s ease;
+
+  font-size: 14px;
+
+  transition:
+    background .15s ease,
+    border-color .15s ease,
+    color .15s ease;
 }
 
 .btn-icon:hover {
-  background: #f3f4f6;
-  border-color: #9ca3af;
+  border-color:
+    #bfdbfe;
+
+  background:
+    #eff8ff;
+
+  color:
+    #0f64ad;
 }
+
+/*
+ * ============================================================
+ * BODY
+ * ============================================================
+ */
 
 .modal-body {
-  padding: 18px 20px;
-  overflow: auto;
-  background: #fcfcfd;
+  overflow:
+    auto;
+
+  flex: 1;
+
+  padding:
+    16px
+    20px
+    8px;
+
+  background:
+    #f8fafc;
 }
 
-.section-card {
-  margin: 0 0 14px;
-  border: 1px solid #e5e7eb;
-  border-radius: 14px;
-  background: #ffffff;
+/*
+ * ============================================================
+ * PROYECTO
+ * ============================================================
+ */
+
+.project-context {
+  display: flex;
+
+  align-items: center;
+  justify-content: space-between;
+
+  gap: 14px;
+
+  margin-bottom:
+    14px;
+
+  padding:
+    12px
+    14px;
+
+  border:
+    1px solid #bfdbfe;
+
+  border-radius:
+    13px;
+
+  background:
+    #eff8ff;
+}
+
+.project-context > div {
+  display: flex;
+
+  min-width: 0;
+
+  flex-direction: column;
+
+  gap: 2px;
+}
+
+.context-label {
+  color:
+    #64748b;
+
+  font-size: 10px;
+  font-weight: 750;
+
+  text-transform:
+    uppercase;
+
+  letter-spacing:
+    .06em;
+}
+
+.project-context strong {
   overflow: hidden;
+
+  color:
+    #0f4f87;
+
+  font-size: 14px;
+  font-weight: 850;
+
+  text-overflow:
+    ellipsis;
+
+  white-space:
+    nowrap;
+}
+
+.context-status {
+  padding:
+    5px
+    9px;
+
+  border:
+    1px solid #d1d5db;
+
+  border-radius:
+    999px;
+
+  background:
+    #ffffff;
+
+  color:
+    #64748b;
+
+  font-size:
+    10px;
+
+  font-weight:
+    750;
+
+  white-space:
+    nowrap;
+}
+
+.context-status.ready {
+  border-color:
+    #bbf7d0;
+
+  background:
+    #f0fdf4;
+
+  color:
+    #166534;
+}
+
+/*
+ * ============================================================
+ * SECCIONES
+ * ============================================================
+ */
+
+.section-card {
+  margin:
+    0
+    0
+    12px;
+
+  overflow:
+    hidden;
+
+  border:
+    1px solid #dfe7ef;
+
+  border-radius:
+    14px;
+
+  background:
+    #ffffff;
 }
 
 .section-card summary {
-  list-style: none;
-  cursor: pointer;
-  padding: 14px 16px;
-  font-size: 1rem;
-  font-weight: 800;
-  color: #111827;
-  border-bottom: 1px solid transparent;
-  user-select: none;
-}
+  padding:
+    13px
+    15px;
 
-.section-card[open] summary {
-  border-bottom-color: #f0f2f5;
-  background: #fafafa;
+  border-bottom:
+    1px solid transparent;
+
+  color:
+    #0f172a;
+
+  cursor: pointer;
+
+  font-size:
+    14px;
+
+  font-weight:
+    850;
+
+  list-style:
+    none;
+
+  user-select:
+    none;
 }
 
 .section-card summary::-webkit-details-marker {
   display: none;
 }
 
-.section-card summary span {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
+.section-card[open]
+summary {
+  border-bottom-color:
+    #edf2f7;
+
+  background:
+    #fbfdff;
 }
 
 .section-content {
-  padding: 14px 16px 16px;
+  padding:
+    14px
+    15px
+    16px;
 }
 
-.radio-card-group,
-.radio-stack {
+.section-description {
+  margin:
+    0
+    0
+    13px;
+
+  color:
+    #64748b;
+
+  font-size:
+    12px;
+
+  line-height:
+    1.5;
+}
+
+/*
+ * ============================================================
+ * RADIO CARDS
+ * ============================================================
+ */
+
+.radio-card-group {
   display: grid;
-  gap: 10px;
-}
 
-.radio-card,
-.radio-line,
-.check-card {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin: 0;
-  font-weight: 600;
-  color: #111827;
+  gap: 9px;
 }
 
 .radio-card {
-  padding: 12px 14px;
-  border: 1px solid #e5e7eb;
-  border-radius: 12px;
-  background: #fafafa;
+  display: flex;
+
+  align-items:
+    center;
+
+  gap: 10px;
+
+  padding:
+    11px
+    12px;
+
+  border:
+    1px solid #dfe7ef;
+
+  border-radius:
+    11px;
+
+  background:
+    #ffffff;
+
+  color:
+    #334155;
+
+  cursor:
+    pointer;
 }
 
-.radio-card:hover,
-.check-card:hover {
-  background: #f8fafc;
+.radio-card.selected {
+  border-color:
+    #93c5fd;
+
+  background:
+    #eff8ff;
 }
 
-.radio-line {
-  padding: 4px 0;
+.radio-card-copy {
+  display: flex;
+
+  min-width: 0;
+
+  flex-direction:
+    column;
+
+  gap: 2px;
+}
+
+.radio-card-copy strong {
+  color:
+    #1e293b;
+
+  font-size:
+    13px;
+}
+
+.radio-card-copy small {
+  color:
+    #64748b;
+
+  font-size:
+    11px;
+
+  line-height:
+    1.35;
+}
+
+/*
+ * ============================================================
+ * ORIGEN
+ * ============================================================
+ */
+
+.origin-option-grid {
+  display: grid;
+
+  grid-template-columns:
+    repeat(
+      3,
+      minmax(
+        0,
+        1fr
+      )
+    );
+
+  gap: 8px;
+}
+
+.origin-option {
+  display: flex;
+
+  min-height: 72px;
+
+  align-items:
+    center;
+
+  gap: 9px;
+
+  padding:
+    10px;
+
+  border:
+    1px solid #dfe7ef;
+
+  border-radius:
+    12px;
+
+  background:
+    #ffffff;
+
+  color:
+    #334155;
+
+  cursor:
+    pointer;
+
+  transition:
+    border-color .15s ease,
+    background .15s ease,
+    box-shadow .15s ease;
+}
+
+.origin-option:hover:not(.disabled) {
+  border-color:
+    #bfdbfe;
+
+  background:
+    #f8fbfe;
+}
+
+.origin-option.selected {
+  border-color:
+    #60a5fa;
+
+  background:
+    #eff8ff;
+
+  box-shadow:
+    0 0 0 2px
+      rgba(
+        96,
+        165,
+        250,
+        .10
+      );
+}
+
+.origin-option.disabled {
+  cursor:
+    not-allowed;
+
+  background:
+    #f8fafc;
+
+  opacity:
+    .58;
+}
+
+.origin-option input {
+  position:
+    absolute;
+
+  width: 1px;
+  height: 1px;
+
+  opacity: 0;
+
+  pointer-events:
+    none;
+}
+
+.origin-icon {
+  display: grid;
+
+  width: 32px;
+  height: 32px;
+
+  flex:
+    0
+    0
+    32px;
+
+  place-items:
+    center;
+
+  border-radius:
+    9px;
+
+  background:
+    #eaf4fc;
+
+  color:
+    #0f64ad;
+
+  font-size:
+    13px;
+
+  font-weight:
+    900;
+}
+
+.origin-copy {
+  display: flex;
+
+  min-width: 0;
+
+  flex-direction:
+    column;
+
+  gap: 2px;
+}
+
+.origin-copy strong {
+  color:
+    #1e293b;
+
+  font-size:
+    11px;
+
+  line-height:
+    1.25;
+}
+
+.origin-copy small {
+  color:
+    #64748b;
+
+  font-size:
+    9px;
+
+  line-height:
+    1.25;
+}
+
+.origin-panel {
+  margin-top:
+    12px;
+
+  padding:
+    13px;
+
+  border:
+    1px solid #e2e8f0;
+
+  border-radius:
+    12px;
+
+  background:
+    #fbfdff;
+}
+
+/*
+ * ============================================================
+ * CAMPOS
+ * ============================================================
+ */
+
+.field-block {
+  margin-top:
+    0;
+}
+
+.field-block +
+.field-block {
+  margin-top:
+    12px;
 }
 
 .nested-block {
-  margin-top: 4px;
-}
+  margin:
+    0
+    0
+    2px
+    22px;
 
-.field-block {
-  margin-top: 14px;
+  padding:
+    12px;
+
+  border-left:
+    2px solid #dbeafe;
+
+  background:
+    #f8fbff;
 }
 
 .field-label {
   display: block;
-  margin: 0 0 8px;
-  font-size: 0.93rem;
-  font-weight: 700;
-  color: #374151;
+
+  margin-bottom:
+    6px;
+
+  color:
+    #334155;
+
+  font-size:
+    11px;
+
+  font-weight:
+    800;
 }
 
 .field-control {
   width: 100%;
-  min-height: 44px;
-  padding: 10px 12px;
-  font-size: 0.96rem;
-  color: #111827;
-  background: #ffffff;
-  border: 1px solid #d1d5db;
-  border-radius: 10px;
-  outline: none;
-  transition: border-color 0.18s ease, box-shadow 0.18s ease;
-  box-sizing: border-box;
+
+  min-height:
+    42px;
+
+  padding:
+    9px
+    11px;
+
+  box-sizing:
+    border-box;
+
+  border:
+    1px solid #cbd5e1;
+
+  border-radius:
+    9px;
+
+  outline:
+    none;
+
+  background:
+    #ffffff !important;
+
+  color:
+    #0f172a !important;
+
+  font-size:
+    13px;
+
+  line-height:
+    1.3;
+
+  transition:
+    border-color .15s ease,
+    box-shadow .15s ease;
+}
+
+.field-control:hover {
+  border-color:
+    #94a3b8;
 }
 
 .field-control:focus {
-  border-color: #7c3aed;
-  box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.14);
+  border-color:
+    #3b82f6;
+
+  box-shadow:
+    0 0 0 3px
+      rgba(
+        59,
+        130,
+        246,
+        .12
+      );
 }
 
-.field-control-sm {
-  max-width: 140px;
+select.field-control {
+  color-scheme:
+    light;
+}
+
+select.field-control option {
+  background:
+    #ffffff !important;
+
+  color:
+    #0f172a !important;
+}
+
+.field-help {
+  display: block;
+
+  margin:
+    5px
+    0
+    0;
+
+  color:
+    #64748b;
+
+  font-size:
+    10px;
+
+  line-height:
+    1.4;
 }
 
 .hint {
-  margin: 10px 0 0;
-  font-size: 0.9rem;
-  line-height: 1.45;
-  color: #6b7280;
+  margin:
+    8px
+    0
+    0;
+
+  color:
+    #64748b;
+
+  font-size:
+    11px;
+
+  line-height:
+    1.45;
 }
 
-.manual-list {
-  margin-top: 12px;
-  padding: 8px;
-  border: 1px solid #e5e7eb;
-  border-radius: 12px;
-  background: #fafafa;
+/*
+ * ============================================================
+ * BUSCADOR
+ * ============================================================
+ */
+
+.search-row {
+  display: grid;
+
+  grid-template-columns:
+    minmax(
+      0,
+      1fr
+    )
+    auto;
+
+  gap: 8px;
 }
 
-.manual-item {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 10px 12px;
-  border-radius: 10px;
-  background: #ffffff;
-  border: 1px solid #edf0f3;
-}
-
-.manual-item + .manual-item {
-  margin-top: 8px;
-}
-
-.manual-left {
-  display: flex;
-  align-items: center;
-  gap: 10px;
+.search-input {
   min-width: 0;
 }
 
-.manual-name {
-  font-weight: 600;
-  color: #111827;
-  word-break: break-word;
+.btn-search {
+  min-width:
+    92px;
+
+  min-height:
+    42px;
+
+  padding:
+    0
+    14px;
+
+  border:
+    1px solid #0f64ad;
+
+  border-radius:
+    9px;
+
+  background:
+    #0f64ad;
+
+  color:
+    #ffffff;
+
+  cursor:
+    pointer;
+
+  font-size:
+    12px;
+
+  font-weight:
+    800;
+
+  transition:
+    background .15s ease,
+    border-color .15s ease,
+    transform .15s ease;
 }
 
-.drag-handle {
-  user-select: none;
-  color: #6b7280;
-  font-size: 0.95rem;
-  cursor: grab;
+.btn-search:hover:not(:disabled) {
+  border-color:
+    #0b568f;
+
+  background:
+    #0b568f;
 }
 
-.badge-hard {
-  display: inline-flex;
-  align-items: center;
-  padding: 3px 8px;
-  border-radius: 999px;
-  border: 1px solid #fecaca;
-  background: #fff1f2;
-  color: #b91c1c;
-  font-size: 0.76rem;
-  font-weight: 700;
-  white-space: nowrap;
+.btn-search:active:not(:disabled) {
+  transform:
+    translateY(1px);
 }
 
-.cedis-card {
+.btn-search:disabled {
+  border-color:
+    #cbd5e1;
+
+  background:
+    #e2e8f0;
+
+  color:
+    #94a3b8;
+
+  cursor:
+    not-allowed;
+}
+
+.search-results {
+  display: grid;
+
+  gap: 6px;
+
+  margin-top:
+    12px;
+}
+
+.results-title {
+  margin-bottom:
+    1px;
+
+  color:
+    #64748b;
+
+  font-size:
+    10px;
+
+  font-weight:
+    800;
+
+  letter-spacing:
+    .05em;
+
+  text-transform:
+    uppercase;
+}
+
+.search-result {
   display: flex;
-  flex-direction: column;
-  gap: 4px;
-  margin-top: 10px;
-  padding: 12px 14px;
-  border: 1px solid #e5e7eb;
-  border-radius: 12px;
-  background: #f8fafc;
-  font-size: 0.9rem;
-  color: #374151;
+
+  width: 100%;
+
+  align-items:
+    center;
+
+  gap: 9px;
+
+  padding:
+    9px
+    10px;
+
+  border:
+    1px solid #dfe7ef;
+
+  border-radius:
+    10px;
+
+  background:
+    #ffffff;
+
+  color:
+    #1e293b;
+
+  cursor:
+    pointer;
+
+  text-align:
+    left;
+
+  transition:
+    border-color .15s ease,
+    background .15s ease;
+}
+
+.search-result:hover {
+  border-color:
+    #93c5fd;
+
+  background:
+    #f8fbff;
+}
+
+.search-result.selected {
+  border-color:
+    #60a5fa;
+
+  background:
+    #eff8ff;
+}
+
+.result-pin {
+  display: grid;
+
+  width: 26px;
+  height: 26px;
+
+  flex:
+    0
+    0
+    26px;
+
+  place-items:
+    center;
+
+  border-radius:
+    8px;
+
+  background:
+    #eaf4fc;
+
+  color:
+    #0f64ad;
+
+  font-size:
+    18px;
+}
+
+.result-copy {
+  display: flex;
+
+  min-width: 0;
+
+  flex: 1;
+
+  flex-direction:
+    column;
+
+  gap: 2px;
+}
+
+.result-copy strong {
+  overflow:
+    hidden;
+
+  color:
+    #1e293b;
+
+  font-size:
+    11px;
+
+  text-overflow:
+    ellipsis;
+
+  white-space:
+    nowrap;
+}
+
+.result-copy small {
+  overflow:
+    hidden;
+
+  color:
+    #64748b;
+
+  font-size:
+    9px;
+
+  text-overflow:
+    ellipsis;
+
+  white-space:
+    nowrap;
+}
+
+.result-coordinates {
+  color:
+    #94a3b8 !important;
+}
+
+.result-action {
+  flex:
+    0
+    0
+    auto;
+
+  color:
+    #0f64ad;
+
+  font-size:
+    9px;
+
+  font-weight:
+    850;
+}
+
+/*
+ * ============================================================
+ * ORIGEN SELECCIONADO
+ * ============================================================
+ */
+
+.selected-origin-card {
+  display: flex;
+
+  align-items:
+    flex-start;
+
+  gap: 10px;
+
+  margin-top:
+    11px;
+
+  padding:
+    11px
+    12px;
+
+  border:
+    1px solid #bfdbfe;
+
+  border-radius:
+    11px;
+
+  background:
+    #eff8ff;
+}
+
+.selected-origin-card.success-card {
+  border-color:
+    #bbf7d0;
+
+  background:
+    #f0fdf4;
+}
+
+.selected-origin-icon {
+  display: grid;
+
+  width: 30px;
+  height: 30px;
+
+  flex:
+    0
+    0
+    30px;
+
+  place-items:
+    center;
+
+  border-radius:
+    9px;
+
+  background:
+    #dbeafe;
+
+  color:
+    #0f64ad;
+
+  font-size:
+    12px;
+
+  font-weight:
+    900;
+}
+
+.selected-origin-icon.success {
+  background:
+    #dcfce7;
+
+  color:
+    #15803d;
+}
+
+.selected-origin-copy {
+  display: flex;
+
+  min-width: 0;
+
+  flex-direction:
+    column;
+
+  gap: 2px;
+}
+
+.selected-origin-copy strong {
+  color:
+    #1e293b;
+
+  font-size:
+    11px;
+}
+
+.selected-origin-copy span {
+  color:
+    #64748b;
+
+  font-size:
+    9px;
+
+  line-height:
+    1.35;
+}
+
+/*
+ * ============================================================
+ * COORDENADAS
+ * ============================================================
+ */
+
+.manual-coordinates {
+  margin-top:
+    12px;
+
+  padding-top:
+    10px;
+
+  border-top:
+    1px solid #e2e8f0;
+}
+
+.manual-coordinates summary {
+  color:
+    #0f64ad;
+
+  cursor:
+    pointer;
+
+  font-size:
+    10px;
+
+  font-weight:
+    800;
 }
 
 .coords-grid {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 14px;
-  margin-top: 10px;
+
+  grid-template-columns:
+    repeat(
+      2,
+      minmax(
+        0,
+        1fr
+      )
+    );
+
+  gap: 10px;
+
+  margin-top:
+    10px;
 }
 
-@media (max-width: 640px) {
-  .coords-grid {
-    grid-template-columns: 1fr;
-  }
-}
+/*
+ * ============================================================
+ * FORM
+ * ============================================================
+ */
 
-.operator-grid {
+.form-grid {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 14px;
-  margin-top: 14px;
+
+  grid-template-columns:
+    repeat(
+      2,
+      minmax(
+        0,
+        1fr
+      )
+    );
+
+  gap: 12px;
 }
 
-@media (max-width: 640px) {
-  .operator-grid {
-    grid-template-columns: 1fr;
-  }
+.metrics-grid {
+  display: grid;
+
+  grid-template-columns:
+    repeat(
+      3,
+      minmax(
+        0,
+        1fr
+      )
+    );
+
+  gap: 12px;
+
+  margin-top:
+    12px;
+
+  padding-top:
+    12px;
+
+  border-top:
+    1px solid #edf2f7;
 }
+
+/*
+ * ============================================================
+ * OPCIONES
+ * ============================================================
+ */
 
 .options-grid {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 10px;
+
+  grid-template-columns:
+    repeat(
+      2,
+      minmax(
+        0,
+        1fr
+      )
+    );
+
+  gap: 8px;
 }
 
 .check-card {
-  padding: 12px 14px;
-  border: 1px solid #e5e7eb;
-  border-radius: 12px;
-  background: #fafafa;
-}
-
-.modal-footer {
   display: flex;
-  justify-content: flex-end;
-  gap: 10px;
-  padding: 16px 20px 18px;
-  border-top: 1px solid #eef2f7;
-  background: #ffffff;
+
+  min-height:
+    44px;
+
+  align-items:
+    center;
+
+  gap: 8px;
+
+  padding:
+    9px
+    11px;
+
+  border:
+    1px solid #dfe7ef;
+
+  border-radius:
+    10px;
+
+  background:
+    #ffffff;
+
+  color:
+    #475569;
+
+  cursor:
+    pointer;
+
+  font-size:
+    11px;
+
+  font-weight:
+    700;
 }
 
-.btn-primary,
-.btn-secondary {
-  min-width: 112px;
-  padding: 10px 16px;
-  border-radius: 10px;
-  cursor: pointer;
-  font-weight: 700;
-  font-size: 0.95rem;
-  transition: all 0.18s ease;
-}
+.check-card.checked {
+  border-color:
+    #93c5fd;
 
-.btn-primary {
-  border: 1px solid #111827;
-  background: #111827;
-  color: #ffffff;
-}
+  background:
+    #eff8ff;
 
-.btn-primary:hover {
-  background: #1f2937;
-  border-color: #1f2937;
-}
-
-.btn-secondary {
-  border: 1px solid #d1d5db;
-  background: #ffffff;
-  color: #111827;
-}
-
-.btn-secondary:hover {
-  background: #f9fafb;
+  color:
+    #0f4f87;
 }
 
 input[type="radio"],
 input[type="checkbox"] {
-  accent-color: #7c3aed;
-  transform: scale(1.05);
+  accent-color:
+    #0f64ad;
 }
 
-@media (max-width: 640px) {
-  .modal {
-    width: 100%;
-    max-height: 92vh;
-    border-radius: 14px;
+/*
+ * ============================================================
+ * MANUAL
+ * ============================================================
+ */
+
+.manual-list {
+  display: grid;
+
+  gap: 6px;
+
+  margin-top:
+    10px;
+
+  padding:
+    7px;
+
+  border:
+    1px solid #e2e8f0;
+
+  border-radius:
+    11px;
+
+  background:
+    #f8fafc;
+}
+
+.manual-item {
+  padding:
+    8px
+    10px;
+
+  border:
+    1px solid #e2e8f0;
+
+  border-radius:
+    9px;
+
+  background:
+    #ffffff;
+}
+
+.manual-left {
+  display: flex;
+
+  min-width: 0;
+
+  align-items:
+    center;
+
+  gap: 8px;
+}
+
+.drag-handle {
+  color:
+    #94a3b8;
+
+  cursor:
+    grab;
+
+  user-select:
+    none;
+}
+
+.manual-name {
+  min-width: 0;
+
+  overflow:
+    hidden;
+
+  flex: 1;
+
+  color:
+    #334155;
+
+  font-size:
+    11px;
+
+  font-weight:
+    650;
+
+  text-overflow:
+    ellipsis;
+
+  white-space:
+    nowrap;
+}
+
+.badge-hard {
+  padding:
+    3px
+    6px;
+
+  border:
+    1px solid #fecaca;
+
+  border-radius:
+    999px;
+
+  background:
+    #fff1f2;
+
+  color:
+    #b91c1c;
+
+  font-size:
+    8px;
+
+  font-weight:
+    800;
+
+  white-space:
+    nowrap;
+}
+
+.empty-state {
+  padding:
+    16px;
+
+  color:
+    #64748b;
+
+  font-size:
+    11px;
+
+  text-align:
+    center;
+}
+
+/*
+ * ============================================================
+ * AVISOS
+ * ============================================================
+ */
+
+.notice {
+  display: flex;
+
+  flex-direction:
+    column;
+
+  gap: 5px;
+
+  margin-top:
+    10px;
+
+  padding:
+    10px
+    11px;
+
+  border-radius:
+    10px;
+
+  font-size:
+    10px;
+
+  line-height:
+    1.4;
+}
+
+.notice-warning {
+  border:
+    1px solid #fde68a;
+
+  background:
+    #fffbeb;
+
+  color:
+    #92400e;
+}
+
+.notice-error {
+  border:
+    1px solid #fecaca;
+
+  background:
+    #fff1f2;
+
+  color:
+    #b91c1c;
+}
+
+.btn-link-action {
+  width:
+    fit-content;
+
+  margin-top:
+    3px;
+
+  padding: 0;
+
+  border: 0;
+
+  background:
+    transparent;
+
+  color:
+    #0f64ad;
+
+  cursor:
+    pointer;
+
+  font-size:
+    10px;
+
+  font-weight:
+    850;
+
+  text-decoration:
+    underline;
+}
+
+/*
+ * ============================================================
+ * FOOTER
+ * ============================================================
+ */
+
+.modal-footer {
+  display: flex;
+
+  flex:
+    0
+    0
+    auto;
+
+  align-items:
+    center;
+
+  justify-content:
+    space-between;
+
+  gap: 12px;
+
+  padding:
+    13px
+    20px;
+
+  border-top:
+    1px solid #e5edf5;
+
+  background:
+    #ffffff;
+}
+
+.footer-status {
+  display: flex;
+
+  min-width: 0;
+
+  align-items:
+    center;
+
+  gap: 7px;
+
+  color:
+    #64748b;
+
+  font-size:
+    10px;
+
+  line-height:
+    1.3;
+}
+
+.status-dot {
+  width: 8px;
+  height: 8px;
+
+  flex:
+    0
+    0
+    8px;
+
+  border-radius:
+    999px;
+
+  background:
+    #f59e0b;
+}
+
+.status-dot.ready {
+  background:
+    #22c55e;
+}
+
+.footer-actions {
+  display: flex;
+
+  flex:
+    0
+    0
+    auto;
+
+  gap: 8px;
+}
+
+.btn-primary,
+.btn-secondary {
+  min-height:
+    40px;
+
+  padding:
+    0
+    16px;
+
+  border-radius:
+    9px;
+
+  cursor:
+    pointer;
+
+  font-size:
+    11px;
+
+  font-weight:
+    850;
+
+  transition:
+    background .15s ease,
+    border-color .15s ease,
+    color .15s ease,
+    box-shadow .15s ease;
+}
+
+/*
+ * IMPORTANTE:
+ * ya no existe botón primario negro.
+ */
+
+.btn-primary {
+  border:
+    1px solid #0f64ad;
+
+  background:
+    #0f64ad;
+
+  color:
+    #ffffff !important;
+
+  box-shadow:
+    0 3px 10px
+      rgba(
+        15,
+        100,
+        173,
+        .16
+      );
+}
+
+.btn-primary:hover:not(:disabled) {
+  border-color:
+    #0b568f;
+
+  background:
+    #0b568f;
+}
+
+.btn-primary:disabled {
+  border-color:
+    #d1d9e2;
+
+  background:
+    #e5eaf0;
+
+  color:
+    #94a3b8 !important;
+
+  cursor:
+    not-allowed;
+
+  box-shadow:
+    none;
+}
+
+.btn-secondary {
+  border:
+    1px solid #cbd5e1;
+
+  background:
+    #ffffff;
+
+  color:
+    #475569 !important;
+}
+
+.btn-secondary:hover {
+  border-color:
+    #94a3b8;
+
+  background:
+    #f8fafc;
+
+  color:
+    #1e293b !important;
+}
+
+/*
+ * ============================================================
+ * RESPONSIVE
+ * ============================================================
+ */
+
+@media (
+  max-width: 700px
+) {
+  .modal-backdrop {
+    padding:
+      8px;
   }
 
-  .modal-header,
-  .modal-body,
-  .modal-footer {
-    padding-left: 14px;
-    padding-right: 14px;
+  .modal {
+    width:
+      100%;
+
+    max-height:
+      96vh;
+
+    border-radius:
+      14px;
+  }
+
+  .modal-header {
+    padding:
+      14px;
   }
 
   .modal-header h3 {
-    font-size: 1.35rem;
+    font-size:
+      20px;
   }
 
+  .modal-body {
+    padding:
+      12px
+      12px
+      4px;
+  }
+
+  .origin-option-grid {
+    grid-template-columns:
+      1fr;
+  }
+
+  .origin-option {
+    min-height:
+      58px;
+  }
+
+  .form-grid,
+  .metrics-grid,
+  .coords-grid,
   .options-grid {
-    grid-template-columns: 1fr;
+    grid-template-columns:
+      1fr;
+  }
+
+  .search-row {
+    grid-template-columns:
+      1fr;
+  }
+
+  .btn-search {
+    width:
+      100%;
   }
 
   .modal-footer {
-    flex-direction: column-reverse;
+    flex-direction:
+      column;
+
+    align-items:
+      stretch;
+
+    padding:
+      11px
+      12px;
+  }
+
+  .footer-actions {
+    width: 100%;
   }
 
   .btn-primary,
   .btn-secondary {
-    width: 100%;
+    flex: 1;
   }
 }
 </style>

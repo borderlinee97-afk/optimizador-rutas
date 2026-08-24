@@ -3,35 +3,48 @@ import { ref, computed } from 'vue'
 import { computeRoute } from '../services/api.js'
 import { copyToClipboard as copyLinkToClipboard } from '../utils/links.js'
 
-export function useRouting({ 
-  map, 
-  trackOverlay, 
-  detachOverlay, 
+export function useRouting({
+  map,
+  trackOverlay,
+  detachOverlay,
   clearAllOverlays,
   filterPharmacyMarkersByIds,
   clearPharmacyMarkerFilter
 }) {
-  // ====== Estado base / UI ======
+  // =========================================================
+  // ESTADO BASE / UI
+  // =========================================================
+
   const criteriaOpen = ref(false)
+
   const criteria = ref({
     scope: 'single',
+
+    estado: '',
     region: '',
     proyecto: 'JALISCO',
+
     strategy: 'FASTEST',
     routeEngine: 'GOOGLE_ROUTES_PLUS',
     routeMode: 'ROUND_TRIP',
+
     maxForeignDays: 3,
     foreignOperatorsPerRoute: 1,
     lodgingSearchRadiusKm: 20,
+
     operatorCount: 1,
+
     kmPerLiter: 12,
     fuelPricePerLiter: 24,
     dailyAllowance: 0,
+
     originCoords: {
       lat: '',
       lng: ''
     },
+
     selectedCedisId: null,
+
     options: {
       avoidTolls: false,
       showAlternatives: true,
@@ -42,504 +55,1809 @@ export function useRouting({
   })
 
   const originMode = ref('cedis')
-  const originPharmacyId = ref(null)
 
-  // ====== Inyección desde MapPage ======
-  const farmacias = ref([])
+  const originPharmacyId =
+    ref(null)
 
-  const regiones = computed(() =>
-    Array.from(new Set(farmacias.value.map(f => f.region_sanitaria).filter(Boolean))).sort()
-  )
+  // =========================================================
+  // UNIDADES INYECTADAS DESDE MAP PAGE
+  // =========================================================
 
-  const farmaciasRegion = computed(() =>
-    farmacias.value.filter(f => f.region_sanitaria === criteria.value.region)
-  )
+  const farmacias =
+    ref([])
+
+  function normalizeScopeValue(
+    value
+  ) {
+    return String(
+      value ??
+      ''
+    )
+      .trim()
+      .normalize(
+        'NFD'
+      )
+      .replace(
+        /[\u0300-\u036f]/g,
+        ''
+      )
+      .toUpperCase()
+  }
+
+  function unitMatchesCurrentScope(
+    unit
+  ) {
+    if (!unit) {
+      return false
+    }
+
+    const currentState =
+      normalizeScopeValue(
+        criteria.value.estado
+      )
+
+    const currentProject =
+      normalizeScopeValue(
+        criteria.value.proyecto
+      )
+
+    if (
+      currentState &&
+      normalizeScopeValue(
+        unit.estado
+      ) !== currentState
+    ) {
+      return false
+    }
+
+    if (
+      currentProject &&
+      normalizeScopeValue(
+        unit.proyecto
+      ) !== currentProject
+    ) {
+      return false
+    }
+
+    return true
+  }
+
+  /*
+   * Ésta es la fuente correcta para:
+   *
+   * - regiones
+   * - unidades
+   * - ruta personalizada
+   * - origen por farmacia
+   *
+   * Nunca debe mezclar proyectos.
+   */
+  const scopedFarmacias =
+    computed(
+      () =>
+        farmacias.value.filter(
+          unitMatchesCurrentScope
+        )
+    )
+
+  const regiones =
+    computed(
+      () =>
+        Array.from(
+          new Set(
+            scopedFarmacias.value
+              .map(
+                farmacia =>
+                  farmacia
+                    .region_sanitaria
+              )
+              .filter(
+                Boolean
+              )
+          )
+        ).sort(
+          (
+            a,
+            b
+          ) =>
+            String(
+              a
+            ).localeCompare(
+              String(
+                b
+              ),
+              'es'
+            )
+        )
+    )
+
+  const farmaciasRegion =
+    computed(
+      () =>
+        scopedFarmacias.value
+          .filter(
+            farmacia =>
+              farmacia
+                .region_sanitaria ===
+              criteria.value
+                .region
+          )
+    )
+
+  // =========================================================
+  // ABRIR CALCULADOR
+  // =========================================================
 
   function openCriteria() {
-    criteria.value.scope = 'single'
-    criteria.value.region = regiones.value[0] || ''
-    originMode.value = 'cedis'
+    criteria.value.scope =
+      'single'
+
+    /*
+     * Si ya existe una región válida,
+     * la conservamos.
+     *
+     * Si el proyecto cambió, usamos la
+     * primera región de ese proyecto.
+     */
+    if (
+      !criteria.value.region ||
+      !regiones.value.includes(
+        criteria.value.region
+      )
+    ) {
+      criteria.value.region =
+        regiones.value[0] ||
+        ''
+    }
+
+    /*
+     * CriteriaModal cambiará automáticamente
+     * a búsqueda por lugar/coordenadas cuando
+     * el proyecto no tenga CEDIS.
+     */
+    originMode.value =
+      'cedis'
+
     originPharmacyId.value =
-      farmaciasRegion.value[0]?.id != null
-        ? Number(farmaciasRegion.value[0].id)
+      farmaciasRegion.value[0]
+        ?.id != null
+        ? Number(
+            farmaciasRegion.value[0]
+              .id
+          )
         : null
 
-    manualPoints.value = farmaciasRegion.value.map(f => ({
-      id: Number(f.id),
-      name: f.clues || f.unidad || String(f.id),
-      clues: f.clues || '',
-      unidad: f.unidad || '',
-      region: f.region_sanitaria || '',
-      enabled: true,
-      hard: !!f.dificil_acceso
-    }))
+    manualPoints.value =
+      farmaciasRegion.value.map(
+        farmacia => ({
+          id:
+            Number(
+              farmacia.id
+            ),
 
-    criteriaOpen.value = true
+          name:
+            farmacia.clues ||
+            farmacia.unidad ||
+            String(
+              farmacia.id
+            ),
+
+          clues:
+            farmacia.clues ||
+            '',
+
+          unidad:
+            farmacia.unidad ||
+            '',
+
+          region:
+            farmacia
+              .region_sanitaria ||
+            '',
+
+          proyecto:
+            farmacia.proyecto ||
+            criteria.value
+              .proyecto ||
+            '',
+
+          estado:
+            farmacia.estado ||
+            criteria.value
+              .estado ||
+            '',
+
+          enabled:
+            true,
+
+          hard:
+            Boolean(
+              farmacia
+                .dificil_acceso
+            )
+        })
+      )
+
+    criteriaOpen.value =
+      true
   }
 
-  // ====== Manual pre-cálculo (flujo general) ======
-  const manualPoints = ref([])
-  const lockManualFromTemplate = ref(false)
+  // =========================================================
+  // MANUAL PRE-CÁLCULO
+  // =========================================================
 
-  let dragSrcIndex = -1
-  function onDragStart(i) {
-    dragSrcIndex = i
+  const manualPoints =
+    ref([])
+
+  const lockManualFromTemplate =
+    ref(false)
+
+  let dragSrcIndex =
+    -1
+
+  function onDragStart(
+    index
+  ) {
+    dragSrcIndex =
+      index
   }
-  function onDragEnter(i) {
-    if (dragSrcIndex === -1 || dragSrcIndex === i) return
-    const a = [...manualPoints.value]
-    const it = a.splice(dragSrcIndex, 1)[0]
-    a.splice(i, 0, it)
-    manualPoints.value = a
-    dragSrcIndex = i
+
+  function onDragEnter(
+    index
+  ) {
+    if (
+      dragSrcIndex ===
+        -1 ||
+      dragSrcIndex ===
+        index
+    ) {
+      return
+    }
+
+    const items =
+      [
+        ...manualPoints.value
+      ]
+
+    const item =
+      items.splice(
+        dragSrcIndex,
+        1
+      )[0]
+
+    items.splice(
+      index,
+      0,
+      item
+    )
+
+    manualPoints.value =
+      items
+
+    dragSrcIndex =
+      index
   }
+
   function onDrop() {
-    dragSrcIndex = -1
+    dragSrcIndex =
+      -1
   }
 
-  // ====== Ruta personalizada (carrito temporal) ======
-  const customPoints = ref([])
-  const customStrategy = ref('FASTEST')
+  // =========================================================
+  // RUTA PERSONALIZADA
+  // =========================================================
 
-  const customOriginMode = ref('first') // first | coords | pharmacy
-  const customOriginPharmacyId = ref(null)
-  const customOriginCoords = ref({ lat: '', lng: '' })
+  const customPoints =
+    ref([])
 
-  function normalizeCustomPoint(raw) {
-    if (!raw) return null
+  const customStrategy =
+    ref(
+      'FASTEST'
+    )
+
+  /*
+   * first:
+   * primera unidad del carrito
+   *
+   * pharmacy:
+   * unidad específica
+   *
+   * coords:
+   * coordenadas externas
+   */
+  const customOriginMode =
+    ref(
+      'first'
+    )
+
+  const customOriginPharmacyId =
+    ref(null)
+
+  const customOriginCoords =
+    ref({
+      lat: '',
+      lng: ''
+    })
+
+  function normalizeCustomPoint(
+    raw
+  ) {
+    if (!raw) {
+      return null
+    }
+
     return {
-      id: Number(raw.id),
-      clues: raw.clues || '',
-      unidad: raw.unidad || '',
-      region: raw.region || raw.region_sanitaria || '',
-      name: raw.name || raw.clues || raw.unidad || String(raw.id),
-      enabled: raw.enabled !== false,
-      hard: !!raw.hard
+      id:
+        Number(
+          raw.id
+        ),
+
+      clues:
+        raw.clues ||
+        '',
+
+      unidad:
+        raw.unidad ||
+        '',
+
+      region:
+        raw.region ||
+        raw.region_sanitaria ||
+        '',
+
+      proyecto:
+        raw.proyecto ||
+        criteria.value
+          .proyecto ||
+        '',
+
+      estado:
+        raw.estado ||
+        criteria.value
+          .estado ||
+        '',
+
+      name:
+        raw.name ||
+        raw.clues ||
+        raw.unidad ||
+        String(
+          raw.id
+        ),
+
+      enabled:
+        raw.enabled !==
+        false,
+
+      hard:
+        Boolean(
+          raw.hard
+        )
     }
   }
 
   function ensureValidCustomOriginSelection() {
-    const ids = new Set(customPoints.value.map(p => Number(p.id)))
-    if (!ids.size) {
-      customOriginPharmacyId.value = null
+    const ids =
+      new Set(
+        customPoints.value
+          .map(
+            point =>
+              Number(
+                point.id
+              )
+          )
+      )
+
+    if (
+      !ids.size
+    ) {
+      customOriginPharmacyId.value =
+        null
+
       return
     }
+
     if (
-      customOriginMode.value === 'pharmacy' &&
-      !ids.has(Number(customOriginPharmacyId.value))
+      customOriginMode.value ===
+        'pharmacy' &&
+      !ids.has(
+        Number(
+          customOriginPharmacyId.value
+        )
+      )
     ) {
-      customOriginPharmacyId.value = Number(customPoints.value[0].id)
+      customOriginPharmacyId.value =
+        Number(
+          customPoints.value[0]
+            .id
+        )
     }
   }
 
-  function addCustomStops(ids = []) {
-    const existing = new Set(customPoints.value.map(p => Number(p.id)))
-    const next = [...customPoints.value]
+  /*
+   * Sólo agrega unidades pertenecientes
+   * al Estado/Proyecto activo.
+   */
+  function addCustomStops(
+    ids = []
+  ) {
+    const existing =
+      new Set(
+        customPoints.value
+          .map(
+            point =>
+              Number(
+                point.id
+              )
+          )
+      )
 
-    for (const id of ids) {
-      const f = farmacias.value.find(ff => Number(ff.id) === Number(id))
-      if (!f) continue
-      if (existing.has(Number(f.id))) continue
+    const next =
+      [
+        ...customPoints.value
+      ]
+
+    for (
+      const id
+      of ids
+    ) {
+      const farmacia =
+        farmacias.value.find(
+          item =>
+            Number(
+              item.id
+            ) ===
+            Number(
+              id
+            )
+        )
+
+      if (
+        !farmacia ||
+        !unitMatchesCurrentScope(
+          farmacia
+        )
+      ) {
+        continue
+      }
+
+      if (
+        existing.has(
+          Number(
+            farmacia.id
+          )
+        )
+      ) {
+        continue
+      }
 
       next.push({
-        id: Number(f.id),
-        clues: f.clues || '',
-        unidad: f.unidad || '',
-        region: f.region_sanitaria || '',
-        name: f.clues || f.unidad || String(f.id),
-        enabled: true,
-        hard: !!f.dificil_acceso
+        id:
+          Number(
+            farmacia.id
+          ),
+
+        clues:
+          farmacia.clues ||
+          '',
+
+        unidad:
+          farmacia.unidad ||
+          '',
+
+        region:
+          farmacia
+            .region_sanitaria ||
+          '',
+
+        proyecto:
+          farmacia.proyecto ||
+          criteria.value
+            .proyecto ||
+          '',
+
+        estado:
+          farmacia.estado ||
+          criteria.value
+            .estado ||
+          '',
+
+        name:
+          farmacia.clues ||
+          farmacia.unidad ||
+          String(
+            farmacia.id
+          ),
+
+        enabled:
+          true,
+
+        hard:
+          Boolean(
+            farmacia
+              .dificil_acceso
+          )
       })
+
+      existing.add(
+        Number(
+          farmacia.id
+        )
+      )
     }
 
-    customPoints.value = next
-    if (!customOriginPharmacyId.value && customPoints.value.length) {
-      customOriginPharmacyId.value = Number(customPoints.value[0].id)
+    customPoints.value =
+      next
+
+    if (
+      !customOriginPharmacyId.value &&
+      customPoints.value.length
+    ) {
+      customOriginPharmacyId.value =
+        Number(
+          customPoints.value[0]
+            .id
+        )
     }
+
     ensureValidCustomOriginSelection()
   }
 
-  function setCustomPoints(list = []) {
-    customPoints.value = (Array.isArray(list) ? list : [])
-      .map(normalizeCustomPoint)
-      .filter(Boolean)
+  function setCustomPoints(
+    list = []
+  ) {
+    customPoints.value =
+      (
+        Array.isArray(
+          list
+        )
+          ? list
+          : []
+      )
+        .map(
+          normalizeCustomPoint
+        )
+        .filter(
+          Boolean
+        )
 
     ensureValidCustomOriginSelection()
   }
 
   function clearCustomPoints() {
-    customPoints.value = []
-    customStrategy.value = 'FASTEST'
-    customOriginMode.value = 'first'
-    customOriginPharmacyId.value = null
-    customOriginCoords.value = { lat: '', lng: '' }
+    customPoints.value =
+      []
+
+    customStrategy.value =
+      'FASTEST'
+
+    customOriginMode.value =
+      'first'
+
+    customOriginPharmacyId.value =
+      null
+
+    customOriginCoords.value = {
+      lat: '',
+      lng: ''
+    }
   }
 
-  const customOriginCandidates = computed(() =>
-    customPoints.value.map(p => ({
-      id: Number(p.id),
-      label: `${p.clues || p.name}${p.unidad ? ` — ${p.unidad}` : ''}`
-    }))
-  )
+  const customOriginCandidates =
+    computed(
+      () =>
+        customPoints.value
+          .map(
+            point => ({
+              id:
+                Number(
+                  point.id
+                ),
+
+              label:
+                `${
+                  point.clues ||
+                  point.name
+                }${
+                  point.unidad
+                    ? ` — ${point.unidad}`
+                    : ''
+                }`
+            })
+          )
+    )
 
   function resolveCustomOrigin() {
-    if (!customPoints.value.length) return null
-
-    if (customOriginMode.value === 'coords') {
-      const lat = Number(customOriginCoords.value.lat)
-      const lng = Number(customOriginCoords.value.lng)
-      if (Number.isFinite(lat) && Number.isFinite(lng)) {
-        return { lat, lng }
-      }
+    if (
+      !customPoints.value.length
+    ) {
       return null
     }
 
-    if (customOriginMode.value === 'pharmacy') {
-      const chosenId = Number(customOriginPharmacyId.value)
-      const f = farmacias.value.find(ff => Number(ff.id) === chosenId)
-      if (f?.latitud != null && f?.longitud != null) {
-        return { lat: Number(f.latitud), lng: Number(f.longitud) }
+    if (
+      customOriginMode.value ===
+      'coords'
+    ) {
+      const lat =
+        Number(
+          customOriginCoords.value
+            .lat
+        )
+
+      const lng =
+        Number(
+          customOriginCoords.value
+            .lng
+        )
+
+      if (
+        Number.isFinite(
+          lat
+        ) &&
+        Number.isFinite(
+          lng
+        )
+      ) {
+        return {
+          lat,
+          lng
+        }
       }
+
       return null
     }
 
-    const first = farmacias.value.find(
-      f => Number(f.id) === Number(customPoints.value[0]?.id)
-    )
-    if (first?.latitud != null && first?.longitud != null) {
-      return { lat: Number(first.latitud), lng: Number(first.longitud) }
+    if (
+      customOriginMode.value ===
+      'pharmacy'
+    ) {
+      const chosenId =
+        Number(
+          customOriginPharmacyId.value
+        )
+
+      const farmacia =
+        farmacias.value.find(
+          item =>
+            Number(
+              item.id
+            ) ===
+              chosenId &&
+            unitMatchesCurrentScope(
+              item
+            )
+        )
+
+      if (
+        farmacia?.latitud !=
+          null &&
+        farmacia?.longitud !=
+          null
+      ) {
+        return {
+          lat:
+            Number(
+              farmacia.latitud
+            ),
+
+          lng:
+            Number(
+              farmacia.longitud
+            )
+        }
+      }
+
+      return null
     }
+
+    /*
+     * Modo first.
+     */
+    const first =
+      farmacias.value.find(
+        farmacia =>
+          Number(
+            farmacia.id
+          ) ===
+            Number(
+              customPoints.value[0]
+                ?.id
+            ) &&
+          unitMatchesCurrentScope(
+            farmacia
+          )
+      )
+
+    if (
+      first?.latitud !=
+        null &&
+      first?.longitud !=
+        null
+    ) {
+      return {
+        lat:
+          Number(
+            first.latitud
+          ),
+
+        lng:
+          Number(
+            first.longitud
+          )
+      }
+    }
+
     return null
   }
 
-  function rotateIdsFromCustomOrigin(ids) {
-    if (!ids.length) return ids
-    if (customOriginMode.value !== 'pharmacy') return ids
+  function rotateIdsFromCustomOrigin(
+    ids
+  ) {
+    if (
+      !ids.length
+    ) {
+      return ids
+    }
 
-    const firstId = Number(customOriginPharmacyId.value)
-    const idx = ids.findIndex(id => Number(id) === firstId)
-    if (idx <= 0) return ids
+    if (
+      customOriginMode.value !==
+      'pharmacy'
+    ) {
+      return ids
+    }
 
-    return [...ids.slice(idx), ...ids.slice(0, idx)]
+    const firstId =
+      Number(
+        customOriginPharmacyId.value
+      )
+
+    const index =
+      ids.findIndex(
+        id =>
+          Number(
+            id
+          ) ===
+          firstId
+      )
+
+    if (
+      index <=
+      0
+    ) {
+      return ids
+    }
+
+    return [
+      ...ids.slice(
+        index
+      ),
+
+      ...ids.slice(
+        0,
+        index
+      )
+    ]
   }
 
-  // ====== Post-cálculo (edición) ======
-  const postOrder = ref([])
-  let postDragIdx = -1
+  // =========================================================
+  // POST-CÁLCULO
+  // =========================================================
 
-  function initPostOrderFromVisit(visit) {
-    postOrder.value = []
-    if (!Array.isArray(visit)) return
+  const postOrder =
+    ref([])
 
-    for (const p of visit) {
-      if (!p?.id) continue
+  let postDragIdx =
+    -1
 
-      const f = farmacias.value.find(ff => Number(ff.id) === Number(p.id))
+  function initPostOrderFromVisit(
+    visit
+  ) {
+    postOrder.value =
+      []
+
+    if (
+      !Array.isArray(
+        visit
+      )
+    ) {
+      return
+    }
+
+    for (
+      const point
+      of visit
+    ) {
+      if (
+        !point?.id
+      ) {
+        continue
+      }
+
+      const farmacia =
+        farmacias.value.find(
+          item =>
+            Number(
+              item.id
+            ) ===
+            Number(
+              point.id
+            )
+        )
 
       postOrder.value.push({
-        id: Number(p.id),
-        name: p.name || f?.clues || f?.unidad || String(p.id),
-        clues: f?.clues || null,
-        unidad: f?.unidad || null,
-        region: f?.region_sanitaria || null,
-        enabled: true,
-        hard: !!f?.dificil_acceso
+        id:
+          Number(
+            point.id
+          ),
+
+        name:
+          point.name ||
+          farmacia?.clues ||
+          farmacia?.unidad ||
+          String(
+            point.id
+          ),
+
+        clues:
+          farmacia?.clues ||
+          null,
+
+        unidad:
+          farmacia?.unidad ||
+          null,
+
+        region:
+          farmacia
+            ?.region_sanitaria ||
+          null,
+
+        enabled:
+          true,
+
+        hard:
+          Boolean(
+            farmacia
+              ?.dificil_acceso
+          )
       })
     }
   }
 
-  function postDragStart(i) {
-    postDragIdx = i
+  function postDragStart(
+    index
+  ) {
+    postDragIdx =
+      index
   }
 
-  function postDragEnter(i) {
-    if (postDragIdx === -1 || postDragIdx === i) return
-    const a = [...postOrder.value]
-    const it = a.splice(postDragIdx, 1)[0]
-    a.splice(i, 0, it)
-    postOrder.value = a
-    postDragIdx = i
+  function postDragEnter(
+    index
+  ) {
+    if (
+      postDragIdx ===
+        -1 ||
+      postDragIdx ===
+        index
+    ) {
+      return
+    }
+
+    const items =
+      [
+        ...postOrder.value
+      ]
+
+    const item =
+      items.splice(
+        postDragIdx,
+        1
+      )[0]
+
+    items.splice(
+      index,
+      0,
+      item
+    )
+
+    postOrder.value =
+      items
+
+    postDragIdx =
+      index
   }
 
   function postDrop() {
-    postDragIdx = -1
+    postDragIdx =
+      -1
   }
 
-  // ====== Resultados ======
-  const routeTotal = ref(null)
-  const routeLegs = ref([])
-  const readableOrder = ref([])
-  const operatorRoutes = ref([])
-  const routeFuel = ref(null)
-  const selectedOperator = ref(null)
-  const selectedOperatorDay = ref(null)
-  const routeTolls = ref({
-    hasTolls: false,
-    known: false,
-    currencyCode: null,
-    amount: null,
-    text: 'Sin peajes estimados'
-  })
+  // =========================================================
+  // RESULTADOS
+  // =========================================================
 
-  const massiveResults = ref([])
-  const currentPolylines = ref([])
-  const sequenceMarkers = ref([])
+  const routeTotal =
+    ref(null)
 
-  const subroutesUi = ref([])
-  const allSubroutesUi = ref([])
-  const subrouteColors = ref([])
-  const unifyColors = ref(false)
+  const routeLegs =
+    ref([])
 
-  const allMapsLinks = ref([])
+  const readableOrder =
+    ref([])
 
-  const hasAnyRoute = computed(() =>
-    !!(
-      currentPolylines.value.length ||
-      sequenceMarkers.value.length ||
-      massiveResults.value.length
+  const operatorRoutes =
+    ref([])
+
+  const routeFuel =
+    ref(null)
+
+  const selectedOperator =
+    ref(null)
+
+  const selectedOperatorDay =
+    ref(null)
+
+  const routeTolls =
+    ref({
+      hasTolls:
+        false,
+
+      known:
+        false,
+
+      currencyCode:
+        null,
+
+      amount:
+        null,
+
+      text:
+        'Sin peajes estimados'
+    })
+
+  const massiveResults =
+    ref([])
+
+  const currentPolylines =
+    ref([])
+
+  const sequenceMarkers =
+    ref([])
+
+  const subroutesUi =
+    ref([])
+
+  const allSubroutesUi =
+    ref([])
+
+  const subrouteColors =
+    ref([])
+
+  const unifyColors =
+    ref(false)
+
+  const allMapsLinks =
+    ref([])
+
+  const hasAnyRoute =
+    computed(
+      () =>
+        Boolean(
+          currentPolylines
+            .value.length ||
+          sequenceMarkers
+            .value.length ||
+          massiveResults
+            .value.length
+        )
     )
-  )
 
   function clearRoutes() {
     try {
-      typeof clearAllOverlays === 'function' && clearAllOverlays()
-    } catch {}
-
-    try {
-      for (const mr of massiveResults.value) {
-        ;(mr.polylines || []).forEach(o => {
-          try { o && o.setMap(null) } catch {}
-        })
-        ;(mr.sequenceMarkers || []).forEach(o => {
-          try { o && (o.map = null) } catch {}
-        })
+      if (
+        typeof clearAllOverlays ===
+        'function'
+      ) {
+        clearAllOverlays()
       }
     } catch {}
 
     try {
-      currentPolylines.value.forEach(o => {
-        try { o && o.setMap(null) } catch {}
-      })
-      sequenceMarkers.value.forEach(o => {
-        try { o && (o.map = null) } catch {}
-      })
+      for (
+        const massiveResult
+        of massiveResults.value
+      ) {
+        ;(
+          massiveResult.polylines ||
+          []
+        ).forEach(
+          overlay => {
+            try {
+              if (
+                overlay
+              ) {
+                overlay.setMap(
+                  null
+                )
+              }
+            } catch {}
+          }
+        )
+
+        ;(
+          massiveResult
+            .sequenceMarkers ||
+          []
+        ).forEach(
+          overlay => {
+            try {
+              if (
+                overlay
+              ) {
+                overlay.map =
+                  null
+              }
+            } catch {}
+          }
+        )
+      }
     } catch {}
 
-    currentPolylines.value = []
-    sequenceMarkers.value = []
-    massiveResults.value = []
+    try {
+      currentPolylines.value
+        .forEach(
+          overlay => {
+            try {
+              if (
+                overlay
+              ) {
+                overlay.setMap(
+                  null
+                )
+              }
+            } catch {}
+          }
+        )
 
-    routeTotal.value = null
-    routeLegs.value = []
-    readableOrder.value = []
-    operatorRoutes.value = []
-    routeFuel.value = null
-    selectedOperator.value = null
-    selectedOperatorDay.value = null
+      sequenceMarkers.value
+        .forEach(
+          overlay => {
+            try {
+              if (
+                overlay
+              ) {
+                overlay.map =
+                  null
+              }
+            } catch {}
+          }
+        )
+    } catch {}
+
+    currentPolylines.value =
+      []
+
+    sequenceMarkers.value =
+      []
+
+    massiveResults.value =
+      []
+
+    routeTotal.value =
+      null
+
+    routeLegs.value =
+      []
+
+    readableOrder.value =
+      []
+
+    operatorRoutes.value =
+      []
+
+    routeFuel.value =
+      null
+
+    selectedOperator.value =
+      null
+
+    selectedOperatorDay.value =
+      null
+
     routeTolls.value = {
-      hasTolls: false,
-      known: false,
-      currencyCode: null,
-      amount: null,
-      text: 'Sin peajes estimados'
-    }
-    subroutesUi.value = []
-    allSubroutesUi.value = []
-    subrouteColors.value = []
+      hasTolls:
+        false,
 
-    postOrder.value = []
-    mapsLinks.value = []
-    allMapsLinks.value = []
-    if (typeof clearPharmacyMarkerFilter === 'function') {
-     clearPharmacyMarkerFilter()
+      known:
+        false,
+
+      currencyCode:
+        null,
+
+      amount:
+        null,
+
+      text:
+        'Sin peajes estimados'
+    }
+
+    subroutesUi.value =
+      []
+
+    allSubroutesUi.value =
+      []
+
+    subrouteColors.value =
+      []
+
+    postOrder.value =
+      []
+
+    mapsLinks.value =
+      []
+
+    allMapsLinks.value =
+      []
+
+    if (
+      typeof clearPharmacyMarkerFilter ===
+      'function'
+    ) {
+      clearPharmacyMarkerFilter()
     }
   }
 
-  const computeRunId = ref(0)
-  const controllers = ref([])
+  const computeRunId =
+    ref(0)
+
+  const controllers =
+    ref([])
 
   function abortAllFetches() {
-    controllers.value.forEach(c => {
-      try { c.abort() } catch {}
-    })
-    controllers.value = []
+    controllers.value
+      .forEach(
+        controller => {
+          try {
+            controller.abort()
+          } catch {}
+        }
+      )
+
+    controllers.value =
+      []
   }
 
   function onCloseRoute() {
-    computeRunId.value++
+    computeRunId.value +=
+      1
+
     abortAllFetches()
+
     clearRoutes()
   }
 
-  const lastRegionUsed = ref(null)
-  const lastOriginUsed = ref(null)
-  const lastRawData = ref(null)
+  const lastRegionUsed =
+    ref(null)
 
-  function buildPayload(region) {
+  const lastOriginUsed =
+    ref(null)
+
+  const lastRawData =
+    ref(null)
+
+  // =========================================================
+  // PAYLOAD
+  // =========================================================
+
+  function buildPayload(
+    region
+  ) {
     let origin
 
-if (originMode.value === 'center' && map.value) {
-  const c = map.value.getCenter()
-  origin = { lat: c.lat(), lng: c.lng() }
-} else if (originMode.value === 'coords') {
-  const lat = Number(criteria.value.originCoords?.lat)
-  const lng = Number(criteria.value.originCoords?.lng)
+    if (
+      originMode.value ===
+        'center' &&
+      map.value
+    ) {
+      const center =
+        map.value.getCenter()
 
-  if (Number.isFinite(lat) && Number.isFinite(lng)) {
-    origin = { lat, lng }
-  }
-} else if (originMode.value === 'pharmacy') {
-      const all = farmacias.value.filter(f => f.region_sanitaria === region)
+      origin = {
+        lat:
+          center.lat(),
+
+        lng:
+          center.lng()
+      }
+    } else if (
+      originMode.value ===
+      'coords'
+    ) {
+      const lat =
+        Number(
+          criteria.value
+            .originCoords
+            ?.lat
+        )
+
+      const lng =
+        Number(
+          criteria.value
+            .originCoords
+            ?.lng
+        )
+
+      if (
+        Number.isFinite(
+          lat
+        ) &&
+        Number.isFinite(
+          lng
+        )
+      ) {
+        origin = {
+          lat,
+          lng
+        }
+      }
+    } else if (
+      originMode.value ===
+      'pharmacy'
+    ) {
+      /*
+       * IMPORTANTE:
+       * sólo unidades del proyecto/estado activo.
+       */
+      const available =
+        scopedFarmacias.value
+          .filter(
+            farmacia =>
+              farmacia
+                .region_sanitaria ===
+              region
+          )
+
       const chosen =
-        all.find(f => Number(f.id) === Number(originPharmacyId.value)) || all[0]
+        available.find(
+          farmacia =>
+            Number(
+              farmacia.id
+            ) ===
+            Number(
+              originPharmacyId.value
+            )
+        ) ||
+        available[0]
 
-      if (chosen) {
-        origin = { lat: +chosen.latitud, lng: +chosen.longitud }
+      if (
+        chosen
+      ) {
+        origin = {
+          lat:
+            Number(
+              chosen.latitud
+            ),
+
+          lng:
+            Number(
+              chosen.longitud
+            )
+        }
       }
     }
 
     const payload = {
-      proyecto: criteria.value.proyecto || 'JALISCO',
-      region_sanitaria: region,
-      strategy: criteria.value.strategy,
-      routeEngine: criteria.value.routeEngine || 'GOOGLE_ROUTES_PLUS',
-      routeMode: criteria.value.routeMode || 'ROUND_TRIP',
-      maxForeignDays: Number(criteria.value.maxForeignDays || 3),
-      foreignOperatorsPerRoute: Number(criteria.value.foreignOperatorsPerRoute || 1),
-      lodgingSearchRadiusKm: Number(criteria.value.lodgingSearchRadiusKm || 20),
-      originMode: originMode.value,
-      selectedCedisId: criteria.value.selectedCedisId || null,
+      estado:
+        criteria.value.estado ||
+        null,
 
-      operatorCount: Number(criteria.value.operatorCount || 1),
-      kmPerLiter: Number(criteria.value.kmPerLiter || 10),
-      fuelPricePerLiter: Number(criteria.value.fuelPricePerLiter || 0),
-      dailyAllowance: Number(criteria.value.dailyAllowance || 0),
+      proyecto:
+        criteria.value.proyecto ||
+        'JALISCO',
+
+      region_sanitaria:
+        region,
+
+      strategy:
+        criteria.value.strategy,
+
+      routeEngine:
+        criteria.value.routeEngine ||
+        'GOOGLE_ROUTES_PLUS',
+
+      routeMode:
+        criteria.value.routeMode ||
+        'ROUND_TRIP',
+
+      maxForeignDays:
+        Number(
+          criteria.value
+            .maxForeignDays ||
+          3
+        ),
+
+      foreignOperatorsPerRoute:
+        Number(
+          criteria.value
+            .foreignOperatorsPerRoute ||
+          1
+        ),
+
+      lodgingSearchRadiusKm:
+        Number(
+          criteria.value
+            .lodgingSearchRadiusKm ||
+          20
+        ),
+
+      originMode:
+        originMode.value,
+
+      selectedCedisId:
+        criteria.value
+          .selectedCedisId ||
+        null,
+
+      operatorCount:
+        Number(
+          criteria.value
+            .operatorCount ||
+          1
+        ),
+
+      kmPerLiter:
+        Number(
+          criteria.value
+            .kmPerLiter ||
+          10
+        ),
+
+      fuelPricePerLiter:
+        Number(
+          criteria.value
+            .fuelPricePerLiter ||
+          0
+        ),
+
+      dailyAllowance:
+        Number(
+          criteria.value
+            .dailyAllowance ||
+          0
+        ),
 
       options: {
-        ...criteria.value.options,
-        avoidDificilAcceso: criteria.value.options.avoidDificilAcceso !== false
+        ...criteria.value
+          .options,
+
+        avoidDificilAcceso:
+          criteria.value
+            .options
+            .avoidDificilAcceso !==
+          false
       }
     }
 
-    if (origin) payload.origin = origin
-
-    if (criteria.value.scope === 'single' && criteria.value.strategy === 'MANUAL') {
-      payload.manualOrderIds = manualPoints.value
-        .filter(p => p.enabled)
-        .map(p => Number(p.id))
+    if (
+      origin
+    ) {
+      payload.origin =
+        origin
     }
 
-    lastRegionUsed.value = region
-    lastOriginUsed.value = origin || null
+    if (
+      criteria.value
+        .scope ===
+        'single' &&
+      criteria.value
+        .strategy ===
+        'MANUAL'
+    ) {
+      payload.manualOrderIds =
+        manualPoints.value
+          .filter(
+            point =>
+              point.enabled
+          )
+          .map(
+            point =>
+              Number(
+                point.id
+              )
+          )
+    }
+
+    lastRegionUsed.value =
+      region
+
+    lastOriginUsed.value =
+      origin ||
+      null
+
     return payload
   }
 
-  async function postCompute(payload, runId) {
+  // =========================================================
+  // HTTP
+  // =========================================================
+
+  async function postCompute(
+    payload,
+    runId
+  ) {
     try {
-      const controller = new AbortController()
-      controllers.value.push(controller)
+      const controller =
+        new AbortController()
 
-      const data = await computeRoute(payload, { signal: controller.signal })
+      controllers.value.push(
+        controller
+      )
 
-      controllers.value = controllers.value.filter(c => c !== controller)
-      if (runId !== computeRunId.value) return null
+      const data =
+        await computeRoute(
+          payload,
+          {
+            signal:
+              controller.signal
+          }
+        )
 
-      if (Array.isArray(data?.subroutes) && data.subroutes.length === 0) {
-        alert(data.info || 'No se encontró ruta con los puntos seleccionados.')
+      controllers.value =
+        controllers.value.filter(
+          item =>
+            item !== controller
+        )
+
+      if (
+        runId !==
+        computeRunId.value
+      ) {
+        return null
+      }
+
+      /*
+      * ========================================================
+      * NO CONSIDERAR "0 RUTAS" COMO RESULTADO EXITOSO
+      * ========================================================
+      *
+      * El backend puede responder HTTP 200 pero devolver
+      * subroutes: [].
+      *
+      * En ese caso NO:
+      * - guardamos totales en cero
+      * - dibujamos
+      * - ocultamos marcadores
+      * - habilitamos resultados/PDF
+      */
+
+      const subroutes =
+        Array.isArray(
+          data?.subroutes
+        )
+          ? data.subroutes
+          : []
+
+      if (
+        subroutes.length ===
+        0
+      ) {
+        if (
+          typeof clearPharmacyMarkerFilter ===
+          'function'
+        ) {
+          clearPharmacyMarkerFilter()
+        }
+
+        alert(
+          data?.info ||
+          data?.message ||
+          'No se pudo calcular una ruta con la configuración seleccionada.'
+        )
+
+        return null
       }
 
       return data
-    } catch (err) {
-      if (err?.name === 'AbortError') return null
-      console.error(err)
-      alert(err?.message || 'Fallo de red calculando la ruta')
+    } catch (
+      error
+    ) {
+      if (
+        error?.name ===
+        'AbortError'
+      ) {
+        return null
+      }
+
+      console.error(
+        error
+      )
+
+      /*
+      * Si el cálculo falla, los marcadores normales
+      * deben permanecer visibles.
+      */
+      if (
+        typeof clearPharmacyMarkerFilter ===
+        'function'
+      ) {
+        clearPharmacyMarkerFilter()
+      }
+
+      alert(
+        error?.message ||
+        'Fallo de red calculando la ruta'
+      )
+
       return null
     }
   }
 
-  async function drawSubroutesAndNumbers(data) {
-    if (!window.google || !google.maps) {
-      throw new Error('Google Maps JS API no está cargada aún.')
+  // =========================================================
+  // DIBUJO DE RUTAS
+  // =========================================================
+
+  async function drawSubroutesAndNumbers(
+    data
+  ) {
+    if (
+      !window.google ||
+      !google.maps
+    ) {
+      throw new Error(
+        'Google Maps JS API no está cargada aún.'
+      )
     }
 
-    await google.maps.importLibrary('geometry')
+    /*
+    * Al dibujar una ruta ocultamos los marcadores
+    * normales de las unidades para dejar visible
+    * únicamente la ruta, su origen y su secuencia.
+    *
+    * clearRoutes() restaura los marcadores al cerrar
+    * la ruta mediante clearPharmacyMarkerFilter().
+    */
+    if (
+      typeof filterPharmacyMarkersByIds ===
+      'function'
+    ) {
+      filterPharmacyMarkersByIds(
+        []
+      )
+    }
 
-    const paletteSR = ['#1565C0', '#2E7D32', '#6A1B9A', '#EF6C00', '#00897B', '#D81B60', '#5D4037']
+    await google.maps
+      .importLibrary(
+        'geometry'
+      )
 
-    const routeRegion = data?.input?.region_sanitaria || null
+    const paletteSR = [
+      '#1565C0',
+      '#2E7D32',
+      '#6A1B9A',
+      '#EF6C00',
+      '#00897B',
+      '#D81B60',
+      '#5D4037'
+    ]
+
+    const routeRegion =
+      data?.input
+        ?.region_sanitaria ||
+      null
 
     const regionColorMap = {
-      '01 - COLOTLÁN': '#1E88E5',
-      '02 - LAGOS DE MORENO': '#43A047',
-      '03 - TEPATITLÁN': '#8E24AA',
-      '04 - LA BARCA': '#F4511E',
-      '05 - TAMAZULA': '#3949AB',
-      '06 - CIUDAD GUZMÁN': '#00897B',
-      '07 - AUTLÁN': '#6D4C41',
-      '08 - PUERTO VALLARTA': '#FDD835',
-      '09 - AMECA': '#5E35B1',
-      '10 - CENTRO - ZAPOPAN': '#00ACC1',
-      '11 - CENTRO - TONALÁ': '#EF5350',
-      '12 - CENTRO - TLAQUEPAQUE': '#7CB342',
-      '13 - CENTRO - GUADALAJARA': '#FF7043',
+      '01 - COLOTLÁN':
+        '#1E88E5',
 
-      '01 - TIERRA CALIENTE': '#1E88E5',
-      '02 - NORTE': '#43A047',
-      '03 - CENTRO': '#8E24AA',
-      '04 - MONTAÑA': '#F4511E',
-      '05 - COSTA GRANDE': '#3949AB',
-      '06 - COSTA CHICA': '#00897B',
-      '07 - ACAPULCO': '#6D4C41'
+      '02 - LAGOS DE MORENO':
+        '#43A047',
+
+      '03 - TEPATITLÁN':
+        '#8E24AA',
+
+      '04 - LA BARCA':
+        '#F4511E',
+
+      '05 - TAMAZULA':
+        '#3949AB',
+
+      '06 - CIUDAD GUZMÁN':
+        '#00897B',
+
+      '07 - AUTLÁN':
+        '#6D4C41',
+
+      '08 - PUERTO VALLARTA':
+        '#FDD835',
+
+      '09 - AMECA':
+        '#5E35B1',
+
+      '10 - CENTRO - ZAPOPAN':
+        '#00ACC1',
+
+      '11 - CENTRO - TONALÁ':
+        '#EF5350',
+
+      '12 - CENTRO - TLAQUEPAQUE':
+        '#7CB342',
+
+      '13 - CENTRO - GUADALAJARA':
+        '#FF7043',
+
+      '01 - TIERRA CALIENTE':
+        '#1E88E5',
+
+      '02 - NORTE':
+        '#43A047',
+
+      '03 - CENTRO':
+        '#8E24AA',
+
+      '04 - MONTAÑA':
+        '#F4511E',
+
+      '05 - COSTA GRANDE':
+        '#3949AB',
+
+      '06 - COSTA CHICA':
+        '#00897B',
+
+      '07 - ACAPULCO':
+        '#6D4C41'
     }
 
-const regionColor = regionColorMap[routeRegion]
+    const regionColor =
+      regionColorMap[
+        routeRegion
+      ]
 
-const useSingleRegionColor =
-  routeRegion &&
-  data?.input?.strategy !== 'MANUAL'
+    const useSingleRegionColor =
+      Boolean(
+        routeRegion &&
+        data?.input
+          ?.strategy !==
+          'MANUAL'
+      )
 
-const colors = data.subroutes.map((_, i) =>
-  useSingleRegionColor
-    ? (regionColor || '#1565C0')
-    : paletteSR[i % paletteSR.length]
-)
+    const colors =
+      (
+        data?.subroutes ||
+        []
+      ).map(
+        (
+          _,
+          index
+        ) =>
+          useSingleRegionColor
+            ? (
+                regionColor ||
+                '#1565C0'
+              )
+            : paletteSR[
+                index %
+                paletteSR.length
+              ]
+      )
 
-    const bounds = new google.maps.LatLngBounds()
-    const polys = []
+    const bounds =
+      new google.maps
+        .LatLngBounds()
 
-    data.subroutes.forEach((sr, idx) => {
-      if (!sr?.polyline) return
-      const path = google.maps.geometry.encoding.decodePath(sr.polyline)
+    const polylines =
+      []
 
-      const pl = new google.maps.Polyline({
-        path,
-        strokeColor: colors[idx],
-        strokeOpacity: 0.95,
-        strokeWeight: 5,
-        map: map.value
-      })
+    ;(
+      data?.subroutes ||
+      []
+    ).forEach(
+      (
+        subroute,
+        index
+      ) => {
+        if (
+          !subroute
+            ?.polyline
+        ) {
+          return
+        }
 
-      pl.__operator = sr.operator || null
-      pl.__day = sr.day || null
+        const path =
+          google.maps
+            .geometry
+            .encoding
+            .decodePath(
+              subroute.polyline
+            )
 
-      polys.push(pl)
-      trackOverlay(pl)
-      path.forEach(ll => bounds.extend(ll))
-    })
+        const polyline =
+          new google.maps
+            .Polyline({
+              path,
 
-    if (!bounds.isEmpty()) map.value.fitBounds(bounds)
+              strokeColor:
+                colors[index],
 
-    const seq = []
+              strokeOpacity:
+                0.95,
 
-    if (data.start && typeof data.start.lat === 'number' && typeof data.start.lng === 'number') {
-      const { AdvancedMarkerElement } = await google.maps.importLibrary('marker')
+              strokeWeight:
+                5,
 
-      const originEl = document.createElement('div')
+              map:
+                map.value
+            })
+
+        polyline.__operator =
+          subroute.operator ||
+          null
+
+        polyline.__day =
+          subroute.day ||
+          null
+
+        polylines.push(
+          polyline
+        )
+
+        trackOverlay(
+          polyline
+        )
+
+        path.forEach(
+          latLng =>
+            bounds.extend(
+              latLng
+            )
+        )
+      }
+    )
+
+    if (
+      !bounds.isEmpty()
+    ) {
+      map.value.fitBounds(
+        bounds
+      )
+    }
+
+    const sequence =
+      []
+
+    // =======================================================
+    // ORIGEN
+    // =======================================================
+
+    if (
+      data.start &&
+      typeof data.start.lat ===
+        'number' &&
+      typeof data.start.lng ===
+        'number'
+    ) {
+      const {
+        AdvancedMarkerElement
+      } =
+        await google.maps
+          .importLibrary(
+            'marker'
+          )
+
+      const originEl =
+        document
+          .createElement(
+            'div'
+          )
+
+      /*
+       * Antes era negro.
+       * Ahora azul para evitar cuadros negros
+       * visualmente confusos.
+       */
       originEl.style.cssText = `
         width: 42px;
         height: 42px;
         border-radius: 12px;
-        background: #111827;
+        background: #0f64ad;
         color: #ffffff;
         border: 3px solid #ffffff;
         box-shadow: 0 4px 10px rgba(0,0,0,.25);
@@ -548,256 +1866,725 @@ const colors = data.subroutes.map((_, i) =>
         justify-content: center;
         font-size: 22px;
       `
-      originEl.textContent = data.start?.isCedis ? '🏬' : '📍'
 
-      const originMarker = new AdvancedMarkerElement({
-        map: map.value,
-        position: { lat: data.start.lat, lng: data.start.lng },
-        title: data.start?.cedis?.nombre || 'Origen',
-        content: originEl
-      })
+      originEl.textContent =
+        data.start?.isCedis
+          ? '🏬'
+          : '📍'
 
-      originMarker.__operator = null
-      originMarker.__day = null
-      originMarker.__isOriginMarker = true
+      const originMarker =
+        new AdvancedMarkerElement({
+          map:
+            map.value,
 
-      seq.push(originMarker)
-      trackOverlay(originMarker)
+          position: {
+            lat:
+              data.start.lat,
 
-    if (Array.isArray(data.operatorRoutes)) {
-      const { AdvancedMarkerElement } =
-        await google.maps.importLibrary('marker')
+            lng:
+              data.start.lng
+          },
 
-      for (const op of data.operatorRoutes) {
-        for (const day of op.days || []) {
+          title:
+            data.start
+              ?.cedis
+              ?.nombre ||
+            'Origen',
 
-          const restMarkers = [
-            day.startRest
-              ? {
-                  ...day.startRest,
-                  markerType: 'start',
-                  title: `Inicio Operador ${op.operator} · Día ${day.day}`
-                }
-              : null,
+          content:
+            originEl
+        })
 
-            day.lodging
-              ? {
-                  ...day.lodging,
-                  markerType: 'lodging',
-                  title: `Descanso Operador ${op.operator} · Día ${day.day}`
-                }
-              : null
-          ].filter(Boolean)
+      originMarker.__operator =
+        null
 
-          for (const lodging of restMarkers) {
-            if (!lodging?.lat || !lodging?.lng) continue
+      originMarker.__day =
+        null
 
-            const hotelEl = document.createElement('div')
+      originMarker
+        .__isOriginMarker =
+        true
 
-            hotelEl.style.cssText = `
-              width: 38px;
-              height: 38px;
-              border-radius: 12px;
-              background: ${lodging.markerType === 'start'
-                ? '#1d4ed8'
-                : '#7c2d12'};
-              color: #ffffff;
-              border: 3px solid #ffffff;
-              box-shadow: 0 4px 10px rgba(0,0,0,.25);
-              display: flex;
-              align-items: center;
-              justify-content: center;
-              font-size: 21px;
-            `
+      sequence.push(
+        originMarker
+      )
 
-            hotelEl.textContent =
-              lodging.markerType === 'start'
-                ? '▶️'
-                : '🏨'
+      trackOverlay(
+        originMarker
+      )
 
-            const hotelMarker = new AdvancedMarkerElement({
-              map: map.value,
-              position: {
-                lat: Number(lodging.lat),
-                lng: Number(lodging.lng)
-              },
-              title: lodging.title || lodging.name || 'Hospedaje / descanso',
-              content: hotelEl
-            })
+      // =====================================================
+      // HOSPEDAJE / DESCANSO
+      // =====================================================
 
-            hotelMarker.__operator = op.operator || null
-            hotelMarker.__day = day.day || null
-            hotelMarker.__isRestMarker = true
+      if (
+        Array.isArray(
+          data.operatorRoutes
+        )
+      ) {
+        const {
+          AdvancedMarkerElement
+        } =
+          await google.maps
+            .importLibrary(
+              'marker'
+            )
 
-            seq.push(hotelMarker)
-            trackOverlay(hotelMarker)
+        for (
+          const operator
+          of data.operatorRoutes
+        ) {
+          for (
+            const day
+            of operator.days ||
+            []
+          ) {
+            const restMarkers = [
+              day.startRest
+                ? {
+                    ...day.startRest,
+
+                    markerType:
+                      'start',
+
+                    title:
+                      `Inicio Operador ${operator.operator} · Día ${day.day}`
+                  }
+                : null,
+
+              day.lodging
+                ? {
+                    ...day.lodging,
+
+                    markerType:
+                      'lodging',
+
+                    title:
+                      `Descanso Operador ${operator.operator} · Día ${day.day}`
+                  }
+                : null
+            ].filter(
+              Boolean
+            )
+
+            for (
+              const lodging
+              of restMarkers
+            ) {
+              if (
+                !lodging?.lat ||
+                !lodging?.lng
+              ) {
+                continue
+              }
+
+              const hotelEl =
+                document
+                  .createElement(
+                    'div'
+                  )
+
+              hotelEl.style.cssText = `
+                width: 38px;
+                height: 38px;
+                border-radius: 12px;
+                background: ${
+                  lodging.markerType ===
+                  'start'
+                    ? '#1d4ed8'
+                    : '#7c2d12'
+                };
+                color: #ffffff;
+                border: 3px solid #ffffff;
+                box-shadow: 0 4px 10px rgba(0,0,0,.25);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-size: 21px;
+              `
+
+              hotelEl.textContent =
+                lodging.markerType ===
+                  'start'
+                  ? '▶️'
+                  : '🏨'
+
+              const hotelMarker =
+                new AdvancedMarkerElement({
+                  map:
+                    map.value,
+
+                  position: {
+                    lat:
+                      Number(
+                        lodging.lat
+                      ),
+
+                    lng:
+                      Number(
+                        lodging.lng
+                      )
+                  },
+
+                  title:
+                    lodging.title ||
+                    lodging.name ||
+                    'Hospedaje / descanso',
+
+                  content:
+                    hotelEl
+                })
+
+              hotelMarker.__operator =
+                operator.operator ||
+                null
+
+              hotelMarker.__day =
+                day.day ||
+                null
+
+              hotelMarker
+                .__isRestMarker =
+                true
+
+              sequence.push(
+                hotelMarker
+              )
+
+              trackOverlay(
+                hotelMarker
+              )
+            }
           }
         }
       }
     }
-     
-    }
-    
-    if (Array.isArray(data.operatorRoutes) && data.operatorRoutes.length) {
-      const { AdvancedMarkerElement, PinElement } =
-        await google.maps.importLibrary('marker')
 
-      for (const op of data.operatorRoutes) {
-        for (const day of op.days || []) {
-          const dayPoints = Array.isArray(day.points) ? day.points : []
+    // =======================================================
+    // NUMERACIÓN POR OPERADOR
+    // =======================================================
 
-          for (const p of dayPoints) {
-            if (!p?.id) continue
-            if (typeof p.lat !== 'number' || typeof p.lng !== 'number') continue
+    if (
+      Array.isArray(
+        data.operatorRoutes
+      ) &&
+      data.operatorRoutes.length
+    ) {
+      const {
+        AdvancedMarkerElement,
+        PinElement
+      } =
+        await google.maps
+          .importLibrary(
+            'marker'
+          )
 
-            const pin = new PinElement({
-              background: '#111827',
-              borderColor: '#ffffff',
-              glyphColor: '#ffffff',
-              glyphText: String(p.order || 1)
-            })
+      for (
+        const operator
+        of data.operatorRoutes
+      ) {
+        for (
+          const day
+          of operator.days ||
+          []
+        ) {
+          const dayPoints =
+            Array.isArray(
+              day.points
+            )
+              ? day.points
+              : []
 
-            const m = new AdvancedMarkerElement({
-              map: map.value,
-              position: { lat: p.lat, lng: p.lng },
-              title: `${p.order || ''}. ${p.name || ''}`.trim(),
-              content: pin
-            })
+          for (
+            const point
+            of dayPoints
+          ) {
+            if (
+              !point?.id
+            ) {
+              continue
+            }
 
-            m.__operator = op.operator || null
-            m.__day = day.day || null
+            if (
+              typeof point.lat !==
+                'number' ||
+              typeof point.lng !==
+                'number'
+            ) {
+              continue
+            }
 
-            seq.push(m)
-            trackOverlay(m)
+            /*
+             * Antes era #111827.
+             * Ahora azul.
+             */
+            const pin =
+              new PinElement({
+                background:
+                  '#0f64ad',
+
+                borderColor:
+                  '#ffffff',
+
+                glyphColor:
+                  '#ffffff',
+
+                glyphText:
+                  String(
+                    point.order ||
+                    1
+                  )
+              })
+
+            const marker =
+              new AdvancedMarkerElement({
+                map:
+                  map.value,
+
+                position: {
+                  lat:
+                    point.lat,
+
+                  lng:
+                    point.lng
+                },
+
+                title:
+                  `${
+                    point.order ||
+                    ''
+                  }. ${
+                    point.name ||
+                    ''
+                  }`.trim(),
+
+                content:
+                  pin
+              })
+
+            marker.__operator =
+              operator.operator ||
+              null
+
+            marker.__day =
+              day.day ||
+              null
+
+            sequence.push(
+              marker
+            )
+
+            trackOverlay(
+              marker
+            )
           }
         }
       }
-    } else if (Array.isArray(data.visitOrder) && data.visitOrder.length) {
-      const { AdvancedMarkerElement, PinElement } =
-        await google.maps.importLibrary('marker')
+    } else if (
+      Array.isArray(
+        data.visitOrder
+      ) &&
+      data.visitOrder.length
+    ) {
+      const {
+        AdvancedMarkerElement,
+        PinElement
+      } =
+        await google.maps
+          .importLibrary(
+            'marker'
+          )
 
-      let i = 1
+      let sequenceNumber =
+        1
 
-      for (const p of data.visitOrder) {
-        if (p.name === 'ORIGEN' || String(p.name || '').includes('ORIGEN')) continue
-        if (!p.id) continue
-        if (typeof p.lat !== 'number' || typeof p.lng !== 'number') continue
+      for (
+        const point
+        of data.visitOrder
+      ) {
+        if (
+          point.name ===
+            'ORIGEN' ||
+          String(
+            point.name ||
+            ''
+          ).includes(
+            'ORIGEN'
+          )
+        ) {
+          continue
+        }
 
-        const pin = new PinElement({
-          background: '#111827',
-          borderColor: '#ffffff',
-          glyphColor: '#ffffff',
-          glyphText: String(i++)
-        })
+        if (
+          !point.id
+        ) {
+          continue
+        }
 
-        const m = new AdvancedMarkerElement({
-          map: map.value,
-          position: { lat: p.lat, lng: p.lng },
-          title: p.name,
-          content: pin
-        })
+        if (
+          typeof point.lat !==
+            'number' ||
+          typeof point.lng !==
+            'number'
+        ) {
+          continue
+        }
 
-        m.__operator = p.operator || null
-        m.__day = p.day || null
+        const pin =
+          new PinElement({
+            background:
+              '#0f64ad',
 
-        seq.push(m)
-        trackOverlay(m)
+            borderColor:
+              '#ffffff',
+
+            glyphColor:
+              '#ffffff',
+
+            glyphText:
+              String(
+                sequenceNumber++
+              )
+          })
+
+        const marker =
+          new AdvancedMarkerElement({
+            map:
+              map.value,
+
+            position: {
+              lat:
+                point.lat,
+
+              lng:
+                point.lng
+            },
+
+            title:
+              point.name,
+
+            content:
+              pin
+          })
+
+        marker.__operator =
+          point.operator ||
+          null
+
+        marker.__day =
+          point.day ||
+          null
+
+        sequence.push(
+          marker
+        )
+
+        trackOverlay(
+          marker
+        )
       }
     }
 
-    subrouteColors.value = colors
-    return { polylines: polys, seqMarkers: seq }
+    subrouteColors.value =
+      colors
+
+    return {
+      polylines,
+      seqMarkers:
+        sequence
+    }
   }
 
-  function buildSubroutesUi(data) {
-    subroutesUi.value = []
-    allSubroutesUi.value = []
+  // =========================================================
+  // UI SUB-RUTAS
+  // =========================================================
 
-    if (!data || !Array.isArray(data.subroutes)) return
+  function buildSubroutesUi(
+    data
+  ) {
+    subroutesUi.value =
+      []
 
-    const countersByOperator = new Map()
-    let globalAcc = 1
+    allSubroutesUi.value =
+      []
 
-    data.subroutes.forEach((sr, idx) => {
-      const operator = sr.operator || null
+    if (
+      !data ||
+      !Array.isArray(
+        data.subroutes
+      )
+    ) {
+      return
+    }
 
-      let start
-      let end
+    const countersByOperator =
+      new Map()
 
-      if (operator) {
-        const current = countersByOperator.get(operator) || 1
-        start = current
-        end = current + Number(sr.count || 0) - 1
-        countersByOperator.set(operator, end + 1)
-      } else {
-        start = globalAcc
-        end = globalAcc + Number(sr.count || 0) - 1
-        globalAcc = end + 1
-      }
+    let globalAcc =
+      1
 
-      allSubroutesUi.value.push({
-        idx,
-        operator,
-        label: sr.label || (operator ? `Operador ${operator}` : `Sub-ruta ${idx + 1}`),
-        color: subrouteColors.value[idx] || '#1565C0',
-        distance: sr.distance || 0,
-        duration: sr.duration || '0s',
-        range: sr.count ? `${start}→${end}` : '—',
-        tolls: sr.tolls || {
-          hasTolls: false,
-          known: false,
-          currencyCode: null,
-          amount: null,
-          text: 'Sin peajes estimados'
+    data.subroutes
+      .forEach(
+        (
+          subroute,
+          index
+        ) => {
+          const operator =
+            subroute.operator ||
+            null
+
+          let start
+          let end
+
+          if (
+            operator
+          ) {
+            const current =
+              countersByOperator
+                .get(
+                  operator
+                ) ||
+              1
+
+            start =
+              current
+
+            end =
+              current +
+              Number(
+                subroute.count ||
+                0
+              ) -
+              1
+
+            countersByOperator
+              .set(
+                operator,
+                end + 1
+              )
+          } else {
+            start =
+              globalAcc
+
+            end =
+              globalAcc +
+              Number(
+                subroute.count ||
+                0
+              ) -
+              1
+
+            globalAcc =
+              end + 1
+          }
+
+          allSubroutesUi.value
+            .push({
+              idx:
+                index,
+
+              operator,
+
+              day:
+                subroute.day ||
+                null,
+
+              label:
+                subroute.label ||
+                (
+                  operator
+                    ? `Operador ${operator}`
+                    : `Sub-ruta ${index + 1}`
+                ),
+
+              color:
+                subrouteColors
+                  .value[
+                    index
+                  ] ||
+                '#1565C0',
+
+              distance:
+                subroute.distance ||
+                0,
+
+              duration:
+                subroute.duration ||
+                '0s',
+
+              range:
+                subroute.count
+                  ? `${start}→${end}`
+                  : '—',
+
+              tolls:
+                subroute.tolls ||
+                {
+                  hasTolls:
+                    false,
+
+                  known:
+                    false,
+
+                  currencyCode:
+                    null,
+
+                  amount:
+                    null,
+
+                  text:
+                    'Sin peajes estimados'
+                }
+            })
         }
-      })
-    })
+      )
 
-    subroutesUi.value = [...allSubroutesUi.value]
+    subroutesUi.value =
+      [
+        ...allSubroutesUi.value
+      ]
   }
 
   function recolorCurrent() {
-    currentPolylines.value.forEach((pl, i) => {
-      pl.setOptions({
-        strokeColor: unifyColors.value ? '#1565C0' : (subrouteColors.value[i] || '#1565C0')
-      })
-    })
+    currentPolylines.value
+      .forEach(
+        (
+          polyline,
+          index
+        ) => {
+          polyline.setOptions({
+            strokeColor:
+              unifyColors.value
+                ? '#1565C0'
+                : (
+                    subrouteColors
+                      .value[
+                        index
+                      ] ||
+                    '#1565C0'
+                  )
+          })
+        }
+      )
 
-    subroutesUi.value = subroutesUi.value.map((sr, i) => ({
-      ...sr,
-      color: unifyColors.value ? '#1565C0' : (subrouteColors.value[i] || '#1565C0')
-    }))
+    subroutesUi.value =
+      subroutesUi.value
+        .map(
+          (
+            subroute,
+            index
+          ) => ({
+            ...subroute,
+
+            color:
+              unifyColors.value
+                ? '#1565C0'
+                : (
+                    subrouteColors
+                      .value[
+                        index
+                      ] ||
+                    '#1565C0'
+                  )
+          })
+        )
   }
 
-  function focusSubroute(i) {
-    const pl = currentPolylines.value[i]
-    if (!pl) return
+  function focusSubroute(
+    index
+  ) {
+    const polyline =
+      currentPolylines.value[
+        index
+      ]
 
-    const path = pl.getPath()
-    const b = new google.maps.LatLngBounds()
-
-    for (let j = 0; j < path.getLength(); j++) {
-      b.extend(path.getAt(j))
+    if (
+      !polyline
+    ) {
+      return
     }
 
-    if (!b.isEmpty()) map.value.fitBounds(b)
+    const path =
+      polyline.getPath()
+
+    const bounds =
+      new google.maps
+        .LatLngBounds()
+
+    for (
+      let indexPath = 0;
+      indexPath <
+      path.getLength();
+      indexPath++
+    ) {
+      bounds.extend(
+        path.getAt(
+          indexPath
+        )
+      )
+    }
+
+    if (
+      !bounds.isEmpty()
+    ) {
+      map.value.fitBounds(
+        bounds
+      )
+    }
   }
 
-  const mapsLinks = ref([])
-  const linkChunkSize = ref(8)
+  // =========================================================
+  // LINKS GOOGLE MAPS
+  // =========================================================
 
-  function toFiniteNumber(v) {
-    const n = Number(v)
-    return Number.isFinite(n) ? n : null
+  const mapsLinks =
+    ref([])
+
+  const linkChunkSize =
+    ref(8)
+
+  function toFiniteNumber(
+    value
+  ) {
+    const number =
+      Number(
+        value
+      )
+
+    return Number.isFinite(
+      number
+    )
+      ? number
+      : null
   }
 
-  function normalizePoint(point) {
-    if (!point) return null
+  function normalizePoint(
+    point
+  ) {
+    if (
+      !point
+    ) {
+      return null
+    }
 
-    const lat = toFiniteNumber(point.lat)
-    const lng = toFiniteNumber(point.lng)
+    const lat =
+      toFiniteNumber(
+        point.lat
+      )
 
-    if (lat == null || lng == null) return null
+    const lng =
+      toFiniteNumber(
+        point.lng
+      )
+
+    if (
+      lat ==
+        null ||
+      lng ==
+        null
+    ) {
+      return null
+    }
 
     return {
       ...point,
@@ -806,492 +2593,1634 @@ const colors = data.subroutes.map((_, i) =>
     }
   }
 
-  function sameCoords(a, b, precision = 6) {
-    if (!a || !b) return false
+  function sameCoords(
+    a,
+    b,
+    precision = 6
+  ) {
+    if (
+      !a ||
+      !b
+    ) {
+      return false
+    }
+
     return (
-      Number(a.lat).toFixed(precision) === Number(b.lat).toFixed(precision) &&
-      Number(a.lng).toFixed(precision) === Number(b.lng).toFixed(precision)
+      Number(
+        a.lat
+      ).toFixed(
+        precision
+      ) ===
+        Number(
+          b.lat
+        ).toFixed(
+          precision
+        ) &&
+      Number(
+        a.lng
+      ).toFixed(
+        precision
+      ) ===
+        Number(
+          b.lng
+        ).toFixed(
+          precision
+        )
     )
   }
 
-  function buildGoogleMapsDirUrl(origin, destination, waypoints = []) {
-    const params = new URLSearchParams()
-    params.set('api', '1')
-    params.set('travelmode', 'driving')
-    params.set('origin', `${origin.lat},${origin.lng}`)
-    params.set('destination', `${destination.lat},${destination.lng}`)
+  function buildGoogleMapsDirUrl(
+    origin,
+    destination,
+    waypoints = []
+  ) {
+    const params =
+      new URLSearchParams()
 
-    if (waypoints.length) {
+    params.set(
+      'api',
+      '1'
+    )
+
+    params.set(
+      'travelmode',
+      'driving'
+    )
+
+    params.set(
+      'origin',
+      `${origin.lat},${origin.lng}`
+    )
+
+    params.set(
+      'destination',
+      `${destination.lat},${destination.lng}`
+    )
+
+    if (
+      waypoints.length
+    ) {
       params.set(
         'waypoints',
-        waypoints.map(p => `${p.lat},${p.lng}`).join('|')
+
+        waypoints
+          .map(
+            point =>
+              `${point.lat},${point.lng}`
+          )
+          .join(
+            '|'
+          )
       )
     }
 
-    return `https://www.google.com/maps/dir/?${params.toString()}`
+    return (
+      `https://www.google.com/maps/dir/?${params.toString()}`
+    )
   }
 
-  function rebuildLinks(data) {
-    if (Array.isArray(data?.operatorRoutes) && data.operatorRoutes.length) {
-      const links = []
-      const origin = normalizePoint(data.start)
-      const maxIntermediate = Math.max(1, Number(linkChunkSize.value) || 8)
+  function rebuildLinks(
+    data
+  ) {
+    if (
+      Array.isArray(
+        data?.operatorRoutes
+      ) &&
+      data.operatorRoutes.length
+    ) {
+      const links =
+        []
 
-      for (const op of data.operatorRoutes) {
-        const points = (op.points || []).map(normalizePoint).filter(Boolean)
-        if (!origin || !points.length) continue
+      const origin =
+        normalizePoint(
+          data.start
+        )
 
-        let fullRoute = [origin, ...points]
+      const maxIntermediate =
+        Math.max(
+          1,
 
-        if (criteria.value.options?.returnToOrigin) {
-          fullRoute.push(origin)
+          Number(
+            linkChunkSize.value
+          ) ||
+          8
+        )
+
+      for (
+        const operator
+        of data.operatorRoutes
+      ) {
+        const points =
+          (
+            operator.points ||
+            []
+          )
+            .map(
+              normalizePoint
+            )
+            .filter(
+              Boolean
+            )
+
+        if (
+          !origin ||
+          !points.length
+        ) {
+          continue
         }
 
-        let startIdx = 0
+        let fullRoute = [
+          origin,
+          ...points
+        ]
 
-        while (startIdx < fullRoute.length - 1) {
-          const endIdx = Math.min(startIdx + maxIntermediate + 1, fullRoute.length - 1)
-          const chunk = fullRoute.slice(startIdx, endIdx + 1)
+        if (
+          criteria.value
+            .options
+            ?.returnToOrigin
+        ) {
+          fullRoute.push(
+            origin
+          )
+        }
 
-          if (chunk.length >= 2) {
-            const chunkOrigin = chunk[0]
-            const chunkDestination = chunk[chunk.length - 1]
-            const chunkWaypoints = chunk.slice(1, -1)
+        let startIndex =
+          0
+
+        while (
+          startIndex <
+          fullRoute.length -
+            1
+        ) {
+          const endIndex =
+            Math.min(
+              startIndex +
+                maxIntermediate +
+                1,
+
+              fullRoute.length -
+                1
+            )
+
+          const chunk =
+            fullRoute.slice(
+              startIndex,
+              endIndex + 1
+            )
+
+          if (
+            chunk.length >=
+            2
+          ) {
+            const chunkOrigin =
+              chunk[0]
+
+            const chunkDestination =
+              chunk[
+                chunk.length -
+                1
+              ]
+
+            const chunkWaypoints =
+              chunk.slice(
+                1,
+                -1
+              )
 
             links.push({
-              operator: op.operator,
-              label: op.label || `Operador ${op.operator}`,
-              url: buildGoogleMapsDirUrl(chunkOrigin, chunkDestination, chunkWaypoints),
-              from: startIdx + 1,
-              to: endIdx + 1
+              operator:
+                operator.operator,
+
+              label:
+                operator.label ||
+                `Operador ${operator.operator}`,
+
+              url:
+                buildGoogleMapsDirUrl(
+                  chunkOrigin,
+                  chunkDestination,
+                  chunkWaypoints
+                ),
+
+              from:
+                startIndex +
+                1,
+
+              to:
+                endIndex +
+                1
             })
           }
 
-          startIdx = endIdx
+          startIndex =
+            endIndex
         }
       }
 
-      mapsLinks.value = links
-      allMapsLinks.value = links
+      mapsLinks.value =
+        links
+
+      allMapsLinks.value =
+        links
+
       return
     }
 
-    const origin = normalizePoint(data.start)
-    const visitPoints = data.visitOrder
-      .filter(p => p && p.name !== 'ORIGEN' && !String(p.name || '').includes('ORIGEN'))
-      .map(normalizePoint)
-      .filter(Boolean)
+    const origin =
+      normalizePoint(
+        data.start
+      )
 
-    if (!origin && !visitPoints.length) {
-      mapsLinks.value = []
+    const visitPoints =
+      (
+        data.visitOrder ||
+        []
+      )
+        .filter(
+          point =>
+            point &&
+            point.name !==
+              'ORIGEN' &&
+            !String(
+              point.name ||
+              ''
+            ).includes(
+              'ORIGEN'
+            )
+        )
+        .map(
+          normalizePoint
+        )
+        .filter(
+          Boolean
+        )
+
+    if (
+      !origin &&
+      !visitPoints.length
+    ) {
+      mapsLinks.value =
+        []
+
       return
     }
 
-    const safeOrigin = origin || visitPoints[0]
-    let routeStops = [...visitPoints]
+    const safeOrigin =
+      origin ||
+      visitPoints[0]
 
-    if (routeStops.length && sameCoords(safeOrigin, routeStops[0])) {
+    let routeStops =
+      [
+        ...visitPoints
+      ]
+
+    if (
+      routeStops.length &&
+      sameCoords(
+        safeOrigin,
+        routeStops[0]
+      )
+    ) {
       routeStops.shift()
     }
 
-    let fullRoute = [safeOrigin, ...routeStops]
+    let fullRoute = [
+      safeOrigin,
+      ...routeStops
+    ]
 
-    if (criteria.value.options?.returnToOrigin) {
-      const last = fullRoute[fullRoute.length - 1]
-      if (!sameCoords(last, safeOrigin)) {
-        fullRoute.push(safeOrigin)
+    if (
+      criteria.value
+        .options
+        ?.returnToOrigin
+    ) {
+      const last =
+        fullRoute[
+          fullRoute.length -
+          1
+        ]
+
+      if (
+        !sameCoords(
+          last,
+          safeOrigin
+        )
+      ) {
+        fullRoute.push(
+          safeOrigin
+        )
       }
     }
 
-    fullRoute = fullRoute.filter((p, idx, arr) => {
-      if (idx === 0) return true
-      return !sameCoords(p, arr[idx - 1])
-    })
+    fullRoute =
+      fullRoute.filter(
+        (
+          point,
+          index,
+          array
+        ) => {
+          if (
+            index ===
+            0
+          ) {
+            return true
+          }
 
-    if (fullRoute.length < 2) {
-      mapsLinks.value = []
+          return !sameCoords(
+            point,
+            array[
+              index -
+              1
+            ]
+          )
+        }
+      )
+
+    if (
+      fullRoute.length <
+      2
+    ) {
+      mapsLinks.value =
+        []
+
       return
     }
 
-    const links = []
-    const maxIntermediate = Math.max(1, Number(linkChunkSize.value) || 8)
+    const links =
+      []
 
-    let startIdx = 0
-    while (startIdx < fullRoute.length - 1) {
-      const endIdx = Math.min(startIdx + maxIntermediate + 1, fullRoute.length - 1)
-      const chunk = fullRoute.slice(startIdx, endIdx + 1)
+    const maxIntermediate =
+      Math.max(
+        1,
 
-      if (chunk.length >= 2) {
-        const chunkOrigin = chunk[0]
-        const chunkDestination = chunk[chunk.length - 1]
-        const chunkWaypoints = chunk.slice(1, -1)
+        Number(
+          linkChunkSize.value
+        ) ||
+        8
+      )
 
-        const operator = chunk.find(p => p.operator)?.operator || null
+    let startIndex =
+      0
+
+    while (
+      startIndex <
+      fullRoute.length -
+        1
+    ) {
+      const endIndex =
+        Math.min(
+          startIndex +
+            maxIntermediate +
+            1,
+
+          fullRoute.length -
+            1
+        )
+
+      const chunk =
+        fullRoute.slice(
+          startIndex,
+          endIndex + 1
+        )
+
+      if (
+        chunk.length >=
+        2
+      ) {
+        const chunkOrigin =
+          chunk[0]
+
+        const chunkDestination =
+          chunk[
+            chunk.length -
+            1
+          ]
+
+        const chunkWaypoints =
+          chunk.slice(
+            1,
+            -1
+          )
+
+        const operator =
+          chunk.find(
+            point =>
+              point.operator
+          )?.operator ||
+          null
 
         links.push({
           operator,
-          url: buildGoogleMapsDirUrl(chunkOrigin, chunkDestination, chunkWaypoints),
-          from: startIdx + 1,
-          to: endIdx + 1
+
+          url:
+            buildGoogleMapsDirUrl(
+              chunkOrigin,
+              chunkDestination,
+              chunkWaypoints
+            ),
+
+          from:
+            startIndex +
+            1,
+
+          to:
+            endIndex +
+            1
         })
       }
 
-      startIdx = endIdx
+      startIndex =
+        endIndex
     }
 
-    mapsLinks.value = links
-    allMapsLinks.value = links
+    mapsLinks.value =
+      links
+
+    allMapsLinks.value =
+      links
   }
 
-  function copyToClipboard(url) {
-    return copyLinkToClipboard(url)
+  function copyToClipboard(
+    url
+  ) {
+    return copyLinkToClipboard(
+      url
+    )
   }
 
-  async function applyComputedRoute(data, runId) {
-    if (!data || runId !== computeRunId.value) return
+  // =========================================================
+  // APLICAR RESULTADO
+  // =========================================================
 
-    lastRawData.value = data
-    routeTotal.value = data.total
-    routeLegs.value = Array.isArray(data.legs) ? data.legs : []
-    readableOrder.value = data.readableOrder || []
-    operatorRoutes.value = Array.isArray(data.operatorRoutes) ? data.operatorRoutes : []
-    routeFuel.value = data.fuel || null
-    routeTolls.value = data.tolls || {
-      hasTolls: false,
-      known: false,
-      currencyCode: null,
-      amount: null,
-      text: 'Sin peajes estimados'
-    }
-    initPostOrderFromVisit(data.visitOrder)
-
-    const { polylines, seqMarkers } = await drawSubroutesAndNumbers(data)
-
-    if (runId !== computeRunId.value) {
-      polylines.forEach(detachOverlay)
-      seqMarkers.forEach(detachOverlay)
+  async function applyComputedRoute(
+    data,
+    runId
+  ) {
+    if (
+      !data ||
+      runId !==
+        computeRunId.value
+    ) {
       return
     }
 
-    currentPolylines.value = polylines
-    sequenceMarkers.value = seqMarkers
-    buildSubroutesUi(data)
+    lastRawData.value =
+      data
+
+    routeTotal.value =
+      data.total
+
+    routeLegs.value =
+      Array.isArray(
+        data.legs
+      )
+        ? data.legs
+        : []
+
+    readableOrder.value =
+      data.readableOrder ||
+      []
+
+    operatorRoutes.value =
+      Array.isArray(
+        data.operatorRoutes
+      )
+        ? data.operatorRoutes
+        : []
+
+    routeFuel.value =
+      data.fuel ||
+      null
+
+    routeTolls.value =
+      data.tolls ||
+      {
+        hasTolls:
+          false,
+
+        known:
+          false,
+
+        currencyCode:
+          null,
+
+        amount:
+          null,
+
+        text:
+          'Sin peajes estimados'
+      }
+
+    initPostOrderFromVisit(
+      data.visitOrder
+    )
+
+    const {
+      polylines,
+      seqMarkers
+    } =
+      await drawSubroutesAndNumbers(
+        data
+      )
+
+    if (
+      runId !==
+      computeRunId.value
+    ) {
+      polylines.forEach(
+        detachOverlay
+      )
+
+      seqMarkers.forEach(
+        detachOverlay
+      )
+
+      return
+    }
+
+    currentPolylines.value =
+      polylines
+
+    sequenceMarkers.value =
+      seqMarkers
+
+    buildSubroutesUi(
+      data
+    )
+
     recolorCurrent()
-    rebuildLinks(data)
+
+    rebuildLinks(
+      data
+    )
   }
+
+  // =========================================================
+  // CALCULAR RUTA GENERAL
+  // =========================================================
 
   async function runCompute() {
-    criteriaOpen.value = false
+    /*
+    * ==========================================================
+    * VALIDAR ORIGEN ANTES DE CERRAR MODAL O TOCAR EL MAPA
+    * ==========================================================
+    */
+
+    if (
+      originMode.value ===
+      'cedis' &&
+      !criteria.value
+        .selectedCedisId
+    ) {
+      alert(
+        'Debes seleccionar un origen antes de calcular la ruta.\n\nSelecciona un CEDIS de origen o, si el proyecto no tiene CEDIS registrado, utiliza "Buscar otro origen".'
+      )
+
+      return
+    }
+
+    if (
+      originMode.value ===
+      'coords'
+    ) {
+      const lat =
+        Number(
+          criteria.value
+            .originCoords
+            ?.lat
+        )
+
+      const lng =
+        Number(
+          criteria.value
+            .originCoords
+            ?.lng
+        )
+
+      const validCoords =
+        Number.isFinite(
+          lat
+        ) &&
+        Number.isFinite(
+          lng
+        ) &&
+        lat >= -90 &&
+        lat <= 90 &&
+        lng >= -180 &&
+        lng <= 180
+
+      if (
+        !validCoords
+      ) {
+        alert(
+          'Debes seleccionar un origen antes de calcular la ruta.\n\nBusca una dirección, CEDIS o establecimiento en "Buscar otro origen" y selecciónalo.'
+        )
+
+        return
+      }
+    }
+
+    if (
+      originMode.value ===
+        'pharmacy' &&
+      !originPharmacyId.value
+    ) {
+      alert(
+        'Debes seleccionar una unidad de origen antes de calcular la ruta.'
+      )
+
+      return
+    }
+
+    /*
+    * Sólo cerramos el modal y limpiamos la ruta anterior
+    * cuando la configuración mínima ya es válida.
+    */
+
+    criteriaOpen.value =
+      false
+
     onCloseRoute()
 
-    const runId = computeRunId.value
+    const runId =
+      computeRunId.value
 
-    if (criteria.value.scope === 'single') {
-      const payload = buildPayload(criteria.value.region)
-      const data = await postCompute(payload, runId)
-      await applyComputedRoute(data, runId)
+    /*
+    * ==========================================================
+    * UNA REGIÓN
+    * ==========================================================
+    */
+
+    if (
+      criteria.value.scope ===
+      'single'
+    ) {
+      const payload =
+        buildPayload(
+          criteria.value.region
+        )
+
+      const data =
+        await postCompute(
+          payload,
+          runId
+        )
+
+      /*
+      * postCompute devuelve null si hubo:
+      * - error
+      * - cancelación
+      * - 0 rutas
+      */
+      if (
+        !data
+      ) {
+        return
+      }
+
+      await applyComputedRoute(
+        data,
+        runId
+      )
+
       return
     }
 
-    const operatorCount = Number(criteria.value.operatorCount || 1)
+    const operatorCount =
+      Number(
+        criteria.value
+          .operatorCount ||
+        1
+      )
 
-    if (criteria.value.scope === 'all' && operatorCount > 1) {
-      const payload = buildPayload(null)
+    /*
+    * ==========================================================
+    * TODO EL PROYECTO CON VARIOS OPERADORES
+    * ==========================================================
+    */
 
-      payload.region_sanitaria = null
-      payload.scope = 'PROJECT'
-      payload.projectWide = true
+    if (
+      criteria.value.scope ===
+        'all' &&
+      operatorCount >
+        1
+    ) {
+      const payload =
+        buildPayload(
+          null
+        )
 
-      const data = await postCompute(payload, runId)
-      await applyComputedRoute(data, runId)
+      payload.region_sanitaria =
+        null
+
+      payload.scope =
+        'PROJECT'
+
+      payload.projectWide =
+        true
+
+      const data =
+        await postCompute(
+          payload,
+          runId
+        )
+
+      if (
+        !data
+      ) {
+        return
+      }
+
+      await applyComputedRoute(
+        data,
+        runId
+      )
+
       return
     }
 
-    for (const region of regiones.value) {
-      const payload = buildPayload(region)
-      const data = await postCompute(payload, runId)
-      if (!data || runId !== computeRunId.value) return
+    /*
+    * ==========================================================
+    * TODO EL PROYECTO POR REGIONES
+    * ==========================================================
+    */
 
-      const { polylines, seqMarkers } = await drawSubroutesAndNumbers(data)
+    for (
+      const region
+      of regiones.value
+    ) {
+      const payload =
+        buildPayload(
+          region
+        )
 
-      if (runId !== computeRunId.value) {
-        polylines.forEach(detachOverlay)
-        seqMarkers.forEach(detachOverlay)
+      const data =
+        await postCompute(
+          payload,
+          runId
+        )
+
+      if (
+        !data ||
+        runId !==
+          computeRunId.value
+      ) {
+        return
+      }
+
+      const {
+        polylines,
+        seqMarkers
+      } =
+        await drawSubroutesAndNumbers(
+          data
+        )
+
+      if (
+        runId !==
+        computeRunId.value
+      ) {
+        polylines.forEach(
+          detachOverlay
+        )
+
+        seqMarkers.forEach(
+          detachOverlay
+        )
+
         return
       }
 
       massiveResults.value.push({
         region,
+
         polylines,
-        total: data.total,
-        tolls: data.tolls || null,
-        visible: true,
-        sequenceMarkers: seqMarkers,
-        _rawData: data
+
+        total:
+          data.total,
+
+        tolls:
+          data.tolls ||
+          null,
+
+        visible:
+          true,
+
+        sequenceMarkers:
+          seqMarkers,
+
+        _rawData:
+          data
       })
     }
   }
 
+  // =========================================================
+  // RUTA PERSONALIZADA
+  // =========================================================
+
   async function runCustomRoute() {
-    if (!customPoints.value.length) {
-      alert('Agrega al menos una unidad a la ruta personalizada.')
+    if (
+      !customPoints.value.length
+    ) {
+      alert(
+        'Agrega al menos una unidad a la ruta personalizada.'
+      )
+
       return
     }
 
-    const enabledPoints = customPoints.value.filter(p => p.enabled !== false)
-    const idsBase = enabledPoints.map(p => Number(p.id))
+    /*
+     * Sólo permitimos IDs pertenecientes
+     * al ámbito Estado/Proyecto activo.
+     */
+    const allowedIds =
+      new Set(
+        scopedFarmacias.value
+          .map(
+            farmacia =>
+              Number(
+                farmacia.id
+              )
+          )
+      )
 
-    if (!idsBase.length) {
-      alert('Agrega al menos una unidad válida a la ruta personalizada.')
+    const enabledPoints =
+      customPoints.value
+        .filter(
+          point =>
+            point.enabled !==
+              false &&
+            allowedIds.has(
+              Number(
+                point.id
+              )
+            )
+        )
+
+    const idsBase =
+      enabledPoints
+        .map(
+          point =>
+            Number(
+              point.id
+            )
+        )
+
+    if (
+      !idsBase.length
+    ) {
+      alert(
+        'Agrega al menos una unidad válida del proyecto seleccionado a la ruta personalizada.'
+      )
+
       return
     }
 
-    const origin = resolveCustomOrigin()
-    if (customOriginMode.value === 'coords' && !origin) {
-      alert('Captura coordenadas válidas para el punto de inicio.')
-      return
-    }
-    if (customOriginMode.value === 'pharmacy' && !origin) {
-      alert('Selecciona una unidad válida como punto de inicio.')
+    const origin =
+      resolveCustomOrigin()
+
+    if (
+      customOriginMode.value ===
+        'coords' &&
+      !origin
+    ) {
+      alert(
+        'Captura coordenadas válidas para el punto de inicio.'
+      )
+
       return
     }
 
-    const ids = rotateIdsFromCustomOrigin(idsBase)
+    if (
+      customOriginMode.value ===
+        'pharmacy' &&
+      !origin
+    ) {
+      alert(
+        'Selecciona una unidad válida como punto de inicio.'
+      )
+
+      return
+    }
+
+    if (
+      customOriginMode.value ===
+        'first' &&
+      !origin
+    ) {
+      alert(
+        'La primera unidad no tiene coordenadas válidas para usarla como origen.'
+      )
+
+      return
+    }
+
+    const ids =
+      rotateIdsFromCustomOrigin(
+        idsBase
+      )
 
     const payload = {
-      proyecto: criteria.value.proyecto || 'JALISCO',
-      routeEngine: criteria.value.routeEngine || 'GOOGLE_ROUTES_PLUS',
+      estado:
+        criteria.value.estado ||
+        null,
 
-      operatorCount: 1,
-      kmPerLiter: Number(criteria.value.kmPerLiter || 10),
-      fuelPricePerLiter: Number(criteria.value.fuelPricePerLiter || 0),
-      dailyAllowance: Number(criteria.value.dailyAllowance || 0),
+      proyecto:
+        criteria.value.proyecto ||
+        'JALISCO',
 
-      strategy: customStrategy.value || 'FASTEST',
-      manualOrderIds: ids,
+      routeEngine:
+        criteria.value.routeEngine ||
+        'GOOGLE_ROUTES_PLUS',
+
+      /*
+       * Si ya resolvimos un origen,
+       * lo enviamos como coordenadas.
+       */
+      originMode:
+        origin
+          ? 'coords'
+          : 'cedis',
+
+      selectedCedisId:
+        origin
+          ? null
+          : (
+              criteria.value
+                .selectedCedisId ||
+              null
+            ),
+
+      operatorCount:
+        1,
+
+      kmPerLiter:
+        Number(
+          criteria.value
+            .kmPerLiter ||
+          10
+        ),
+
+      fuelPricePerLiter:
+        Number(
+          criteria.value
+            .fuelPricePerLiter ||
+          0
+        ),
+
+      dailyAllowance:
+        Number(
+          criteria.value
+            .dailyAllowance ||
+          0
+        ),
+
+      strategy:
+        customStrategy.value ||
+        'FASTEST',
+
+      manualOrderIds:
+        ids,
+
       options: {
-        ...criteria.value.options,
-        avoidDificilAcceso: false,
-        avoidTolls: customStrategy.value === 'RESOURCES' ? true : criteria.value.options.avoidTolls
+        ...criteria.value
+          .options,
+
+        /*
+         * En ruta manual el usuario ya decidió
+         * explícitamente qué unidades incluir.
+         */
+        avoidDificilAcceso:
+          false,
+
+        avoidTolls:
+          customStrategy.value ===
+            'RESOURCES'
+            ? true
+            : criteria.value
+                .options
+                .avoidTolls
       }
     }
 
-    if (origin) {
-      payload.origin = origin
-      lastOriginUsed.value = origin
+    if (
+      origin
+    ) {
+      payload.origin =
+        origin
+
+      lastOriginUsed.value =
+        origin
     } else {
-      lastOriginUsed.value = null
+      lastOriginUsed.value =
+        null
     }
 
-    lastRegionUsed.value = null
+    lastRegionUsed.value =
+      null
 
     onCloseRoute()
-    const runId = computeRunId.value
-    const data = await postCompute(payload, runId)
-    await applyComputedRoute(data, runId)
+
+    const runId =
+      computeRunId.value
+
+    const data =
+      await postCompute(
+        payload,
+        runId
+      )
+
+    await applyComputedRoute(
+      data,
+      runId
+    )
   }
 
+  // =========================================================
+  // RECALCULAR ORDEN POSTERIOR
+  // =========================================================
+
   async function recalcWithPostOrder() {
-    if (!postOrder.value.length) {
-      alert('No hay puntos activos para recalcular')
+    if (
+      !postOrder.value.length
+    ) {
+      alert(
+        'No hay puntos activos para recalcular'
+      )
+
       return
     }
 
-    const ids = postOrder.value.filter(p => p.enabled).map(p => Number(p.id))
-    if (!ids.length) {
-      alert('Selecciona al menos un punto')
+    const ids =
+      postOrder.value
+        .filter(
+          point =>
+            point.enabled
+        )
+        .map(
+          point =>
+            Number(
+              point.id
+            )
+        )
+
+    if (
+      !ids.length
+    ) {
+      alert(
+        'Selecciona al menos un punto'
+      )
+
       return
     }
 
     const payload = {
-      proyecto: criteria.value.proyecto || 'JALISCO',
-      routeEngine: criteria.value.routeEngine || 'GOOGLE_ROUTES_PLUS',
+      estado:
+        criteria.value.estado ||
+        null,
 
-      operatorCount: Number(criteria.value.operatorCount || 1),
-      kmPerLiter: Number(criteria.value.kmPerLiter || 10),
-      fuelPricePerLiter: Number(criteria.value.fuelPricePerLiter || 0),
-      dailyAllowance: Number(criteria.value.dailyAllowance || 0),
+      proyecto:
+        criteria.value.proyecto ||
+        'JALISCO',
 
-      strategy: 'MANUAL',
-      options: { ...criteria.value.options },
-      manualOrderIds: ids
+      routeEngine:
+        criteria.value.routeEngine ||
+        'GOOGLE_ROUTES_PLUS',
+
+      operatorCount:
+        Number(
+          criteria.value
+            .operatorCount ||
+          1
+        ),
+
+      kmPerLiter:
+        Number(
+          criteria.value
+            .kmPerLiter ||
+          10
+        ),
+
+      fuelPricePerLiter:
+        Number(
+          criteria.value
+            .fuelPricePerLiter ||
+          0
+        ),
+
+      dailyAllowance:
+        Number(
+          criteria.value
+            .dailyAllowance ||
+          0
+        ),
+
+      strategy:
+        'MANUAL',
+
+      options: {
+        ...criteria.value
+          .options
+      },
+
+      manualOrderIds:
+        ids
     }
 
-    const region = lastRegionUsed.value || criteria.value.region || null
-    if (region) payload.region_sanitaria = region
-    if (lastOriginUsed.value) payload.origin = lastOriginUsed.value
+    const region =
+      lastRegionUsed.value ||
+      criteria.value.region ||
+      null
+
+    if (
+      region
+    ) {
+      payload.region_sanitaria =
+        region
+    }
+
+    if (
+      lastOriginUsed.value
+    ) {
+      payload.origin =
+        lastOriginUsed.value
+
+      payload.originMode =
+        'coords'
+    } else {
+      payload.originMode =
+        originMode.value
+
+      payload.selectedCedisId =
+        criteria.value
+          .selectedCedisId ||
+        null
+    }
 
     onCloseRoute()
-    const runId = computeRunId.value
-    const data = await postCompute(payload, runId)
-    await applyComputedRoute(data, runId)
+
+    const runId =
+      computeRunId.value
+
+    const data =
+      await postCompute(
+        payload,
+        runId
+      )
+
+    await applyComputedRoute(
+      data,
+      runId
+    )
   }
 
-  function toggleMassiveVisibility(mr) {
-    mr.visible = !mr.visible
-    ;(mr.polylines || []).forEach(o => {
-      if (o) o.setMap(mr.visible ? map.value : null)
-    })
-    ;(mr.sequenceMarkers || []).forEach(o => {
-      if (o) o.map = mr.visible ? map.value : null
-    })
+  // =========================================================
+  // VISIBILIDAD MASIVA
+  // =========================================================
+
+  function toggleMassiveVisibility(
+    massiveResult
+  ) {
+    massiveResult.visible =
+      !massiveResult.visible
+
+    ;(
+      massiveResult.polylines ||
+      []
+    ).forEach(
+      overlay => {
+        if (
+          overlay
+        ) {
+          overlay.setMap(
+            massiveResult.visible
+              ? map.value
+              : null
+          )
+        }
+      }
+    )
+
+    ;(
+      massiveResult
+        .sequenceMarkers ||
+      []
+    ).forEach(
+      overlay => {
+        if (
+          overlay
+        ) {
+          overlay.map =
+            massiveResult.visible
+              ? map.value
+              : null
+        }
+      }
+    )
   }
 
   function seedPostOrderFromManual() {
-    postOrder.value = []
-    for (const p of manualPoints.value || []) {
-      if (!p?.id) continue
+    postOrder.value =
+      []
+
+    for (
+      const point
+      of manualPoints.value ||
+      []
+    ) {
+      if (
+        !point?.id
+      ) {
+        continue
+      }
+
       postOrder.value.push({
-        id: Number(p.id),
-        name: p.name || String(p.id),
-        clues: p.clues || '',
-        unidad: p.unidad || '',
-        region: p.region || '',
-        enabled: p.enabled !== false,
-        hard: !!p.hard
+        id:
+          Number(
+            point.id
+          ),
+
+        name:
+          point.name ||
+          String(
+            point.id
+          ),
+
+        clues:
+          point.clues ||
+          '',
+
+        unidad:
+          point.unidad ||
+          '',
+
+        region:
+          point.region ||
+          '',
+
+        enabled:
+          point.enabled !==
+          false,
+
+        hard:
+          Boolean(
+            point.hard
+          )
       })
     }
   }
 
-  function applyOperatorFilter(operator) {
-    if (selectedOperator.value === operator) {
-      selectedOperator.value = null
-      selectedOperatorDay.value = null
+  // =========================================================
+  // FILTRO VISUAL POR OPERADOR / DÍA
+  // =========================================================
+
+  function applyOperatorFilter(
+    operator
+  ) {
+    if (
+      selectedOperator.value ===
+      operator
+    ) {
+      selectedOperator.value =
+        null
+
+      selectedOperatorDay.value =
+        null
     } else {
-      selectedOperator.value = operator
-      selectedOperatorDay.value = null
+      selectedOperator.value =
+        operator
+
+      selectedOperatorDay.value =
+        null
     }
 
     applyRouteVisualFilter()
   }
 
-  function applyOperatorDayFilter(operator, day) {
-    const sameOperator = selectedOperator.value === operator
-    const sameDay = selectedOperatorDay.value === day
+  function applyOperatorDayFilter(
+    operator,
+    day
+  ) {
+    const sameOperator =
+      selectedOperator.value ===
+      operator
 
-    if (sameOperator && sameDay) {
-      selectedOperator.value = operator
-      selectedOperatorDay.value = null
+    const sameDay =
+      selectedOperatorDay.value ===
+      day
+
+    if (
+      sameOperator &&
+      sameDay
+    ) {
+      selectedOperator.value =
+        operator
+
+      selectedOperatorDay.value =
+        null
     } else {
-      selectedOperator.value = operator
-      selectedOperatorDay.value = day
+      selectedOperator.value =
+        operator
+
+      selectedOperatorDay.value =
+        day
     }
 
     applyRouteVisualFilter()
   }
 
   function applyRouteVisualFilter() {
-    const activeOperator = selectedOperator.value
-    const activeDay = selectedOperatorDay.value
-    const bounds = new google.maps.LatLngBounds()
+    const activeOperator =
+      selectedOperator.value
 
-    currentPolylines.value.forEach(pl => {
-      if (!pl) return
+    const activeDay =
+      selectedOperatorDay.value
 
-      const op = pl.__operator || null
-      const day = pl.__day || null
+    const bounds =
+      new google.maps
+        .LatLngBounds()
 
-      const visible =
-        !activeOperator ||
-        (
-          op === activeOperator &&
-          (!activeDay || day === activeDay)
-        )
+    currentPolylines.value
+      .forEach(
+        polyline => {
+          if (
+            !polyline
+          ) {
+            return
+          }
 
-      pl.setMap(map.value)
+          const operator =
+            polyline.__operator ||
+            null
 
-      pl.setOptions({
-        strokeOpacity: visible ? 0.95 : 0.05,
-        strokeWeight: visible ? 7 : 2,
-        zIndex: visible ? 999 : 1
-      })
+          const day =
+            polyline.__day ||
+            null
 
-      if (visible && activeOperator) {
-        const path = pl.getPath()
-        for (let i = 0; i < path.getLength(); i++) {
-          bounds.extend(path.getAt(i))
+          const visible =
+            !activeOperator ||
+            (
+              operator ===
+                activeOperator &&
+              (
+                !activeDay ||
+                day ===
+                  activeDay
+              )
+            )
+
+          polyline.setMap(
+            map.value
+          )
+
+          polyline.setOptions({
+            strokeOpacity:
+              visible
+                ? 0.95
+                : 0.05,
+
+            strokeWeight:
+              visible
+                ? 7
+                : 2,
+
+            zIndex:
+              visible
+                ? 999
+                : 1
+          })
+
+          if (
+            visible &&
+            activeOperator
+          ) {
+            const path =
+              polyline.getPath()
+
+            for (
+              let index = 0;
+              index <
+              path.getLength();
+              index++
+            ) {
+              bounds.extend(
+                path.getAt(
+                  index
+                )
+              )
+            }
+          }
         }
-      }
-    })
+      )
 
-    sequenceMarkers.value.forEach(marker => {
-      if (!marker) return
+    sequenceMarkers.value
+      .forEach(
+        marker => {
+          if (
+            !marker
+          ) {
+            return
+          }
 
-      if (marker.__isOriginMarker) {
-        marker.map = map.value
-        return
-      }
+          if (
+            marker
+              .__isOriginMarker
+          ) {
+            marker.map =
+              map.value
 
-      const op = marker.__operator || null
-      const day = marker.__day || null
+            return
+          }
 
-      const visible =
-        !activeOperator ||
-        (
-          op === activeOperator &&
-          (!activeDay || day === activeDay)
+          const operator =
+            marker.__operator ||
+            null
+
+          const day =
+            marker.__day ||
+            null
+
+          const visible =
+            !activeOperator ||
+            (
+              operator ===
+                activeOperator &&
+              (
+                !activeDay ||
+                day ===
+                  activeDay
+              )
+            )
+
+          marker.map =
+            visible
+              ? map.value
+              : null
+        }
+      )
+
+    subroutesUi.value =
+      activeOperator
+        ? allSubroutesUi.value
+            .filter(
+              subroute =>
+                subroute.operator ===
+                  activeOperator &&
+                (
+                  !activeDay ||
+                  subroute.day ===
+                    activeDay
+                )
+            )
+        : [
+            ...allSubroutesUi.value
+          ]
+
+    mapsLinks.value =
+      activeOperator
+        ? allMapsLinks.value
+            .filter(
+              link =>
+                link.operator ===
+                  activeOperator &&
+                (
+                  !activeDay ||
+                  link.day ===
+                    activeDay
+                )
+            )
+        : [
+            ...allMapsLinks.value
+          ]
+
+    if (
+      activeOperator
+    ) {
+      const operatorRoute =
+        operatorRoutes.value
+          .find(
+            route =>
+              Number(
+                route.operator
+              ) ===
+              Number(
+                activeOperator
+              )
+          )
+
+      const ids =
+        activeDay
+          ? (
+              operatorRoute
+                ?.days ||
+              []
+            )
+              .find(
+                day =>
+                  Number(
+                    day.day
+                  ) ===
+                  Number(
+                    activeDay
+                  )
+              )
+              ?.points
+              ?.map(
+                point =>
+                  Number(
+                    point.id
+                  )
+              )
+              ?.filter(
+                Number.isFinite
+              ) ||
+            []
+          : (
+              operatorRoute
+                ?.points ||
+              []
+            )
+              .map(
+                point =>
+                  Number(
+                    point.id
+                  )
+              )
+              .filter(
+                Number.isFinite
+              )
+
+      /*
+       * Intencionalmente escondemos los marcadores
+       * normales para no tapar la numeración.
+       */
+      if (
+        typeof filterPharmacyMarkersByIds ===
+        'function'
+      ) {
+        filterPharmacyMarkersByIds(
+          []
         )
-
-      marker.map = visible ? map.value : null
-    })
-
-    subroutesUi.value = activeOperator
-      ? allSubroutesUi.value.filter(sr =>
-          sr.operator === activeOperator &&
-          (!activeDay || sr.day === activeDay)
-        )
-      : [...allSubroutesUi.value]
-
-    mapsLinks.value = activeOperator
-      ? allMapsLinks.value.filter(link =>
-          link.operator === activeOperator &&
-          (!activeDay || link.day === activeDay)
-        )
-      : [...allMapsLinks.value]
-
-    if (activeOperator) {
-      const op = operatorRoutes.value.find(r => Number(r.operator) === Number(activeOperator))
-
-      const ids = activeDay
-        ? (op?.days || [])
-            .find(d => Number(d.day) === Number(activeDay))
-            ?.points?.map(p => Number(p.id))
-            ?.filter(Number.isFinite) || []
-        : (op?.points || []).map(p => Number(p.id)).filter(Number.isFinite)
-
-      if (typeof filterPharmacyMarkersByIds === 'function') {
-        // Ocultamos marcadores normales para que no tapen numeración.
-        filterPharmacyMarkersByIds([])
       }
 
-      if (!bounds.isEmpty()) {
-        map.value.fitBounds(bounds)
+      if (
+        !bounds.isEmpty()
+      ) {
+        map.value.fitBounds(
+          bounds
+        )
       }
-    } else if (operatorRoutes.value.length && typeof filterPharmacyMarkersByIds === 'function') {
-      // Si hay una ruta por operadores calculada, mantenemos ocultos los marcadores normales
-      // para que no tapen los marcadores numerados del orden de visita.
-      filterPharmacyMarkersByIds([])
-    } else if (typeof clearPharmacyMarkerFilter === 'function') {
+    } else if (
+      operatorRoutes.value.length &&
+      typeof filterPharmacyMarkersByIds ===
+        'function'
+    ) {
+      filterPharmacyMarkersByIds(
+        []
+      )
+    } else if (
+      typeof clearPharmacyMarkerFilter ===
+      'function'
+    ) {
       clearPharmacyMarkerFilter()
     }
   }
 
+  // =========================================================
+  // EXPORT
+  // =========================================================
+
   return {
+    /*
+     * Catálogo / ámbito
+     */
     farmacias,
+    scopedFarmacias,
     regiones,
     farmaciasRegion,
 
+    /*
+     * Criterios
+     */
     criteriaOpen,
     criteria,
     originMode,
     originPharmacyId,
     openCriteria,
+
+    /*
+     * Manual
+     */
     manualPoints,
     lockManualFromTemplate,
     onDragStart,
     onDragEnter,
     onDrop,
 
+    /*
+     * Ruta personalizada
+     */
     customPoints,
     customStrategy,
     customOriginMode,
@@ -1303,42 +4232,65 @@ const colors = data.subroutes.map((_, i) =>
     clearCustomPoints,
     runCustomRoute,
 
+    /*
+     * Post cálculo
+     */
     postOrder,
     postDragStart,
     postDragEnter,
     postDrop,
 
+    /*
+     * Resultado
+     */
     routeTotal,
     routeLegs,
     readableOrder,
     operatorRoutes,
     routeFuel,
+
     selectedOperator,
     selectedOperatorDay,
+
     applyOperatorFilter,
     applyOperatorDayFilter,
+
     routeTolls,
+
     massiveResults,
     currentPolylines,
     sequenceMarkers,
+
     subroutesUi,
     subrouteColors,
     unifyColors,
+
     recolorCurrent,
     focusSubroute,
+
     hasAnyRoute,
 
+    /*
+     * Google Maps
+     */
     mapsLinks,
     linkChunkSize,
     copyToClipboard,
 
+    /*
+     * Ejecución
+     */
     runCompute,
     recalcWithPostOrder,
     onCloseRoute,
 
+    /*
+     * Último cálculo
+     */
     lastRegionUsed,
     lastOriginUsed,
     lastRawData,
+
     toggleMassiveVisibility,
     seedPostOrderFromManual
   }

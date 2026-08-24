@@ -44,5 +44,4 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
-mobile/
 git
