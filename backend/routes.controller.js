@@ -2326,7 +2326,9 @@ export async function computeRoutes(
       routeMode = 'ROUND_TRIP',
       maxForeignDays = 3,
       foreignOperatorsPerRoute = 1,
-      lodgingSearchRadiusKm = 20
+      lodgingSearchRadiusKm = 20,
+      scope = null,
+      projectWide = false
     } =
       req.body ||
       {}
@@ -2444,19 +2446,28 @@ export async function computeRoutes(
       wantedIds.length >
       0
 
-    const isProjectWideOperators =
+    const requestedScope =
+      String(
+        scope ||
+        ''
+      )
+        .trim()
+        .toUpperCase()
+
+    const isProjectWideRequest =
       !hasManualSubset &&
       !region_sanitaria &&
-      Number(
-        operatorCount ||
-        1
-      ) >
-        1
+      (
+        requestedScope ===
+          'PROJECT' ||
+        projectWide ===
+          true
+      )
 
     if (
       !hasManualSubset &&
       !region_sanitaria &&
-      !isProjectWideOperators
+      !isProjectWideRequest
     ) {
       return res
         .status(400)
@@ -4364,7 +4375,7 @@ export async function computeRoutes(
             null,
 
           scope:
-            isProjectWideOperators
+            isProjectWideRequest
               ? 'PROJECT'
               : 'REGION',
 

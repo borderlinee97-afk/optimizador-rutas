@@ -2993,7 +2993,7 @@ export function useRouting({
         const chunkDestination =
           chunk[
             chunk.length -
-            1
+              1
           ]
 
         const chunkWaypoints =
@@ -3266,12 +3266,6 @@ export function useRouting({
           runId
         )
 
-      /*
-      * postCompute devuelve null si hubo:
-      * - error
-      * - cancelación
-      * - 0 rutas
-      */
       if (
         !data
       ) {
@@ -3286,24 +3280,29 @@ export function useRouting({
       return
     }
 
-    const operatorCount =
-      Number(
-        criteria.value
-          .operatorCount ||
-        1
-      )
-
     /*
     * ==========================================================
-    * TODO EL PROYECTO CON VARIOS OPERADORES
+    * TODO EL PROYECTO
+    *
+    * Debe utilizar siempre una sola solicitud PROJECT,
+    * independientemente de si se seleccionó 1 o N operadores.
+    *
+    * Esto permite que el backend devuelva un resultado
+    * consolidado y que applyComputedRoute alimente:
+    *
+    * - mapa
+    * - panel
+    * - totales
+    * - operadores
+    * - combustible
+    * - peajes
+    * - enlaces
     * ==========================================================
     */
 
     if (
       criteria.value.scope ===
-        'all' &&
-      operatorCount >
-        1
+      'all'
     ) {
       const payload =
         buildPayload(
@@ -3340,79 +3339,12 @@ export function useRouting({
     }
 
     /*
-    * ==========================================================
-    * TODO EL PROYECTO POR REGIONES
-    * ==========================================================
+    * Si por alguna razón llega un scope no reconocido,
+    * no enviamos una petición ambigua al backend.
     */
-
-    for (
-      const region
-      of regiones.value
-    ) {
-      const payload =
-        buildPayload(
-          region
-        )
-
-      const data =
-        await postCompute(
-          payload,
-          runId
-        )
-
-      if (
-        !data ||
-        runId !==
-          computeRunId.value
-      ) {
-        return
-      }
-
-      const {
-        polylines,
-        seqMarkers
-      } =
-        await drawSubroutesAndNumbers(
-          data
-        )
-
-      if (
-        runId !==
-        computeRunId.value
-      ) {
-        polylines.forEach(
-          detachOverlay
-        )
-
-        seqMarkers.forEach(
-          detachOverlay
-        )
-
-        return
-      }
-
-      massiveResults.value.push({
-        region,
-
-        polylines,
-
-        total:
-          data.total,
-
-        tolls:
-          data.tolls ||
-          null,
-
-        visible:
-          true,
-
-        sequenceMarkers:
-          seqMarkers,
-
-        _rawData:
-          data
-      })
-    }
+    alert(
+      'El alcance de cálculo seleccionado no es válido.'
+    )
   }
 
   // =========================================================
