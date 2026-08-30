@@ -1838,6 +1838,38 @@ export async function planAutomaticRoundTripResources({
     } catch (
       error
     ) {
+      console.error(
+        '[automatic-resource-planner] SOLVER_ERROR',
+        {
+          candidateResourceCount,
+
+          solveMode,
+
+          name:
+            error?.name ||
+            null,
+
+          code:
+            error?.code ||
+            null,
+
+          message:
+            error?.message ||
+            String(
+              error
+            ),
+
+          status:
+            error?.status ??
+            error?.details?.status ??
+            null,
+
+          details:
+            error?.details ??
+            null
+        }
+      )
+
       raw = {
         feasible:
           false,
@@ -1847,13 +1879,18 @@ export async function planAutomaticRoundTripResources({
         validationErrors: [
           {
             code:
+              error?.code ||
               'SOLVER_ERROR',
 
             message:
               error?.message ||
               String(
                 error
-              )
+              ),
+
+            details:
+              error?.details ??
+              null
           }
         ],
 
