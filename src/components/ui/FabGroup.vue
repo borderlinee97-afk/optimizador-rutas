@@ -203,7 +203,7 @@ defineEmits([
     "Segoe UI",
     sans-serif;
 
-  font-size: 10px;
+  font-size: 12px;
 
   font-weight: 750;
 
@@ -366,7 +366,7 @@ defineEmits([
   color:
     inherit !important;
 
-  font-size: 14px;
+  font-size: 16px;
 
   font-weight: 800;
 
@@ -437,7 +437,7 @@ defineEmits([
       5px
       7px;
 
-    font-size: 9px;
+    font-size: 11px;
   }
 }
 

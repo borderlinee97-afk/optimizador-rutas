@@ -3458,7 +3458,7 @@ function addDaysIso(
 
 .page-kicker {
   color: #0f64ad;
-  font-size: 11px;
+  font-size: 13px;
   font-weight: 900;
   letter-spacing: .09em;
   text-transform: uppercase;
@@ -3473,7 +3473,7 @@ function addDaysIso(
 .page-header p {
   margin: 0;
   color: #64748b;
-  font-size: 13px;
+  font-size: 15px;
 }
 
 .state-selector {
@@ -3486,7 +3486,7 @@ function addDaysIso(
 .state-selector label,
 .modal-field > span {
   color: #64748b;
-  font-size: 8px;
+  font-size: 10px;
   font-weight: 900;
   text-transform: uppercase;
 }
@@ -3523,13 +3523,13 @@ function addDaysIso(
   place-items: center;
   border-radius: 8px;
   background: #dcfce7;
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 900;
 }
 
 .success-message span {
   flex: 1;
-  font-size: 9px;
+  font-size: 11px;
   font-weight: 800;
 }
 
@@ -3561,7 +3561,7 @@ function addDaysIso(
 
 .metric-card span {
   color: #64748b;
-  font-size: 8px;
+  font-size: 10px;
   font-weight: 900;
   text-transform: uppercase;
 }
@@ -3575,7 +3575,7 @@ function addDaysIso(
 .metric-card small {
   margin-top: 3px;
   color: #94a3b8;
-  font-size: 8px;
+  font-size: 10px;
 }
 
 .metric-card.registered {
@@ -3628,13 +3628,13 @@ function addDaysIso(
 
 .vacancy-notice strong {
   color: #9a3412;
-  font-size: 10px;
+  font-size: 12px;
 }
 
 .vacancy-notice span {
   margin-top: 2px;
   color: #7c2d12;
-  font-size: 9px;
+  font-size: 11px;
 }
 
 .coverage-summary {
@@ -3656,7 +3656,7 @@ function addDaysIso(
 
 .coverage-summary-copy span {
   color: #7c3aed;
-  font-size: 8px;
+  font-size: 10px;
   font-weight: 900;
   text-transform: uppercase;
 }
@@ -3664,7 +3664,7 @@ function addDaysIso(
 .coverage-summary-copy strong {
   margin-top: 3px;
   color: #4c1d95;
-  font-size: 11px;
+  font-size: 13px;
 }
 
 .coverage-summary-counts {
@@ -3684,13 +3684,13 @@ function addDaysIso(
 
 .coverage-summary-counts strong {
   color: #4c1d95;
-  font-size: 15px;
+  font-size: 16px;
 }
 
 .coverage-summary-counts span {
   margin-top: 2px;
   color: #7c3aed;
-  font-size: 7px;
+  font-size: 10px;
   text-transform: uppercase;
 }
 
@@ -3728,7 +3728,7 @@ function addDaysIso(
   border-radius: 10px;
   background: #eaf4fc;
   color: #0f64ad;
-  font-size: 9px;
+  font-size: 11px;
   font-weight: 900;
 }
 
@@ -3751,7 +3751,7 @@ function addDaysIso(
 .coordinator-counts span {
   margin-top: 2px;
   color: #94a3b8;
-  font-size: 7px;
+  font-size: 10px;
 }
 
 .coordinator-counts {
@@ -3760,7 +3760,7 @@ function addDaysIso(
 
 .coordinator-counts strong {
   color: #0f172a;
-  font-size: 15px;
+  font-size: 16px;
 }
 
 .coordinator-counts small {
@@ -3820,7 +3820,7 @@ function addDaysIso(
   background: #fff;
   color: #64748b;
   cursor: pointer;
-  font-size: 8px;
+  font-size: 10px;
   font-weight: 900;
 }
 
@@ -3848,7 +3848,7 @@ function addDaysIso(
 
 .table-header span {
   color: #64748b;
-  font-size: 8px;
+  font-size: 10px;
   font-weight: 900;
   text-transform: uppercase;
 }
@@ -3856,7 +3856,7 @@ function addDaysIso(
 .table-header strong {
   margin-top: 2px;
   color: #0f172a;
-  font-size: 12px;
+  font-size: 14px;
 }
 
 .table-context {
@@ -3865,7 +3865,7 @@ function addDaysIso(
 
 .table-context small {
   color: #94a3b8;
-  font-size: 7px;
+  font-size: 10px;
 }
 
 .table-wrapper {
@@ -3913,7 +3913,7 @@ tbody tr:hover {
 .unit-cell strong,
 .simple-cell strong {
   color: #334155;
-  font-size: 9px;
+  font-size: 11px;
 }
 
 .unit-cell span,
@@ -3945,7 +3945,7 @@ tbody tr:hover {
   border-radius: 9px;
   background: #eaf4fc;
   color: #0f64ad;
-  font-size: 7px;
+  font-size: 10px;
   font-weight: 900;
 }
 
@@ -3956,7 +3956,7 @@ tbody tr:hover {
 
 .vacant-label {
   color: #c2410c;
-  font-size: 8px;
+  font-size: 10px;
   font-weight: 900;
 }
 
@@ -4008,7 +4008,7 @@ tbody tr:hover {
   align-items: center;
   padding: 0 8px;
   border-radius: 999px;
-  font-size: 7px;
+  font-size: 10px;
   font-weight: 900;
   text-transform: uppercase;
 }
@@ -4060,7 +4060,7 @@ tbody tr:hover {
 
 .pagination span {
   color: #64748b;
-  font-size: 8px;
+  font-size: 10px;
 }
 
 .empty-state,
@@ -4120,7 +4120,7 @@ tbody tr:hover {
 .management-actions > span,
 .coverage-actions > span {
   color: #0f64ad;
-  font-size: 8px;
+  font-size: 10px;
   font-weight: 900;
   text-transform: uppercase;
 }
@@ -4134,7 +4134,7 @@ tbody tr:hover {
 .drawer-header p {
   margin: 0;
   color: #64748b;
-  font-size: 9px;
+  font-size: 11px;
 }
 
 .drawer-header button {
@@ -4169,7 +4169,7 @@ tbody tr:hover {
 .detail-grid span,
 .assignment-block span {
   color: #94a3b8;
-  font-size: 7px;
+  font-size: 10px;
   font-weight: 900;
   text-transform: uppercase;
 }
@@ -4178,7 +4178,7 @@ tbody tr:hover {
 .assignment-block strong {
   margin-top: 4px;
   color: #334155;
-  font-size: 9px;
+  font-size: 11px;
 }
 
 .assignment-block {
@@ -4224,7 +4224,7 @@ tbody tr:hover {
 
 .current-coverage-card header > div > span {
   color: #7c3aed;
-  font-size: 7px;
+  font-size: 10px;
   font-weight: 900;
   text-transform: uppercase;
 }
@@ -4232,7 +4232,7 @@ tbody tr:hover {
 .current-coverage-card header > div > strong {
   margin-top: 2px;
   color: #4c1d95;
-  font-size: 10px;
+  font-size: 12px;
 }
 
 .coverage-status-pill {
@@ -4261,7 +4261,7 @@ tbody tr:hover {
   border-radius: 10px;
   background: #ede9fe;
   color: #6d28d9;
-  font-size: 8px;
+  font-size: 10px;
   font-weight: 900;
 }
 
@@ -4272,13 +4272,13 @@ tbody tr:hover {
 
 .coverage-person strong {
   color: #334155;
-  font-size: 9px;
+  font-size: 11px;
 }
 
 .coverage-person span {
   margin-top: 2px;
   color: #64748b;
-  font-size: 7px;
+  font-size: 10px;
 }
 
 .coverage-period {
@@ -4300,13 +4300,13 @@ tbody tr:hover {
 .coverage-period strong {
   margin-top: 3px;
   color: #334155;
-  font-size: 8px;
+  font-size: 10px;
 }
 
 .current-coverage-card p {
   margin: 8px 0 0;
   color: #64748b;
-  font-size: 8px;
+  font-size: 10px;
   line-height: 1.45;
 }
 
@@ -4319,7 +4319,7 @@ tbody tr:hover {
   background: #fff;
   color: #b91c1c;
   cursor: pointer;
-  font-size: 8px;
+  font-size: 10px;
   font-weight: 900;
 }
 
@@ -4343,7 +4343,7 @@ tbody tr:hover {
   min-height: 39px;
   border-radius: 10px;
   cursor: pointer;
-  font-size: 8px;
+  font-size: 10px;
   font-weight: 900;
 }
 
@@ -4380,13 +4380,13 @@ tbody tr:hover {
 .coverage-actions > strong {
   margin-top: 4px;
   color: #334155;
-  font-size: 10px;
+  font-size: 12px;
 }
 
 .coverage-actions > p {
   margin: 4px 0 0;
   color: #64748b;
-  font-size: 8px;
+  font-size: 10px;
   line-height: 1.45;
 }
 
@@ -4399,7 +4399,7 @@ tbody tr:hover {
   background: #7c3aed;
   color: #fff;
   cursor: pointer;
-  font-size: 8px;
+  font-size: 10px;
   font-weight: 900;
 }
 
@@ -4425,7 +4425,7 @@ tbody tr:hover {
 .history-section header strong {
   margin-top: 2px;
   color: #334155;
-  font-size: 10px;
+  font-size: 12px;
 }
 
 .history-count {
@@ -4487,7 +4487,7 @@ tbody tr:hover {
 
 .coverage-history-heading strong {
   color: #334155;
-  font-size: 9px;
+  font-size: 11px;
 }
 
 .coverage-history-copy > span,
@@ -4509,7 +4509,7 @@ tbody tr:hover {
   border: 0;
   background: transparent;
   color: #0f64ad;
-  font-size: 8px;
+  font-size: 10px;
   font-weight: 900;
 }
 
@@ -4543,7 +4543,7 @@ tbody tr:hover {
 
 .timeline-item strong {
   color: #334155;
-  font-size: 9px;
+  font-size: 11px;
 }
 
 .timeline-item span,
@@ -4567,7 +4567,7 @@ tbody tr:hover {
 .history-empty {
   margin-top: 10px;
   color: #64748b;
-  font-size: 8px;
+  font-size: 10px;
 }
 
 .history-error {
@@ -4597,7 +4597,7 @@ tbody tr:hover {
 
 .modal-kicker {
   color: #0f64ad;
-  font-size: 8px;
+  font-size: 10px;
   font-weight: 900;
   text-transform: uppercase;
 }
@@ -4619,7 +4619,7 @@ tbody tr:hover {
 .action-modal > p {
   margin: 0 0 14px;
   color: #64748b;
-  font-size: 9px;
+  font-size: 11px;
 }
 
 .modal-field {
@@ -4640,14 +4640,14 @@ tbody tr:hover {
   border-radius: 11px;
   color: #0f172a;
   font: inherit;
-  font-size: 9px;
+  font-size: 11px;
   line-height: 1.5;
 }
 
 .modal-field small {
   margin-top: 4px;
   color: #94a3b8;
-  font-size: 7px;
+  font-size: 10px;
   text-align: right;
 }
 
@@ -4669,13 +4669,13 @@ tbody tr:hover {
 
 .coverage-explanation strong {
   color: #6d28d9;
-  font-size: 9px;
+  font-size: 11px;
 }
 
 .coverage-explanation span {
   margin-top: 3px;
   color: #64748b;
-  font-size: 8px;
+  font-size: 10px;
   line-height: 1.45;
 }
 
@@ -4700,13 +4700,13 @@ tbody tr:hover {
 
 .warning-box strong,
 .action-error-box strong {
-  font-size: 9px;
+  font-size: 11px;
 }
 
 .warning-box span,
 .action-error-box span {
   margin-top: 3px;
-  font-size: 8px;
+  font-size: 10px;
 }
 
 .modal-actions {
@@ -4722,7 +4722,7 @@ tbody tr:hover {
   padding: 0 13px;
   border-radius: 10px;
   cursor: pointer;
-  font-size: 8px;
+  font-size: 10px;
   font-weight: 900;
 }
 

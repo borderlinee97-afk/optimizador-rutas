@@ -2454,7 +2454,7 @@ function formatScopeMode(
 
   color: #0f64ad;
 
-  font-size: 14px;
+  font-size: 16px;
   font-weight: 900;
 }
 
@@ -2471,14 +2471,14 @@ function formatScopeMode(
 
   color: #0f172a;
 
-  font-size: 15px;
+  font-size: 16px;
 }
 
 .structure-eyebrow,
 .section-label {
   color: #64748b;
 
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 800;
 
   letter-spacing: .08em;
@@ -2545,7 +2545,7 @@ function formatScopeMode(
 
   color: #64748b;
 
-  font-size: 10px;
+  font-size: 12px;
 }
 
 .state-chip.active {
@@ -2586,7 +2586,7 @@ function formatScopeMode(
 .single-state strong {
   color: #0f172a;
 
-  font-size: 14px;
+  font-size: 16px;
 }
 
 .single-state span:not(.state-dot) {
@@ -2594,7 +2594,7 @@ function formatScopeMode(
 
   color: #64748b;
 
-  font-size: 11px;
+  font-size: 13px;
 }
 
 .single-state-assigned {
@@ -2602,7 +2602,7 @@ function formatScopeMode(
 
   color: #0f64ad;
 
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 800;
 }
 
@@ -2655,7 +2655,7 @@ function formatScopeMode(
 
   cursor: pointer;
 
-  font-size: 11px;
+  font-size: 13px;
   font-weight: 800;
 
   text-align: left;
@@ -2668,7 +2668,7 @@ function formatScopeMode(
 .back-arrow {
   color: #0f64ad;
 
-  font-size: 15px;
+  font-size: 16px;
 }
 
 /*
@@ -2736,7 +2736,7 @@ function formatScopeMode(
 
   color: #334155;
 
-  font-size: 11px;
+  font-size: 13px;
   font-weight: 850;
 
   letter-spacing: .04em;
@@ -2764,7 +2764,7 @@ function formatScopeMode(
 
   color: #0f64ad;
 
-  font-size: 9px;
+  font-size: 11px;
   font-weight: 900;
 
   white-space: nowrap;
@@ -2850,7 +2850,7 @@ function formatScopeMode(
 
   color: #64748b;
 
-  font-size: 12px;
+  font-size: 14px;
 }
 
 .spinner {
@@ -2889,11 +2889,11 @@ function formatScopeMode(
 }
 
 .structure-error strong {
-  font-size: 12px;
+  font-size: 14px;
 }
 
 .structure-error span {
-  font-size: 11px;
+  font-size: 13px;
 
   line-height: 1.45;
 }
@@ -2935,7 +2935,7 @@ function formatScopeMode(
 .state-summary span {
   color: #64748b;
 
-  font-size: 11px;
+  font-size: 13px;
 }
 
 .state-summary strong {
@@ -2943,7 +2943,7 @@ function formatScopeMode(
 
   color: #0f172a;
 
-  font-size: 14px;
+  font-size: 16px;
 }
 
 .state-summary-status {
@@ -2957,7 +2957,7 @@ function formatScopeMode(
 .state-summary-status small {
   color: #166534;
 
-  font-size: 9px;
+  font-size: 11px;
   font-weight: 800;
 
   text-transform: uppercase;
@@ -3001,7 +3001,7 @@ function formatScopeMode(
 .manager-metric strong {
   color: #0f172a;
 
-  font-size: 15px;
+  font-size: 16px;
 }
 
 .manager-metric span {
@@ -3009,7 +3009,7 @@ function formatScopeMode(
 
   color: #64748b;
 
-  font-size: 8px;
+  font-size: 10px;
   font-weight: 800;
 
   letter-spacing: .02em;
@@ -3098,7 +3098,7 @@ function formatScopeMode(
 
   flex: 0 0 36px;
 
-  font-size: 11px;
+  font-size: 13px;
 }
 
 .row-avatar.coordinator,
@@ -3130,7 +3130,7 @@ function formatScopeMode(
 
   color: #0f172a;
 
-  font-size: 11px;
+  font-size: 13px;
 
   text-overflow: ellipsis;
 
@@ -3142,7 +3142,7 @@ function formatScopeMode(
 
   color: #64748b;
 
-  font-size: 9px;
+  font-size: 11px;
 }
 
 .row-copy .row-warning {
@@ -3194,7 +3194,7 @@ function formatScopeMode(
 
   flex: 0 0 44px;
 
-  font-size: 12px;
+  font-size: 14px;
 }
 
 .person-hero-copy {
@@ -3208,7 +3208,7 @@ function formatScopeMode(
 .person-hero-copy > span {
   color: #64748b;
 
-  font-size: 9px;
+  font-size: 11px;
   font-weight: 800;
 
   text-transform: uppercase;
@@ -3219,7 +3219,7 @@ function formatScopeMode(
 
   color: #0f172a;
 
-  font-size: 12px;
+  font-size: 14px;
 
   line-height: 1.3;
 }
@@ -3229,7 +3229,7 @@ function formatScopeMode(
 
   color: #64748b;
 
-  font-size: 9px;
+  font-size: 11px;
 }
 
 /*
@@ -3282,7 +3282,7 @@ function formatScopeMode(
 
   color: #0f172a;
 
-  font-size: 14px;
+  font-size: 16px;
 
   text-overflow: ellipsis;
 }
@@ -3292,7 +3292,7 @@ function formatScopeMode(
 
   color: #64748b;
 
-  font-size: 8px;
+  font-size: 10px;
   font-weight: 750;
 
   text-transform: uppercase;
@@ -3378,7 +3378,7 @@ function formatScopeMode(
 .territory-filter strong {
   color: #0f172a;
 
-  font-size: 10px;
+  font-size: 12px;
 }
 
 .territory-filter > div:first-child span {
@@ -3413,7 +3413,7 @@ function formatScopeMode(
 
   color: #475569;
 
-  font-size: 9px;
+  font-size: 11px;
   font-weight: 900;
 }
 
@@ -3495,7 +3495,7 @@ function formatScopeMode(
 .data-warning strong {
   color: #334155;
 
-  font-size: 10px;
+  font-size: 12px;
 }
 
 .empty-warning strong {
@@ -3516,7 +3516,7 @@ function formatScopeMode(
 .data-warning span {
   color: #64748b;
 
-  font-size: 9px;
+  font-size: 11px;
 
   line-height: 1.45;
 }
@@ -3530,7 +3530,7 @@ function formatScopeMode(
 
   color: #166534;
 
-  font-size: 9px;
+  font-size: 11px;
 
   line-height: 1.4;
 }

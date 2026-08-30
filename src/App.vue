@@ -1135,7 +1135,7 @@ input {
 
   text-decoration: none !important;
 
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 800;
 
   transition:
@@ -1201,7 +1201,7 @@ input {
 
   cursor: pointer;
 
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 850;
 }
 
@@ -1329,7 +1329,7 @@ input {
 .loading-card > span {
   color: #64748b;
 
-  font-size: 14px;
+  font-size: 16px;
 }
 
 .loading-spinner,
@@ -1484,7 +1484,7 @@ input {
 
   color: #0f64ad;
 
-  font-size: 12px;
+  font-size: 14px;
   font-weight: 800;
 
   letter-spacing: .08em;
@@ -1510,7 +1510,7 @@ input {
 
   color: #64748b;
 
-  font-size: 14px;
+  font-size: 16px;
 
   line-height: 1.5;
 }
@@ -1533,7 +1533,7 @@ input {
 
   color: #334155;
 
-  font-size: 13px;
+  font-size: 15px;
   font-weight: 700;
 }
 
@@ -1601,7 +1601,7 @@ input {
 
   color: #be123c;
 
-  font-size: 13px;
+  font-size: 15px;
 
   line-height: 1.45;
 }
@@ -1625,7 +1625,7 @@ input {
 
   color: #fff;
 
-  font-size: 12px;
+  font-size: 14px;
   font-weight: 800;
 }
 
@@ -1668,7 +1668,7 @@ input {
 
   cursor: pointer;
 
-  font-size: 16px;
+  font-size: 17px;
   font-weight: 800;
 
   letter-spacing: .01em;
@@ -1947,7 +1947,7 @@ input {
 
   color: #0f64ad;
 
-  font-size: 14px;
+  font-size: 16px;
   font-weight: 900;
 }
 
@@ -1966,7 +1966,7 @@ input {
 
   color: #0f172a;
 
-  font-size: 11px;
+  font-size: 13px;
 
   text-overflow: ellipsis;
 
@@ -1978,7 +1978,7 @@ input {
 
   color: #64748b;
 
-  font-size: 9px;
+  font-size: 11px;
 }
 
 .logout-button {
@@ -1999,7 +1999,7 @@ input {
 
   cursor: pointer;
 
-  font-size: 11px;
+  font-size: 13px;
   font-weight: 800;
 }
 
@@ -2075,7 +2075,7 @@ input {
 .area-switch-button strong {
   color: inherit;
 
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 850;
 
   text-transform: uppercase;
@@ -2086,7 +2086,7 @@ input {
 .area-switch-button span {
   color: inherit;
 
-  font-size: 8px;
+  font-size: 10px;
   font-weight: 650;
 
   opacity: .78;

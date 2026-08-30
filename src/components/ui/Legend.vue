@@ -327,7 +327,7 @@ function formatProject(
     sans-serif;
 
   font-size:
-    12px;
+    14px;
 
   line-height:
     1.3;
@@ -387,7 +387,7 @@ function formatProject(
     #0f172a !important;
 
   font-size:
-    16px;
+    17px;
 
   font-weight:
     850;
@@ -398,7 +398,7 @@ function formatProject(
     #0f64ad !important;
 
   font-size:
-    8px;
+    10px;
 
   font-weight:
     850;
@@ -450,7 +450,7 @@ function formatProject(
     pointer;
 
   font-size:
-    9px !important;
+    11px !important;
 
   font-weight:
     800;
@@ -512,7 +512,7 @@ function formatProject(
     pointer;
 
   font-size:
-    10px !important;
+    12px !important;
 
   font-weight:
     800;
@@ -605,7 +605,7 @@ function formatProject(
     #64748b !important;
 
   font-size:
-    8px;
+    10px;
 
   font-weight:
     700;
@@ -622,7 +622,7 @@ function formatProject(
     #0f64ad !important;
 
   font-size:
-    11px;
+    13px;
 
   font-weight:
     850;
@@ -709,7 +709,7 @@ function formatProject(
     #1e293b;
 
   font-size:
-    11px;
+    13px;
 
   font-weight:
     750;
@@ -876,7 +876,7 @@ function formatProject(
     #64748b !important;
 
   font-size:
-    9px;
+    11px;
 
   line-height:
     1.4;
@@ -914,7 +914,7 @@ function formatProject(
 
   .legend-heading strong {
     font-size:
-      14px;
+      16px;
   }
 
   .legend-item {

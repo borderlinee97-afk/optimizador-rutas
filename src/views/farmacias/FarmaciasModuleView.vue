@@ -176,7 +176,7 @@ const moduleInitial =
 .module-kicker {
   color: #0f64ad;
 
-  font-size: 11px;
+  font-size: 13px;
   font-weight: 900;
 
   letter-spacing: .09em;
@@ -202,7 +202,7 @@ const moduleInitial =
 
   color: #64748b;
 
-  font-size: 14px;
+  font-size: 16px;
 
   line-height: 1.6;
 }
@@ -264,7 +264,7 @@ const moduleInitial =
 
   color: #0f64ad;
 
-  font-size: 16px;
+  font-size: 17px;
   font-weight: 900;
 }
 
@@ -277,7 +277,7 @@ const moduleInitial =
 .module-card-header span {
   color: #64748b;
 
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 800;
 
   text-transform: uppercase;
@@ -288,7 +288,7 @@ const moduleInitial =
 
   color: #0f172a;
 
-  font-size: 15px;
+  font-size: 16px;
 }
 
 .module-divider {
@@ -302,7 +302,7 @@ const moduleInitial =
 .module-scope-label {
   color: #475569;
 
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 900;
 
   letter-spacing: .05em;
@@ -344,7 +344,7 @@ const moduleInitial =
 
   color: #334155;
 
-  font-size: 11px;
+  font-size: 13px;
   font-weight: 650;
 }
 
@@ -397,7 +397,7 @@ const moduleInitial =
 .module-status strong {
   color: #166534;
 
-  font-size: 11px;
+  font-size: 13px;
 }
 
 .module-status span {
@@ -405,7 +405,7 @@ const moduleInitial =
 
   color: #4b7660;
 
-  font-size: 10px;
+  font-size: 12px;
 
   line-height: 1.5;
 }

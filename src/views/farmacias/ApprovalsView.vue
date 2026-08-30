@@ -1676,7 +1676,7 @@ function formatDateTime(
 
 .page-kicker {
   color: #0f64ad;
-  font-size: 11px;
+  font-size: 13px;
   font-weight: 900;
   letter-spacing: .09em;
   text-transform: uppercase;
@@ -1691,7 +1691,7 @@ function formatDateTime(
 .approvals-header p {
   margin: 0;
   color: #64748b;
-  font-size: 13px;
+  font-size: 15px;
 }
 
 .refresh-button {
@@ -1702,7 +1702,7 @@ function formatDateTime(
   background: #eff8ff;
   color: #0f64ad;
   cursor: pointer;
-  font-size: 9px;
+  font-size: 11px;
   font-weight: 900;
 }
 
@@ -1736,7 +1736,7 @@ function formatDateTime(
 
 .success-box span {
   flex: 1;
-  font-size: 9px;
+  font-size: 11px;
   font-weight: 800;
 }
 
@@ -1768,7 +1768,7 @@ function formatDateTime(
 
 .metric span {
   color: #64748b;
-  font-size: 8px;
+  font-size: 10px;
   font-weight: 900;
   text-transform: uppercase;
 }
@@ -1782,7 +1782,7 @@ function formatDateTime(
 .metric small {
   margin-top: 3px;
   color: #94a3b8;
-  font-size: 8px;
+  font-size: 10px;
 }
 
 .metric.total {
@@ -1835,13 +1835,13 @@ function formatDateTime(
 
 .readonly-notice strong {
   color: #1e3a8a;
-  font-size: 10px;
+  font-size: 12px;
 }
 
 .readonly-notice span {
   margin-top: 2px;
   color: #475569;
-  font-size: 9px;
+  font-size: 11px;
 }
 
 .approval-section {
@@ -1872,7 +1872,7 @@ function formatDateTime(
 
 .section-header span {
   color: #64748b;
-  font-size: 8px;
+  font-size: 10px;
   font-weight: 900;
   text-transform: uppercase;
 }
@@ -1880,7 +1880,7 @@ function formatDateTime(
 .section-header strong {
   margin-top: 2px;
   color: #0f172a;
-  font-size: 12px;
+  font-size: 14px;
 }
 
 .section-count {
@@ -1891,7 +1891,7 @@ function formatDateTime(
   border-radius: 999px;
   background: #f1f5f9;
   color: #475569 !important;
-  font-size: 9px !important;
+  font-size: 11px !important;
 }
 
 .coverage-count {
@@ -1962,7 +1962,7 @@ function formatDateTime(
   border-radius: 11px;
   background: #eaf4fc;
   color: #0f64ad;
-  font-size: 9px;
+  font-size: 11px;
   font-weight: 900;
 }
 
@@ -1975,7 +1975,7 @@ function formatDateTime(
 .person-block strong {
   overflow: hidden;
   color: #0f172a;
-  font-size: 10px;
+  font-size: 12px;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -1984,7 +1984,7 @@ function formatDateTime(
   overflow: hidden;
   margin-top: 2px;
   color: #64748b;
-  font-size: 8px;
+  font-size: 10px;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -2006,7 +2006,7 @@ function formatDateTime(
 
 .plan-data span {
   color: #94a3b8;
-  font-size: 7px;
+  font-size: 10px;
   font-weight: 850;
   text-transform: uppercase;
 }
@@ -2014,7 +2014,7 @@ function formatDateTime(
 .plan-data strong {
   margin-top: 3px;
   color: #334155;
-  font-size: 8px;
+  font-size: 10px;
   line-height: 1.35;
 }
 
@@ -2027,7 +2027,7 @@ function formatDateTime(
   background: #eff8ff;
   color: #0f64ad;
   cursor: pointer;
-  font-size: 9px;
+  font-size: 11px;
   font-weight: 900;
 }
 
@@ -2067,14 +2067,14 @@ function formatDateTime(
 
 .coverage-kicker {
   color: #7c3aed;
-  font-size: 7px;
+  font-size: 10px;
   font-weight: 900;
   text-transform: uppercase;
 }
 
 .cancel-kicker {
   color: #c2410c;
-  font-size: 7px;
+  font-size: 10px;
   font-weight: 900;
   text-transform: uppercase;
 }
@@ -2083,14 +2083,14 @@ function formatDateTime(
 .cancel-heading h3 {
   margin: 3px 0 0;
   color: #0f172a;
-  font-size: 11px;
+  font-size: 13px;
 }
 
 .coverage-pending-pill,
 .pending-pill {
   padding: 4px 7px;
   border-radius: 999px;
-  font-size: 7px;
+  font-size: 10px;
   font-weight: 900;
   text-transform: uppercase;
 }
@@ -2145,7 +2145,7 @@ function formatDateTime(
 .coverage-reason span,
 .cancel-reason span {
   color: #94a3b8;
-  font-size: 7px;
+  font-size: 10px;
   font-weight: 900;
   text-transform: uppercase;
 }
@@ -2173,14 +2173,14 @@ function formatDateTime(
 .cancel-reason strong {
   margin-top: 2px;
   color: #475569;
-  font-size: 9px;
+  font-size: 11px;
 }
 
 .requested-at {
   display: block;
   margin-top: 7px;
   color: #94a3b8;
-  font-size: 7px;
+  font-size: 10px;
 }
 
 .coverage-actions,
@@ -2196,7 +2196,7 @@ function formatDateTime(
   padding: 0 11px;
   border-radius: 10px;
   cursor: pointer;
-  font-size: 8px;
+  font-size: 10px;
   font-weight: 900;
 }
 
@@ -2220,7 +2220,7 @@ function formatDateTime(
 .follow-up-label {
   flex: 0 0 auto;
   color: #64748b;
-  font-size: 8px;
+  font-size: 10px;
   font-weight: 800;
 }
 
@@ -2234,7 +2234,7 @@ function formatDateTime(
 
 .section-empty strong {
   color: #475569;
-  font-size: 10px;
+  font-size: 12px;
 }
 
 .section-empty span {
@@ -2267,7 +2267,7 @@ function formatDateTime(
 .loading-box strong,
 .error-box strong {
   color: #334155;
-  font-size: 10px;
+  font-size: 12px;
 }
 
 .loading-box span,
@@ -2333,7 +2333,7 @@ function formatDateTime(
   height: 42px;
   place-items: center;
   border-radius: 13px;
-  font-size: 16px;
+  font-size: 17px;
   font-weight: 900;
 }
 
@@ -2356,7 +2356,7 @@ function formatDateTime(
   display: block;
   margin-top: 13px;
   color: #0f64ad;
-  font-size: 8px;
+  font-size: 10px;
   font-weight: 900;
   text-transform: uppercase;
 }
@@ -2390,7 +2390,7 @@ function formatDateTime(
 .modal-detail span,
 .comment-field > span {
   color: #94a3b8;
-  font-size: 7px;
+  font-size: 10px;
   font-weight: 900;
   text-transform: uppercase;
 }
@@ -2398,7 +2398,7 @@ function formatDateTime(
 .modal-detail strong {
   margin-top: 3px;
   color: #334155;
-  font-size: 9px;
+  font-size: 11px;
 }
 
 .comment-field {
@@ -2416,7 +2416,7 @@ function formatDateTime(
   outline: 0;
   color: #0f172a;
   font: inherit;
-  font-size: 10px;
+  font-size: 12px;
 }
 
 .comment-field small {
@@ -2432,7 +2432,7 @@ function formatDateTime(
   border-radius: 8px;
   background: #fef2f2;
   color: #b91c1c;
-  font-size: 8px;
+  font-size: 10px;
 }
 
 .modal-actions {
@@ -2448,7 +2448,7 @@ function formatDateTime(
   padding: 0 13px;
   border-radius: 10px;
   cursor: pointer;
-  font-size: 8px;
+  font-size: 10px;
   font-weight: 900;
 }
 
