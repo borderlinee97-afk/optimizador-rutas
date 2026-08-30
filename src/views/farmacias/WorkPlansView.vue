@@ -1683,7 +1683,7 @@ function emptyTotals() {
 
 .plans-kicker {
   color: #0f64ad;
-  font-size: 11px;
+  font-size: 13px;
   font-weight: 900;
   letter-spacing: .09em;
   text-transform: uppercase;
@@ -1698,7 +1698,7 @@ function emptyTotals() {
 .plans-header p {
   margin: 0;
   color: #64748b;
-  font-size: 13px;
+  font-size: 15px;
 }
 
 .state-selector {
@@ -1710,7 +1710,7 @@ function emptyTotals() {
 
 .state-selector label {
   color: #64748b;
-  font-size: 9px;
+  font-size: 11px;
   font-weight: 900;
   text-transform: uppercase;
 }
@@ -1755,13 +1755,13 @@ function emptyTotals() {
 }
 
 .plan-tabs span {
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 900;
 }
 
 .plan-tabs small {
   margin-top: 2px;
-  font-size: 8px;
+  font-size: 10px;
   opacity: .7;
 }
 
@@ -1798,7 +1798,7 @@ function emptyTotals() {
 
 .period-copy span {
   color: #94a3b8;
-  font-size: 8px;
+  font-size: 10px;
   font-weight: 900;
   text-transform: uppercase;
 }
@@ -1806,7 +1806,7 @@ function emptyTotals() {
 .period-copy strong {
   margin-top: 2px;
   color: #0f172a;
-  font-size: 12px;
+  font-size: 14px;
   text-transform: capitalize;
 }
 
@@ -1818,7 +1818,7 @@ function emptyTotals() {
   background: #eff8ff;
   color: #0f64ad;
   cursor: pointer;
-  font-size: 9px;
+  font-size: 11px;
   font-weight: 900;
 }
 
@@ -1850,7 +1850,7 @@ function emptyTotals() {
 
 .metric-card span {
   color: #64748b;
-  font-size: 8px;
+  font-size: 10px;
   font-weight: 900;
   text-transform: uppercase;
 }
@@ -1864,7 +1864,7 @@ function emptyTotals() {
 .metric-card small {
   margin-top: 3px;
   color: #94a3b8;
-  font-size: 8px;
+  font-size: 10px;
 }
 
 .metric-card.primary {
@@ -1932,7 +1932,7 @@ function emptyTotals() {
   background: #fff;
   color: #64748b;
   cursor: pointer;
-  font-size: 9px;
+  font-size: 11px;
   font-weight: 850;
 }
 
@@ -1961,7 +1961,7 @@ function emptyTotals() {
 .table-header span,
 .table-header small {
   color: #64748b;
-  font-size: 8px;
+  font-size: 10px;
   font-weight: 900;
   text-transform: uppercase;
 }
@@ -1969,7 +1969,7 @@ function emptyTotals() {
 .table-header strong {
   margin-top: 2px;
   color: #0f172a;
-  font-size: 12px;
+  font-size: 14px;
 }
 
 .plan-row {
@@ -2025,7 +2025,7 @@ function emptyTotals() {
   border-radius: 10px;
   background: #eaf4fc;
   color: #0f64ad;
-  font-size: 9px;
+  font-size: 11px;
   font-weight: 900;
 }
 
@@ -2044,7 +2044,7 @@ function emptyTotals() {
 .revision-cell strong {
   overflow: hidden;
   color: #0f172a;
-  font-size: 10px;
+  font-size: 12px;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -2104,7 +2104,7 @@ function emptyTotals() {
   margin-top: 3px;
   overflow: hidden;
   color: #b91c1c;
-  font-size: 7px;
+  font-size: 10px;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -2136,7 +2136,7 @@ function emptyTotals() {
 .empty-state strong {
   margin-top: 9px;
   color: #475569;
-  font-size: 10px;
+  font-size: 12px;
 }
 
 .empty-state span {
@@ -2167,7 +2167,7 @@ function emptyTotals() {
 
 .message-box strong {
   color: #334155;
-  font-size: 10px;
+  font-size: 12px;
 }
 
 .message-box span {

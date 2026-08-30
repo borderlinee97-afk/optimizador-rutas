@@ -1,4 +1,5 @@
 <!-- src/components/MapPage.vue -->
+
 <template>
   <div id="map-wrapper">
     <div
@@ -9,12 +10,13 @@
     <!-- =====================================================
          OPERACIONES
     ====================================================== -->
+
     <FabGroup
       v-if="isOperations"
       :trafficEnabled="trafficEnabled"
       :markersVisible="markersVisible"
-      :hasAnyRoute="hasAnyRoute"
-      @open-criteria="openCriteria"
+      :hasAnyRoute="operationsHasAnyRoute"
+      @open-criteria="openOperationsCompute"
       @toggle-traffic="toggleTraffic"
       @toggle-markers="toggleMarkers"
       @close-route="handleCloseRoute"
@@ -23,6 +25,7 @@
     <!-- =====================================================
          FARMACIAS
     ====================================================== -->
+
     <div
       v-else-if="isFarmacias"
       class="farmacias-map-tools"
@@ -152,6 +155,7 @@
     <!-- =====================================================
          NAVEGACIÓN OPERACIONES
     ====================================================== -->
+
     <Legend
       v-if="isOperations"
       :projects="projects"
@@ -167,6 +171,7 @@
     <!-- =====================================================
          NAVEGACIÓN FARMACIAS
     ====================================================== -->
+
     <StructureNavigator
       v-else-if="isFarmacias"
       :profile="profile"
@@ -188,123 +193,52 @@
     />
 
     <!-- =====================================================
-         PANEL OPERACIONES
+         PANEL OPERACIONES — SOLO RESULTADOS
     ====================================================== -->
+
     <PanelSandbox
       v-if="isOperations"
       :collapsed="panelCollapsed"
       @toggle-collapsed="onPanelToggle"
     >
-      <template v-if="showRouteCart">
-        <RouteCart
-          :customPoints="customPoints"
-          :customStrategy="customStrategy"
-          :customOriginMode="customOriginMode"
-          :customOriginPharmacyId="customOriginPharmacyId"
-          :customOriginCoords="customOriginCoords"
-          :customOriginCandidates="customOriginCandidates"
-          :canGeneratePdf="canGeneratePdf"
-          @update:customPoints="setCustomPoints"
-          @update:customStrategy="val => customStrategy = val"
-          @update:customOriginMode="val => customOriginMode = val"
-          @update:customOriginPharmacyId="val => customOriginPharmacyId = val"
-          @update:customOriginCoords="val => customOriginCoords = val"
-          @add-stops="openAddStopsModal"
-          @clear="clearCustomPoints"
-          @calculate="handleRunCustomRoute"
-          @generate-pdf="openPlanPdf"
-        />
-
-        <hr class="panel-separator" />
-      </template>
-
-      <PanelGeneral
-        :routeTotal="routeTotal"
-        :routeFuel="routeFuel"
-        :routeTolls="routeTolls"
-        :operatorRoutes="operatorRoutes"
-        :selectedOperator="selectedOperator"
-        :selectedOperatorDay="selectedOperatorDay"
-        :subroutesUi="subroutesUi"
-        :readableOrder="readableOrder"
-        :routeLegs="routeLegs"
-        :postOrder="postOrder"
-        :mapsLinks="mapsLinks"
-        :formatKm="formatKm"
-        :formatDur="formatDur"
-        @focus-subroute="focusSubroute"
-        @post-drag-start="postDragStart"
-        @post-drag-enter="postDragEnter"
-        @post-drop="postDrop"
-        @toggle-post-item="togglePostItem"
-        @recalc="recalcWithPostOrder"
-        @copy-link="copyToClipboard"
-        @export-excel="exportToExcel"
-        @export-csv="exportCsvVisits"
-        @select-operator="applyOperatorFilter"
-        @select-operator-day="applyOperatorDayFilter"
+      <OperationsResultPanel
+        :loading="operationsLoading"
+        :error="operationsError"
+        :result="operationsResult"
+        :planning="operationsPlanning"
+        :requiredResources="operationsRequiredResources"
+        :demand="operationsDemand"
+        :quality="operationsQuality"
+        :feasibility="operationsFeasibility"
+        :routes="operationsRoutes"
+        :totalDistanceMeters="operationsTotalDistanceMeters"
+        :totalTravelDurationSeconds="operationsTotalTravelDurationSeconds"
+        :economicEstimate="operationsEconomicEstimate"
+        :selectedRouteIndex="operationsSelectedRouteIndex"
+        @calculate="openOperationsCompute"
+        @clear="handleCloseRoute"
+        @focus-route="focusOperationsRoute"
+        @show-all-routes="showAllOperationsRoutes"
       />
     </PanelSandbox>
 
     <!-- =====================================================
-         MODAL CRITERIOS
+         MODAL NUEVO DE OPERACIONES
     ====================================================== -->
-    <CriteriaModal
-      v-if="isOperations"
-      :open="criteriaOpen"
-      :regiones="criteriaRegiones"
-      :criteria="criteria"
-      :originMode="originMode"
-      :originPharmacyId="originPharmacyId"
-      :proyectoCedis="proyectoCedis"
-      :selectedCedisId="selectedCedisId"
-      :selectedCedis="selectedCedis"
-      :farmaciasRegion="farmaciasRegion"
-      :manualPoints="manualPoints"
-      @update:originMode="val => originMode = val"
-      @update:originPharmacyId="val => originPharmacyId = val"
-      @update:selectedCedisId="val => selectedCedisId = val"
-      @drag-start="onDragStart"
-      @drag-enter="onDragEnter"
-      @drop="onDrop"
-      @close="criteriaOpen = false"
-      @calculate="handleRunCompute"
-    />
 
-    <!-- =====================================================
-         AÑADIR UNIDADES
-    ====================================================== -->
-    <AddStopsModal
+    <OperationsComputeModal
       v-if="isOperations"
-      :open="addStopsOpen"
-      :regiones="regiones"
-      :items="addStopsItems"
-      :existingIds="customPointIds"
-      @close="closeAddStopsModal"
-      @load-region="loadAddStopsRegion"
-      @add="handleAddStops"
-    />
-
-    <!-- =====================================================
-         PDF
-    ====================================================== -->
-    <PlanTrabajoPrintView
-      v-if="isOperations"
-      :open="planPrintOpen"
-      :routeTotal="routeTotal"
-      :routeTolls="routeTolls"
-      :subroutesUi="subroutesUi"
-      :mapsLinks="mapsLinks"
-      :customPoints="customPoints"
-      :customStrategy="customStrategy"
-      :customOriginMode="customOriginMode"
-      :customOriginPharmacyId="customOriginPharmacyId"
-      :customOriginCoords="customOriginCoords"
-      :visitOrder="visitOrderDetailed"
-      :routeRawData="lastRawData"
-      :formatKm="formatKm"
-      :formatDur="formatDur"
-      @close="closePlanPdf"
+      :open="operationsModalOpen"
+      :loading="operationsLoading"
+      :error="operationsError"
+      :criteria="operationsCriteria"
+      :project="activeOperationsProject"
+      :selectedRegion="activeOperationsRegion"
+      :regiones="filteredRegiones"
+      :cedis="proyectoCedis"
+      @close="closeOperationsModal"
+      @update:criteria="updateOperationsCriteria"
+      @calculate="handleOperationsCalculate"
     />
   </div>
 </template>
@@ -320,18 +254,11 @@ import {
 
 import {
   waitForEl,
-  formatKm as fmtKm,
-  formatDur as fmtDur,
 } from '../utils/format.js'
 
 import {
   createRegionColorer,
 } from '../utils/colors.js'
-
-import {
-  exportCsv,
-  exportToExcelSingle,
-} from '../utils/export.js'
 
 import {
   getFarmacias,
@@ -351,6 +278,10 @@ import {
 } from '../composables/useRouting.js'
 
 import {
+  useOperationsRouting,
+} from '../composables/useOperationsRouting.js'
+
+import {
   useAuth,
 } from '../composables/useAuth.js'
 
@@ -366,20 +297,11 @@ import StructureNavigator
 import PanelSandbox
   from './panel/PanelSandbox.vue'
 
-import PanelGeneral
-  from './panel/PanelGeneral.vue'
+import OperationsComputeModal
+  from './operations/OperationsComputeModal.vue'
 
-import RouteCart
-  from './panel/RouteCart.vue'
-
-import CriteriaModal
-  from './modals/CriteriaModal.vue'
-
-import AddStopsModal
-  from './modals/AddStopsModal.vue'
-
-import PlanTrabajoPrintView
-  from './print/PlanTrabajoPrintView.vue'
+import OperationsResultPanel
+  from './operations/OperationsResultPanel.vue'
 
 /*
  * ============================================================
@@ -422,21 +344,6 @@ const proyectoCedis =
 
 const selectedCedisId =
   ref(null)
-
-const selectedCedis =
-  computed(
-    () =>
-      proyectoCedis.value.find(
-        cedis =>
-          Number(
-            cedis.id
-          ) ===
-          Number(
-            selectedCedisId.value
-          )
-      ) ||
-      null
-  )
 
 const selectedLegendProject =
   ref(null)
@@ -491,21 +398,15 @@ const structureError =
 const {
   mapEl,
   map,
-
   initMap,
-
   toggleTraffic,
   toggleMarkers,
-
   trafficEnabled,
   markersVisible,
-
   markers,
-
   filterPharmacyMarkersByIds,
   clearPharmacyMarkerFilter,
   filterPharmacyMarkers,
-
   trackOverlay,
   detachOverlay,
   clearAllOverlays,
@@ -514,97 +415,120 @@ const {
 
 /*
  * ============================================================
- * ROUTING
+ * ESTADO TERRITORIAL EXISTENTE
+ *
+ * Conservamos useRouting temporalmente como fuente de farmacias
+ * y contexto territorial. El cálculo de OPERACIONES ya no usa
+ * su motor legacy.
  * ============================================================
  */
 
 const routing =
   useRouting({
     map,
-
     trackOverlay,
     detachOverlay,
     clearAllOverlays,
-
     filterPharmacyMarkersByIds,
     clearPharmacyMarkerFilter,
   })
 
 const {
   farmacias,
-  scopedFarmacias,
-
-  regiones,
-  farmaciasRegion,
-
-  criteriaOpen,
   criteria,
-
-  originMode,
-  originPharmacyId,
-
-  openCriteria,
-
-  manualPoints,
-
-  onDragStart,
-  onDragEnter,
-  onDrop,
-
-  customPoints,
-  customStrategy,
-
-  customOriginMode,
-  customOriginPharmacyId,
-  customOriginCoords,
-  customOriginCandidates,
-
-  addCustomStops,
-  setCustomPoints,
-  clearCustomPoints,
-  runCustomRoute,
-
-  postOrder,
-  postDragStart,
-  postDragEnter,
-  postDrop,
-
-  routeTotal,
-  routeLegs,
-  readableOrder,
-
-  operatorRoutes,
-  routeFuel,
-
-  selectedOperator,
-  selectedOperatorDay,
-
-  applyOperatorFilter,
-  applyOperatorDayFilter,
-
-  routeTolls,
-
-  subroutesUi,
-  focusSubroute,
-
-  hasAnyRoute,
-
-  mapsLinks,
-  linkChunkSize,
-  copyToClipboard,
-
-  runCompute,
-  recalcWithPostOrder,
-  onCloseRoute,
-
-  lastRegionUsed,
-  lastOriginUsed,
-  lastRawData,
 } =
   routing
 
-linkChunkSize.value =
-  10
+/*
+ * ============================================================
+ * MOTOR OPERATIVO INTEGRAL 1.3
+ * ============================================================
+ */
+
+const operationsRouting =
+  useOperationsRouting({
+    map,
+
+    units:
+      farmacias,
+
+    trackOverlay,
+
+    detachOverlay,
+
+    filterPharmacyMarkersByIds,
+
+    clearPharmacyMarkerFilter,
+  })
+
+const {
+  modalOpen:
+    operationsModalOpen,
+
+  loading:
+    operationsLoading,
+
+  error:
+    operationsError,
+
+  criteria:
+    operationsCriteria,
+
+  result:
+    operationsResult,
+
+  planning:
+    operationsPlanning,
+
+  requiredResources:
+    operationsRequiredResources,
+
+  demand:
+    operationsDemand,
+
+  quality:
+    operationsQuality,
+
+  feasibility:
+    operationsFeasibility,
+
+  routesWithEstimates:
+    operationsRoutes,
+
+  hasAnyRoute:
+    operationsHasAnyRoute,
+
+  totalDistanceMeters:
+    operationsTotalDistanceMeters,
+
+  totalTravelDurationSeconds:
+    operationsTotalTravelDurationSeconds,
+
+  economicEstimate:
+    operationsEconomicEstimate,
+
+  selectedRouteIndex:
+    operationsSelectedRouteIndex,
+
+  openModal:
+    openOperationsModal,
+
+  closeModal:
+    closeOperationsModal,
+
+  calculate:
+    calculateOperation,
+
+  focusRoute:
+    focusOperationsRoute,
+
+  showAllRoutes:
+    showAllOperationsRoutes,
+
+  clearResult:
+    clearOperationsResult,
+} =
+  operationsRouting
 
 /*
  * ============================================================
@@ -631,95 +555,6 @@ function onPanelToggle() {
   panelCollapsed.value =
     !panelCollapsed.value
 }
-
-/*
- * ============================================================
- * MODAL AÑADIR UNIDADES
- * ============================================================
- */
-
-const addStopsOpen =
-  ref(false)
-
-const addStopsItems =
-  ref([])
-
-const showRouteCart =
-  ref(true)
-
-const customPointIds =
-  computed(
-    () =>
-      customPoints.value.map(
-        point =>
-          Number(
-            point.id
-          )
-      )
-  )
-
-/*
- * ============================================================
- * VISIT ORDER
- * ============================================================
- */
-
-const visitOrderDetailed =
-  computed(
-    () => {
-      const visitOrder =
-        lastRawData.value
-          ?.visitOrder ??
-        []
-
-      return visitOrder.map(
-        point => {
-          if (
-            !point ||
-            point.name ===
-              'ORIGEN'
-          ) {
-            return point
-          }
-
-          const farmacia =
-            farmacias.value.find(
-              item =>
-                Number(
-                  item.id
-                ) ===
-                Number(
-                  point.id
-                )
-            )
-
-          return {
-            ...point,
-
-            clues:
-              farmacia?.clues ||
-              point.name ||
-              '',
-
-            unidad:
-              farmacia?.unidad ||
-              '',
-
-            region:
-              farmacia
-                ?.region_sanitaria ||
-              '',
-
-            hard:
-              Boolean(
-                farmacia
-                  ?.dificil_acceso
-              ),
-          }
-        }
-      )
-    }
-  )
 
 /*
  * ============================================================
@@ -819,7 +654,7 @@ function syncOperationScope(
 
 /*
  * ============================================================
- * PROYECTOS
+ * PROYECTOS / REGIONES
  * ============================================================
  */
 
@@ -895,31 +730,20 @@ const filteredRegiones =
     }
   )
 
-const criteriaRegiones =
+const activeOperationsProject =
   computed(
     () =>
-      regiones.value
+      selectedLegendProject.value ||
+      selectedProject.value ||
+      ''
   )
 
-/*
- * ============================================================
- * PDF DISPONIBLE
- * ============================================================
- */
-
-const canGeneratePdf =
+const activeOperationsRegion =
   computed(
     () =>
-      Boolean(
-        routeTotal.value &&
-        lastRawData.value &&
-        Array.isArray(
-          lastRawData.value
-            ?.subroutes
-        ) &&
-        lastRawData.value
-          .subroutes.length
-      )
+      selectedLegendRegion.value ||
+      operationsCriteria.value.region ||
+      ''
   )
 
 /*
@@ -944,6 +768,12 @@ async function loadProjectCedis() {
 
     criteria.value.selectedCedisId =
       null
+
+    operationsCriteria.value.selectedCedisId =
+      null
+
+    operationsCriteria.value.originMode =
+      'coords'
 
     return
   }
@@ -993,6 +823,16 @@ async function loadProjectCedis() {
 
     criteria.value.selectedCedisId =
       selectedCedisId.value
+
+    operationsCriteria.value.selectedCedisId =
+      selectedCedisId.value
+
+    if (
+      !proyectoCedis.value.length
+    ) {
+      operationsCriteria.value.originMode =
+        'coords'
+    }
   } catch (
     error
   ) {
@@ -1009,7 +849,227 @@ async function loadProjectCedis() {
 
     criteria.value.selectedCedisId =
       null
+
+    operationsCriteria.value.selectedCedisId =
+      null
+
+    operationsCriteria.value.originMode =
+      'coords'
   }
+}
+
+/*
+ * ============================================================
+ * MOTOR INTEGRAL — UI / PAYLOAD
+ * ============================================================
+ */
+
+function updateOperationsCriteria(
+  value
+) {
+  if (
+    !value ||
+    typeof value !==
+      'object'
+  ) {
+    return
+  }
+
+  operationsCriteria.value = {
+    ...operationsCriteria.value,
+
+    ...value,
+
+    originCoords: {
+      ...operationsCriteria.value
+        .originCoords,
+
+      ...(
+        value.originCoords ||
+        {}
+      ),
+    },
+
+    options: {
+      ...operationsCriteria.value
+        .options,
+
+      ...(
+        value.options ||
+        {}
+      ),
+    },
+  }
+
+  if (
+    value.selectedCedisId !==
+    undefined
+  ) {
+    const normalizedCedisId =
+      Number(
+        value.selectedCedisId
+      )
+
+    selectedCedisId.value =
+      Number.isFinite(
+        normalizedCedisId
+      )
+        ? normalizedCedisId
+        : null
+  }
+}
+
+function openOperationsCompute() {
+  const project =
+    activeOperationsProject.value
+
+  if (
+    !project
+  ) {
+    alert(
+      'Selecciona primero un proyecto en el filtro del mapa.'
+    )
+
+    return
+  }
+
+  syncOperationScope(
+    project
+  )
+
+  const rememberedRegion =
+    operationsCriteria.value.region ||
+    ''
+
+  const region =
+    selectedLegendRegion.value ||
+    rememberedRegion
+
+  const scope =
+    selectedLegendRegion.value
+      ? 'REGION'
+      : operationsCriteria.value.scope ===
+          'REGION' &&
+        region
+        ? 'REGION'
+        : 'PROJECT'
+
+  openOperationsModal({
+    scope,
+
+    region,
+
+    routeMode:
+      operationsCriteria.value
+        .routeMode,
+
+    originMode:
+      proyectoCedis.value.length
+        ? operationsCriteria.value
+            .originMode
+        : 'coords',
+
+    selectedCedisId:
+      operationsCriteria.value
+        .selectedCedisId ??
+      selectedCedisId.value,
+
+    originCoords:
+      operationsCriteria.value
+        .originCoords,
+  })
+}
+
+async function handleOperationsCalculate(
+  value
+) {
+  updateOperationsCriteria(
+    value
+  )
+
+  const project =
+    activeOperationsProject.value
+
+  if (
+    !project
+  ) {
+    alert(
+      'Selecciona primero un proyecto.'
+    )
+
+    return
+  }
+
+  syncOperationScope(
+    project
+  )
+
+  const estado =
+    findStateForProject(
+      project
+    ) ||
+    criteria.value.estado ||
+    project
+
+  try {
+    await calculateOperation({
+      estado,
+
+      proyecto:
+        project,
+    })
+  } catch (
+    error
+  ) {
+    console.error(
+      '[MapPage][handleOperationsCalculate]',
+      error
+    )
+  }
+}
+
+function restoreOperationsMarkerScope() {
+  if (
+    !isOperations.value
+  ) {
+    return
+  }
+
+  if (
+    selectedLegendRegion.value
+  ) {
+    filterPharmacyMarkers({
+      proyecto:
+        selectedLegendProject.value ||
+        selectedProject.value,
+
+      region:
+        selectedLegendRegion.value,
+    })
+
+    return
+  }
+
+  if (
+    selectedLegendProject.value
+  ) {
+    filterPharmacyMarkers({
+      proyecto:
+        selectedLegendProject.value,
+    })
+
+    return
+  }
+
+  clearPharmacyMarkerFilter()
+}
+
+function handleCloseRoute() {
+  clearOperationsResult()
+
+  closeOperationsModal()
+
+  restoreOperationsMarkerScope()
 }
 
 /*
@@ -1061,6 +1121,7 @@ async function renderUnitsOnMap(
 
   await initMap({
     getColorForRegion,
+
     farmacias,
   })
 }
@@ -1365,43 +1426,9 @@ async function loadProjectFarmacias() {
 
 /*
  * ============================================================
- * CAMBIO DE PROYECTO
+ * NAVEGACIÓN OPERACIONES
  * ============================================================
  */
-
-async function handleProjectChange() {
-  handleCloseRoute()
-
-  clearCustomPoints()
-
-  addStopsItems.value =
-    []
-
-  selectedLegendProject.value =
-    selectedProject.value ||
-    null
-
-  selectedLegendRegion.value =
-    null
-
-  criteria.value.region =
-    ''
-
-  syncOperationScope(
-    selectedProject.value
-  )
-
-  await loadProjectCedis()
-
-  criteria.value.region =
-    regiones.value[0] ||
-    ''
-
-  filterPharmacyMarkers({
-    proyecto:
-      selectedProject.value,
-  })
-}
 
 async function handleLegendProject(
   project
@@ -1422,29 +1449,23 @@ async function handleLegendProject(
 
   handleCloseRoute()
 
-  clearCustomPoints()
-
-  addStopsItems.value =
-    []
-
   selectedLegendProject.value =
     normalized
 
   selectedLegendRegion.value =
     null
 
-  criteria.value.region =
+  operationsCriteria.value.region =
     ''
+
+  operationsCriteria.value.scope =
+    'PROJECT'
 
   syncOperationScope(
     normalized
   )
 
   await loadProjectCedis()
-
-  criteria.value.region =
-    regiones.value[0] ||
-    ''
 
   filterPharmacyMarkers({
     proyecto:
@@ -1455,7 +1476,15 @@ async function handleLegendProject(
 function handleLegendRegion(
   region
 ) {
+  handleCloseRoute()
+
   selectedLegendRegion.value =
+    region
+
+  operationsCriteria.value.scope =
+    'REGION'
+
+  operationsCriteria.value.region =
     region
 
   criteria.value.region =
@@ -1473,16 +1502,17 @@ function handleLegendRegion(
 function handleLegendBackProjects() {
   handleCloseRoute()
 
-  clearCustomPoints()
-
-  addStopsItems.value =
-    []
-
   selectedLegendProject.value =
     null
 
   selectedLegendRegion.value =
     null
+
+  operationsCriteria.value.region =
+    ''
+
+  operationsCriteria.value.scope =
+    'PROJECT'
 
   criteria.value.region =
     ''
@@ -1493,16 +1523,17 @@ function handleLegendBackProjects() {
 function handleLegendClear() {
   handleCloseRoute()
 
-  clearCustomPoints()
-
-  addStopsItems.value =
-    []
-
   selectedLegendProject.value =
     null
 
   selectedLegendRegion.value =
     null
+
+  operationsCriteria.value.region =
+    ''
+
+  operationsCriteria.value.scope =
+    'PROJECT'
 
   criteria.value.region =
     ''
@@ -2177,465 +2208,6 @@ function currentWebRole() {
 
 function prepareStructureChange() {
   handleCloseRoute()
-
-  clearCustomPoints()
-
-  addStopsItems.value =
-    []
-}
-
-/*
- * ============================================================
- * RUTA PERSONALIZADA
- * ============================================================
- */
-
-function openAddStopsModal() {
-  showRouteCart.value =
-    true
-
-  addStopsItems.value =
-    []
-
-  addStopsOpen.value =
-    true
-}
-
-function closeAddStopsModal() {
-  addStopsOpen.value =
-    false
-
-  addStopsItems.value =
-    []
-}
-
-function loadAddStopsRegion(
-  region
-) {
-  addStopsItems.value =
-    scopedFarmacias.value
-      .filter(
-        unit =>
-          unit.region_sanitaria ===
-          region
-      )
-      .sort(
-        (
-          a,
-          b
-        ) => {
-          const aa =
-            `${a.clues || ''} ${a.unidad || ''}`
-              .trim()
-              .toLowerCase()
-
-          const bb =
-            `${b.clues || ''} ${b.unidad || ''}`
-              .trim()
-              .toLowerCase()
-
-          return aa.localeCompare(
-            bb,
-            'es'
-          )
-        }
-      )
-}
-
-function handleAddStops(
-  ids
-) {
-  showRouteCart.value =
-    true
-
-  addCustomStops(
-    ids
-  )
-
-  closeAddStopsModal()
-}
-
-/*
- * ============================================================
- * POST ORDEN
- * ============================================================
- */
-
-function togglePostItem(
-  index
-) {
-  const item =
-    postOrder.value[index]
-
-  if (
-    !item
-  ) {
-    return
-  }
-
-  if (
-    !item.enabled &&
-    item.hard
-  ) {
-    const confirmed =
-      confirm(
-        `"${item.unidad || item.name}" está marcada como DIFÍCIL ACCESO.\n¿Quieres incluirla en la ruta de todos modos?`
-      )
-
-    if (
-      !confirmed
-    ) {
-      return
-    }
-  }
-
-  item.enabled =
-    !item.enabled
-}
-
-/*
- * ============================================================
- * FORMAT
- * ============================================================
- */
-
-const formatKm =
-  meters =>
-    fmtKm(
-      meters
-    )
-
-const formatDur =
-  duration =>
-    fmtDur(
-      duration
-    )
-
-/*
- * ============================================================
- * EJECUTAR CALCULADOR
- * ============================================================
- */
-
-async function handleRunCompute() {
-  const activeProject =
-    selectedLegendProject.value ||
-    selectedProject.value
-
-  if (
-    isOperations.value &&
-    !activeProject
-  ) {
-    alert(
-      'Selecciona primero un proyecto en el filtro del mapa.'
-    )
-
-    return
-  }
-
-  syncOperationScope(
-    activeProject
-  )
-
-  /*
-   * ==========================================================
-   * VALIDAR JURISDICCIÓN
-   * ==========================================================
-   */
-
-  if (
-    criteria.value.scope ===
-      'single' &&
-    !criteria.value.region
-  ) {
-    alert(
-      'Selecciona una jurisdicción/región sanitaria.'
-    )
-
-    return
-  }
-
-  /*
-   * ==========================================================
-   * VALIDAR ORIGEN CEDIS
-   * ==========================================================
-   */
-
-  if (
-    originMode.value ===
-    'cedis'
-  ) {
-    /*
-     * El proyecto simplemente no tiene CEDIS configurado.
-     */
-    if (
-      !proyectoCedis.value.length
-    ) {
-      alert(
-        `El proyecto ${activeProject} no tiene un CEDIS registrado.\n\nSelecciona "Buscar otro origen" y elige una ubicación antes de calcular la ruta.`
-      )
-
-      return
-    }
-
-    /*
-     * Sí existen CEDIS, pero el usuario no seleccionó uno.
-     */
-    if (
-      !selectedCedisId.value
-    ) {
-      alert(
-        'Debes seleccionar un CEDIS de origen antes de calcular la ruta.'
-      )
-
-      return
-    }
-  }
-
-  /*
-   * ==========================================================
-   * VALIDAR ORIGEN POR COORDENADAS / BÚSQUEDA
-   * ==========================================================
-   */
-
-  if (
-    originMode.value ===
-    'coords'
-  ) {
-    const lat =
-      Number(
-        criteria.value
-          .originCoords
-          ?.lat
-      )
-
-    const lng =
-      Number(
-        criteria.value
-          .originCoords
-          ?.lng
-      )
-
-    const validCoords =
-      Number.isFinite(
-        lat
-      ) &&
-      Number.isFinite(
-        lng
-      ) &&
-      lat >=
-        -90 &&
-      lat <=
-        90 &&
-      lng >=
-        -180 &&
-      lng <=
-        180
-
-    if (
-      !validCoords
-    ) {
-      alert(
-        'Debes seleccionar un origen antes de calcular la ruta.\n\nBusca una dirección, establecimiento o ubicación y selecciónala como origen.'
-      )
-
-      return
-    }
-  }
-
-  /*
-   * ==========================================================
-   * VALIDAR UNIDAD COMO ORIGEN
-   * ==========================================================
-   */
-
-  if (
-    originMode.value ===
-      'pharmacy' &&
-    !originPharmacyId.value
-  ) {
-    alert(
-      'Debes seleccionar una unidad de origen antes de calcular la ruta.'
-    )
-
-    return
-  }
-
-  /*
-   * ==========================================================
-   * TODO CORRECTO
-   * ==========================================================
-   */
-
-  criteria.value.selectedCedisId =
-    selectedCedisId.value
-
-  showRouteCart.value =
-    false
-
-  await runCompute()
-}
-
-/*
- * ============================================================
- * EJECUTAR RUTA PERSONALIZADA
- * ============================================================
- */
-
-async function handleRunCustomRoute() {
-  showRouteCart.value =
-    true
-
-  const activeProject =
-    selectedLegendProject.value ||
-    selectedProject.value
-
-  if (
-    !activeProject
-  ) {
-    alert(
-      'Selecciona primero un proyecto.'
-    )
-
-    return
-  }
-
-  syncOperationScope(
-    activeProject
-  )
-
-  await runCustomRoute()
-}
-
-function handleCloseRoute() {
-  onCloseRoute()
-
-  showRouteCart.value =
-    true
-}
-
-/*
- * ============================================================
- * EXPORTAR
- * ============================================================
- */
-
-async function exportToExcel() {
-  if (
-    !lastRawData.value
-  ) {
-    alert(
-      'No hay ruta calculada'
-    )
-
-    return
-  }
-
-  try {
-    await exportToExcelSingle({
-      criteria,
-      lastRegionUsed,
-      lastOriginUsed,
-      linkChunkSize,
-      lastRawData,
-      mapsLinks,
-      farmacias,
-    })
-  } catch (
-    error
-  ) {
-    console.error(
-      error
-    )
-
-    alert(
-      'Para exportar a Excel instala primero: npm i xlsx'
-    )
-  }
-}
-
-function exportCsvVisits() {
-  const visits =
-    (
-      lastRawData.value
-        ?.visitOrder ??
-      []
-    )
-      .filter(
-        point =>
-          point &&
-          point.name !==
-            'ORIGEN' &&
-          typeof point.lat ===
-            'number' &&
-          typeof point.lng ===
-            'number'
-      )
-      .map(
-        (
-          point,
-          index
-        ) => ({
-          orden:
-            index + 1,
-
-          id:
-            point.id,
-
-          nombre:
-            point.name,
-
-          lat:
-            point.lat,
-
-          lng:
-            point.lng,
-        })
-      )
-
-  if (
-    !visits.length
-  ) {
-    alert(
-      'No hay visitas'
-    )
-
-    return
-  }
-
-  exportCsv(
-    visits,
-    'visitas'
-  )
-}
-
-/*
- * ============================================================
- * PDF
- * ============================================================
- */
-
-const planPrintOpen =
-  ref(false)
-
-function openPlanPdf() {
-  if (
-    !canGeneratePdf.value
-  ) {
-    alert(
-      'Primero calcula una ruta personalizada válida.'
-    )
-
-    return
-  }
-
-  planPrintOpen.value =
-    true
-}
-
-function closePlanPdf() {
-  planPrintOpen.value =
-    false
 }
 
 /*
@@ -2692,9 +2264,10 @@ onMounted(
 )
 
 /*
- * ADMIN puede cambiar de área sin desmontar
- * necesariamente el mismo componente.
+ * ADMIN puede cambiar de área sin desmontar necesariamente
+ * el mismo componente.
  */
+
 watch(
   () =>
     profile.value?.area,
@@ -2712,11 +2285,6 @@ watch(
     }
 
     handleCloseRoute()
-
-    clearCustomPoints()
-
-    addStopsItems.value =
-      []
 
     if (
       nextArea ===
@@ -2744,7 +2312,6 @@ body,
 #map-wrapper {
   margin: 0;
   padding: 0;
-
   width: 100vw;
   height: 100vh;
 }
@@ -2762,20 +2329,13 @@ body,
 
 .farmacias-map-tools {
   position: absolute;
-
   top: 18px;
   right: 18px;
-
   z-index: 9999;
-
   display: flex;
-
   align-items: center;
-
   gap: 4px;
-
   padding: 5px;
-
   border:
     1px solid
     rgba(
@@ -2784,10 +2344,8 @@ body,
       225,
       .95
     );
-
   border-radius:
     13px;
-
   background:
     rgba(
       255,
@@ -2795,7 +2353,6 @@ body,
       255,
       .96
     );
-
   box-shadow:
     0 8px 24px
       rgba(
@@ -2804,7 +2361,6 @@ body,
         42,
         .14
       );
-
   backdrop-filter:
     blur(
       12px
@@ -2813,30 +2369,21 @@ body,
 
 .map-tool-button {
   position: relative;
-
   display: grid;
-
   width: 38px;
   height: 38px;
-
   place-items: center;
-
   padding: 0;
-
   border:
-    1px solid transparent;
-
+    1px solid
+    transparent;
   border-radius:
     9px;
-
   background:
     transparent;
-
   color:
     #64748b;
-
   cursor: pointer;
-
   transition:
     background .15s ease,
     border-color .15s ease,
@@ -2847,10 +2394,8 @@ body,
 .map-tool-button:hover {
   border-color:
     #dbeafe;
-
   background:
     #f8fbfe;
-
   color:
     #0f64ad;
 }
@@ -2865,7 +2410,6 @@ body,
 .map-tool-button.active {
   background:
     #eff8ff;
-
   color:
     #0f64ad;
 }
@@ -2873,71 +2417,50 @@ body,
 .map-tool-button svg {
   width: 20px;
   height: 20px;
-
   fill: none;
-
   stroke:
     currentColor;
-
   stroke-width:
     1.8;
-
   stroke-linecap:
     round;
-
   stroke-linejoin:
     round;
 }
 
 .map-tool-tooltip {
   position: absolute;
-
   top:
     calc(
       100% + 8px
     );
-
   right: 0;
-
   z-index: 10000;
-
   width:
     max-content;
-
   max-width:
     180px;
-
   padding:
     6px 8px;
-
   border-radius:
     7px;
-
   background:
     #0f172a;
-
   color:
     #ffffff !important;
-
   font-size:
-    10px;
-
+    12px;
   font-weight:
     700;
-
   line-height:
     1.2;
-
   opacity: 0;
-
   pointer-events:
     none;
-
   transform:
     translateY(
       -3px
     );
-
   transition:
     opacity .14s ease,
     transform .14s ease;
@@ -2946,83 +2469,10 @@ body,
 .map-tool-button:hover
 .map-tool-tooltip {
   opacity: 1;
-
   transform:
     translateY(
       0
     );
-}
-
-/*
- * ============================================================
- * OPERACIONES
- * ============================================================
- */
-
-.project-switch {
-  position: absolute;
-
-  top: 86px;
-  left: 20px;
-
-  z-index: 9999;
-
-  display: flex;
-
-  align-items: center;
-
-  gap: 8px;
-
-  padding:
-    10px 12px;
-
-  border:
-    1px solid
-    #d1d5db;
-
-  border-radius:
-    8px;
-
-  background:
-    #ffffff;
-
-  box-shadow:
-    0 2px 6px
-      rgba(
-        0,
-        0,
-        0,
-        .15
-      );
-
-  font-weight:
-    600;
-}
-
-.project-switch label {
-  font-size:
-    13px;
-}
-
-.project-switch select {
-  padding:
-    6px 8px;
-
-  border:
-    1px solid
-    #d1d5db;
-
-  border-radius:
-    6px;
-
-  background:
-    #ffffff;
-
-  color:
-    #111827;
-
-  font-weight:
-    600;
 }
 
 /*
@@ -3032,7 +2482,7 @@ body,
  *   color: #111827;
  * }
  *
- * porque pisaba texto blanco de botones internos.
+ * porque pisa texto blanco de botones internos.
  */
 
 #map-wrapper {
@@ -3045,17 +2495,6 @@ body,
     inherit;
 }
 
-.panel-separator {
-  margin:
-    12px 0;
-
-  border: 0;
-
-  border-top:
-    1px solid
-    #e5e7eb;
-}
-
 @media (
   max-width:
     640px
@@ -3063,9 +2502,7 @@ body,
   .farmacias-map-tools {
     top: 12px;
     right: 12px;
-
     gap: 3px;
-
     padding: 4px;
   }
 

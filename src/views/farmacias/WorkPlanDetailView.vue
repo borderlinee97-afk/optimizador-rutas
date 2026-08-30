@@ -1413,7 +1413,7 @@ function formatNumber(
 
   cursor: pointer;
 
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 850;
 }
 
@@ -1472,14 +1472,14 @@ function formatNumber(
 
   color: #0f64ad;
 
-  font-size: 14px;
+  font-size: 16px;
   font-weight: 900;
 }
 
 .hero-kicker {
   color: #0f64ad;
 
-  font-size: 9px;
+  font-size: 11px;
   font-weight: 900;
 
   text-transform: uppercase;
@@ -1501,7 +1501,7 @@ function formatNumber(
 
   color: #64748b;
 
-  font-size: 10px;
+  font-size: 12px;
 
   text-transform: capitalize;
 }
@@ -1530,7 +1530,7 @@ function formatNumber(
 
   border-radius: 999px;
 
-  font-size: 8px;
+  font-size: 10px;
   font-weight: 900;
 
   text-transform: uppercase;
@@ -1579,7 +1579,7 @@ function formatNumber(
 .hero-status small {
   color: #64748b;
 
-  font-size: 9px;
+  font-size: 11px;
 }
 
 .info-grid,
@@ -1617,7 +1617,7 @@ function formatNumber(
 .info-grid span {
   color: #94a3b8;
 
-  font-size: 8px;
+  font-size: 10px;
   font-weight: 850;
 
   text-transform: uppercase;
@@ -1628,7 +1628,7 @@ function formatNumber(
 
   color: #334155;
 
-  font-size: 10px;
+  font-size: 12px;
 
   line-height: 1.35;
 }
@@ -1649,7 +1649,7 @@ function formatNumber(
 .rejection-box strong {
   color: #b91c1c;
 
-  font-size: 10px;
+  font-size: 12px;
 }
 
 .rejection-box p {
@@ -1660,7 +1660,7 @@ function formatNumber(
 
   color: #7f1d1d;
 
-  font-size: 10px;
+  font-size: 12px;
 
   line-height: 1.5;
 }
@@ -1699,7 +1699,7 @@ function formatNumber(
 
   color: #64748b;
 
-  font-size: 8px;
+  font-size: 10px;
 
   text-transform: uppercase;
 }
@@ -1741,7 +1741,7 @@ function formatNumber(
 .section-heading span {
   color: #64748b;
 
-  font-size: 8px;
+  font-size: 10px;
   font-weight: 850;
 
   text-transform: uppercase;
@@ -1752,13 +1752,13 @@ function formatNumber(
 
   color: #0f172a;
 
-  font-size: 12px;
+  font-size: 14px;
 }
 
 .section-heading small {
   color: #64748b;
 
-  font-size: 9px;
+  font-size: 11px;
 }
 
 .day-group {
@@ -1792,7 +1792,7 @@ function formatNumber(
 .day-header span {
   color: #0f64ad;
 
-  font-size: 8px;
+  font-size: 10px;
   font-weight: 900;
 }
 
@@ -1801,7 +1801,7 @@ function formatNumber(
 
   color: #334155;
 
-  font-size: 10px;
+  font-size: 12px;
 
   text-transform: capitalize;
 }
@@ -1809,7 +1809,7 @@ function formatNumber(
 .day-header small {
   color: #64748b;
 
-  font-size: 8px;
+  font-size: 10px;
 }
 
 .visit-list {
@@ -1840,7 +1840,7 @@ function formatNumber(
 .visit-time {
   color: #0f64ad;
 
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 900;
 }
 
@@ -1860,7 +1860,7 @@ function formatNumber(
 .visit-name-row strong {
   color: #0f172a;
 
-  font-size: 10px;
+  font-size: 12px;
 }
 
 .visit-clues,
@@ -1905,7 +1905,7 @@ function formatNumber(
 
   color: #c2410c;
 
-  font-size: 8px;
+  font-size: 10px;
   font-weight: 800;
 }
 
@@ -1946,7 +1946,7 @@ function formatNumber(
 
   color: #0f64ad;
 
-  font-size: 9px;
+  font-size: 11px;
   font-weight: 900;
 }
 
@@ -1959,7 +1959,7 @@ function formatNumber(
 .revision-copy strong {
   color: #334155;
 
-  font-size: 9px;
+  font-size: 11px;
 }
 
 .revision-copy span {
@@ -1967,7 +1967,7 @@ function formatNumber(
 
   color: #94a3b8;
 
-  font-size: 8px;
+  font-size: 10px;
 }
 
 .revision-copy p {
@@ -1978,7 +1978,7 @@ function formatNumber(
 
   color: #64748b;
 
-  font-size: 9px;
+  font-size: 11px;
 }
 
 .empty-agenda,
@@ -1987,7 +1987,7 @@ function formatNumber(
 
   color: #94a3b8;
 
-  font-size: 10px;
+  font-size: 12px;
 
   text-align: center;
 }
@@ -2015,7 +2015,7 @@ function formatNumber(
 
   color: #64748b;
 
-  font-size: 10px;
+  font-size: 12px;
 }
 
 .spinner {
@@ -2051,13 +2051,13 @@ function formatNumber(
 .detail-error strong {
   color: #b91c1c;
 
-  font-size: 11px;
+  font-size: 13px;
 }
 
 .detail-error span {
   color: #7f1d1d;
 
-  font-size: 9px;
+  font-size: 11px;
 }
 
 @keyframes detail-spin {
@@ -2138,7 +2138,7 @@ function formatNumber(
 .review-copy span {
   color: #b45309;
 
-  font-size: 8px;
+  font-size: 10px;
   font-weight: 900;
 
   letter-spacing: .06em;
@@ -2151,7 +2151,7 @@ function formatNumber(
 
   color: #78350f;
 
-  font-size: 11px;
+  font-size: 13px;
 }
 
 .review-copy small {
@@ -2159,7 +2159,7 @@ function formatNumber(
 
   color: #92400e;
 
-  font-size: 9px;
+  font-size: 11px;
 }
 
 .review-buttons {
@@ -2178,7 +2178,7 @@ function formatNumber(
 
   cursor: pointer;
 
-  font-size: 9px;
+  font-size: 11px;
   font-weight: 900;
 }
 
@@ -2214,7 +2214,7 @@ function formatNumber(
 
   border-radius: 12px;
 
-  font-size: 9px;
+  font-size: 11px;
   font-weight: 750;
 }
 
@@ -2297,7 +2297,7 @@ function formatNumber(
 
   border-radius: 13px;
 
-  font-size: 16px;
+  font-size: 17px;
   font-weight: 900;
 }
 
@@ -2320,7 +2320,7 @@ function formatNumber(
 
   color: #0f64ad;
 
-  font-size: 8px;
+  font-size: 10px;
   font-weight: 900;
 
   letter-spacing: .07em;
@@ -2344,7 +2344,7 @@ function formatNumber(
 
   color: #64748b;
 
-  font-size: 10px;
+  font-size: 12px;
 
   line-height: 1.5;
 }
@@ -2395,7 +2395,7 @@ function formatNumber(
 
   color: #334155;
 
-  font-size: 9px;
+  font-size: 11px;
 
   line-height: 1.4;
 }
@@ -2428,7 +2428,7 @@ function formatNumber(
 
   font: inherit;
 
-  font-size: 10px;
+  font-size: 12px;
 
   line-height: 1.5;
 }
@@ -2451,7 +2451,7 @@ function formatNumber(
 
   color: #94a3b8;
 
-  font-size: 8px;
+  font-size: 10px;
 
   text-align: right;
 }
@@ -2490,7 +2490,7 @@ function formatNumber(
 
   cursor: pointer;
 
-  font-size: 9px;
+  font-size: 11px;
   font-weight: 900;
 }
 

@@ -1681,7 +1681,7 @@ onMounted(
 
 .people-kicker {
   color: #0f64ad;
-  font-size: 12px;
+  font-size: 14px;
   font-weight: 850;
   letter-spacing: .09em;
   text-transform: uppercase;
@@ -1700,7 +1700,7 @@ onMounted(
   max-width: 680px;
   margin: 0;
   color: #64748b;
-  font-size: 14px;
+  font-size: 16px;
   line-height: 1.6;
 }
 
@@ -1717,7 +1717,7 @@ onMounted(
   background: #fff;
   color: #334155;
   cursor: pointer;
-  font-size: 12px;
+  font-size: 14px;
   font-weight: 800;
 }
 
@@ -1765,7 +1765,7 @@ onMounted(
 
 :deep(.summary-card > span) {
   color: #64748b;
-  font-size: 11px;
+  font-size: 13px;
   font-weight: 750;
 }
 
@@ -1777,7 +1777,7 @@ onMounted(
 :deep(.summary-card > small) {
   margin-top: auto;
   color: #94a3b8;
-  font-size: 10px;
+  font-size: 12px;
 }
 
 .people-panel {
@@ -1821,7 +1821,7 @@ onMounted(
   background: transparent;
   color: #64748b;
   cursor: pointer;
-  font-size: 11px;
+  font-size: 13px;
   font-weight: 850;
 }
 
@@ -1835,7 +1835,7 @@ onMounted(
 
 .result-count {
   color: #64748b;
-  font-size: 11px;
+  font-size: 13px;
   font-weight: 700;
 }
 
@@ -1889,7 +1889,7 @@ onMounted(
   border: 0;
   background: transparent;
   color: #0f172a;
-  font-size: 12px;
+  font-size: 14px;
 }
 
 .filters select,
@@ -1902,7 +1902,7 @@ onMounted(
   border-radius: 13px;
   background: #fff;
   color: #334155;
-  font-size: 11px;
+  font-size: 13px;
   font-weight: 700;
 }
 
@@ -1963,7 +1963,7 @@ onMounted(
 :deep(.person-card-title span) {
   display: block;
   color: #0f64ad;
-  font-size: 9px;
+  font-size: 11px;
   font-weight: 850;
   letter-spacing: .06em;
   text-transform: uppercase;
@@ -1974,7 +1974,7 @@ onMounted(
   margin-top: 4px;
   overflow: hidden;
   color: #0f172a;
-  font-size: 12px;
+  font-size: 14px;
   line-height: 1.4;
   text-overflow: ellipsis;
 }
@@ -1988,7 +1988,7 @@ onMounted(
   border-radius: 14px;
   background: #eaf4fc;
   color: #0f64ad;
-  font-size: 12px;
+  font-size: 14px;
   font-weight: 900;
 }
 
@@ -2012,7 +2012,7 @@ onMounted(
   height: 35px;
   flex-basis: 35px;
   border-radius: 11px;
-  font-size: 10px;
+  font-size: 12px;
 }
 
 :deep(.status-badge),
@@ -2020,7 +2020,7 @@ onMounted(
   display: inline-flex;
   align-items: center;
   border-radius: 999px;
-  font-size: 9px;
+  font-size: 11px;
   font-weight: 800;
   white-space: nowrap;
 }
@@ -2061,7 +2061,7 @@ onMounted(
   padding:
     4px
     7px;
-  font-size: 8px;
+  font-size: 10px;
 }
 
 :deep(.person-card-body) {
@@ -2078,14 +2078,14 @@ onMounted(
 
 :deep(.person-card-body span) {
   color: #94a3b8;
-  font-size: 9px;
+  font-size: 11px;
   font-weight: 700;
 }
 
 :deep(.person-card-body strong) {
   overflow: hidden;
   color: #475569;
-  font-size: 10px;
+  font-size: 12px;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -2116,14 +2116,14 @@ onMounted(
 }
 
 :deep(.person-card-metrics strong) {
-  font-size: 14px;
+  font-size: 16px;
 }
 
 :deep(.person-card-metrics span) {
   margin-top: 2px;
   overflow: hidden;
   color: #94a3b8;
-  font-size: 8px;
+  font-size: 10px;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -2140,7 +2140,7 @@ onMounted(
 
 :deep(.open-detail) {
   color: #0f64ad;
-  font-size: 9px;
+  font-size: 11px;
   font-weight: 850;
 }
 
@@ -2177,7 +2177,7 @@ onMounted(
 .hierarchy-head span {
   display: block;
   color: #0f64ad;
-  font-size: 9px;
+  font-size: 11px;
   font-weight: 850;
   text-transform: uppercase;
 }
@@ -2185,14 +2185,14 @@ onMounted(
 .hierarchy-head strong {
   display: block;
   margin-top: 4px;
-  font-size: 12px;
+  font-size: 14px;
 }
 
 .hierarchy-head small {
   display: block;
   margin-top: 3px;
   color: #64748b;
-  font-size: 9px;
+  font-size: 11px;
 }
 
 .hierarchy-units {
@@ -2208,7 +2208,7 @@ onMounted(
 .hierarchy-units span {
   margin-top: 2px;
   color: #64748b;
-  font-size: 8px;
+  font-size: 10px;
 }
 
 .hierarchy-children {
@@ -2248,7 +2248,7 @@ onMounted(
 .hierarchy-child strong {
   display: block;
   overflow: hidden;
-  font-size: 10px;
+  font-size: 12px;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -2257,14 +2257,14 @@ onMounted(
   display: block;
   margin-top: 3px;
   color: #64748b;
-  font-size: 8px;
+  font-size: 10px;
 }
 
 .hierarchy-empty {
   padding: 18px;
   border-top: 1px solid #edf2f7;
   color: #94a3b8;
-  font-size: 10px;
+  font-size: 12px;
   text-align: center;
 }
 
@@ -2298,7 +2298,7 @@ onMounted(
 :deep(.empty-state strong),
 .state-panel strong {
   margin-top: 12px;
-  font-size: 15px;
+  font-size: 16px;
 }
 
 :deep(.empty-state span),
@@ -2306,7 +2306,7 @@ onMounted(
   max-width: 430px;
   margin-top: 7px;
   color: #64748b;
-  font-size: 11px;
+  font-size: 13px;
   line-height: 1.5;
 }
 
@@ -2346,7 +2346,7 @@ onMounted(
   background: #0f64ad;
   color: #fff;
   cursor: pointer;
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 800;
 }
 
@@ -2400,7 +2400,7 @@ onMounted(
 
 .drawer-person span {
   color: #0f64ad;
-  font-size: 9px;
+  font-size: 11px;
   font-weight: 850;
   text-transform: uppercase;
 }
@@ -2410,7 +2410,7 @@ onMounted(
     4px
     0
     0;
-  font-size: 15px;
+  font-size: 16px;
   line-height: 1.35;
 }
 
@@ -2453,7 +2453,7 @@ onMounted(
     0
     13px;
   color: #0f172a;
-  font-size: 12px;
+  font-size: 14px;
 }
 
 :deep(.detail-rows) {
@@ -2470,14 +2470,14 @@ onMounted(
 
 :deep(.detail-row span) {
   color: #64748b;
-  font-size: 10px;
+  font-size: 12px;
 }
 
 :deep(.detail-row strong) {
   max-width: 62%;
   overflow-wrap: anywhere;
   color: #334155;
-  font-size: 10px;
+  font-size: 12px;
   text-align: right;
 }
 
@@ -2486,7 +2486,7 @@ onMounted(
     "SFMono-Regular",
     Consolas,
     monospace;
-  font-size: 8px;
+  font-size: 10px;
 }
 
 .read-only-note {
@@ -2495,7 +2495,7 @@ onMounted(
   border-radius: 15px;
   background: #eff6ff;
   color: #1e40af;
-  font-size: 10px;
+  font-size: 12px;
   line-height: 1.55;
 }
 

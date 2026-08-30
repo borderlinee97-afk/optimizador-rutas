@@ -58,7 +58,7 @@ defineEmits(['toggle-collapsed'])
 }
 
 .panel-eyebrow {
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 700;
   letter-spacing: 0.04em;
   text-transform: uppercase;
@@ -69,7 +69,7 @@ defineEmits(['toggle-collapsed'])
 .panel-header h4 {
   margin: 0;
   color: #111827;
-  font-size: 15px;
+  font-size: 16px;
   font-weight: 700;
   line-height: 1.2;
 }
@@ -109,7 +109,7 @@ defineEmits(['toggle-collapsed'])
   border-radius: 8px;
   padding: 6px 9px;
   cursor: pointer;
-  font-size: 11px;
+  font-size: 13px;
   font-weight: 600;
   line-height: 1;
   white-space: nowrap;
@@ -152,7 +152,7 @@ defineEmits(['toggle-collapsed'])
 .panel-body :deep(.hint),
 .panel-body :deep(.section-subtitle),
 .panel-body :deep(.module-help) {
-  font-size: 11px;
+  font-size: 13px;
   line-height: 1.3;
 }
 
@@ -163,7 +163,7 @@ defineEmits(['toggle-collapsed'])
 .panel-body :deep(.btn-ghost),
 .panel-body :deep(.btn-mini),
 .panel-body :deep(.alink) {
-  font-size: 12px;
+  font-size: 14px;
 }
 
 .panel-body :deep(select),
@@ -227,7 +227,7 @@ defineEmits(['toggle-collapsed'])
   }
 
   .panel-header h4 {
-    font-size: 14px;
+    font-size: 16px;
   }
 }
 
@@ -268,7 +268,7 @@ defineEmits(['toggle-collapsed'])
   }
 
   .panel-header h4 {
-    font-size: 14px;
+    font-size: 16px;
   }
 
   .btn-mini {
