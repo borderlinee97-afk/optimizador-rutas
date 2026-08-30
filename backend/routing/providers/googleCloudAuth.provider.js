@@ -128,14 +128,58 @@ export async function getGoogleCloudAuthClient() {
   try {
     const auth = getGoogleCloudAuth()
 
-    return await auth.getClient()
+    const client =
+      await auth.getClient()
+
+    console.log(
+      '[google-cloud-auth] ADC_CLIENT_OK',
+      {
+        projectId:
+          process.env.GOOGLE_CLOUD_PROJECT_ID ||
+          null,
+
+        credentialsPathConfigured:
+          Boolean(
+            process.env.GOOGLE_APPLICATION_CREDENTIALS
+          )
+      }
+    )
+
+    return client
   } catch (error) {
+    console.error(
+      '[google-cloud-auth] ADC_CLIENT_ERROR',
+      {
+        code:
+          'GOOGLE_ADC_CLIENT_ERROR',
+
+        projectId:
+          process.env.GOOGLE_CLOUD_PROJECT_ID ||
+          null,
+
+        credentialsPathConfigured:
+          Boolean(
+            process.env.GOOGLE_APPLICATION_CREDENTIALS
+          ),
+
+        message:
+          error?.message ||
+          String(error)
+      }
+    )
+
     throw new GoogleCloudAuthError(
       'No fue posible obtener credenciales Application Default Credentials.',
       {
-        code: 'GOOGLE_ADC_CLIENT_ERROR',
-        details: error?.message || String(error),
-        cause: error
+        code:
+          'GOOGLE_ADC_CLIENT_ERROR',
+
+        details:
+          error?.message ||
+          String(error),
+
+        cause:
+          error
       }
     )
   }
@@ -220,72 +264,136 @@ export async function requestGoogleCloudJson({
     throw new GoogleCloudAuthError(
       'requestGoogleCloudJson requiere una URL.',
       {
-        code: 'GOOGLE_CLOUD_URL_REQUIRED'
+        code:
+          'GOOGLE_CLOUD_URL_REQUIRED'
       }
     )
   }
 
-  const projectId = getGoogleCloudProjectId()
-  const client = await getGoogleCloudAuthClient()
+  const projectId =
+    getGoogleCloudProjectId()
 
-  try {
-    const response = await client.request({
-      url,
+  const client =
+    await getGoogleCloudAuthClient()
+
+  console.log(
+    '[google-cloud-auth] REQUEST_START',
+    {
+      projectId,
 
       method,
 
-      data,
-
-      headers: {
-        Accept: 'application/json',
-        'Content-Type': 'application/json',
-
-        /*
-         * Especialmente importante cuando DEV utiliza
-         * credenciales ADC de usuario.
-         */
-        'X-Goog-User-Project': projectId,
-
-        ...headers
-      },
-
-      ...(signal
-        ? {
-            signal
+      host:
+        (() => {
+          try {
+            return new URL(
+              url
+            ).host
+          } catch {
+            return null
           }
-        : {})
-    })
+        })()
+    }
+  )
+
+  try {
+    const response =
+      await client.request({
+        url,
+
+        method,
+
+        data,
+
+        headers: {
+          Accept:
+            'application/json',
+
+          'Content-Type':
+            'application/json',
+
+          'X-Goog-User-Project':
+            projectId,
+
+          ...headers
+        },
+
+        ...(signal
+          ? {
+              signal
+            }
+          : {})
+      })
+
+    console.log(
+      '[google-cloud-auth] REQUEST_OK',
+      {
+        projectId,
+
+        status:
+          response.status
+      }
+    )
 
     return {
-      status: response.status,
-      data: response.data,
-      headers: response.headers
+      status:
+        response.status,
+
+      data:
+        response.data,
+
+      headers:
+        response.headers
     }
   } catch (error) {
-    /*
-     * Conservamos información HTTP porque el provider
-     * consumidor necesita distinguir:
-     *
-     * 400 = modelo/request
-     * 401 = autenticación
-     * 403 = IAM
-     * 429 = cuota
-     * 5xx = Google
-     */
+    const status =
+      error?.response?.status ??
+      null
+
+    const googleError =
+      error?.response?.data?.error ??
+      null
+
+    console.error(
+      '[google-cloud-auth] REQUEST_ERROR',
+      {
+        code:
+          'GOOGLE_CLOUD_REQUEST_ERROR',
+
+        projectId,
+
+        status,
+
+        googleCode:
+          googleError?.code ??
+          null,
+
+        googleStatus:
+          googleError?.status ??
+          null,
+
+        googleMessage:
+          googleError?.message ??
+          null,
+
+        message:
+          error?.message ||
+          String(error)
+      }
+    )
 
     throw new GoogleCloudAuthError(
       `La solicitud autenticada a Google Cloud falló${
-        error?.response?.status
-          ? ` con HTTP ${error.response.status}`
+        status
+          ? ` con HTTP ${status}`
           : ''
       }.`,
       {
-        code: 'GOOGLE_CLOUD_REQUEST_ERROR',
+        code:
+          'GOOGLE_CLOUD_REQUEST_ERROR',
 
         details: {
-          status:
-            error?.response?.status ??
-            null,
+          status,
 
           data:
             error?.response?.data ??
@@ -296,7 +404,8 @@ export async function requestGoogleCloudJson({
             String(error)
         },
 
-        cause: error
+        cause:
+          error
       }
     )
   }
