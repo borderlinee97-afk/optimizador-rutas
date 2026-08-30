@@ -2593,9 +2593,138 @@ export function buildRecommendedPlanningResult({
   timings = {},
   metadata = {}
 } = {}) {
-  const routes =
+  /*
+   * ==========================================================
+   * ENRIQUECER RUTAS DEL PLANNER CON VALIDACIÓN DE CARRETERA
+   * ==========================================================
+   *
+   * Route Optimization puede producir correctamente:
+   *
+   * - secuencia
+   * - distancias
+   * - tiempos
+   * - visitas
+   *
+   * pero no necesariamente entregar routePolyline.
+   *
+   * Posteriormente routeFinalValidation valida cada recorrido
+   * mediante Google Routes y obtiene:
+   *
+   * finalValidation.routes[n].roadValidation.polyline
+   *
+   * Esa geometría debe propagarse al contrato final de
+   * operation.routes para que el frontend pueda dibujarla.
+   *
+   * La polyline original del planner mantiene prioridad.
+   * La validación carretera funciona como fallback.
+   * ==========================================================
+   */
+
+  const plannerRoutes =
     asArray(
       planner?.routes
+    )
+
+  const finalValidationRoutes =
+    asArray(
+      finalValidation?.routes
+    )
+
+  const routes =
+    plannerRoutes.map(
+      (
+        route,
+        routeIndex
+      ) => {
+        /*
+         * Primero intentamos empatar mediante routeIndex.
+         *
+         * Si por alguna razón el contrato de validación no
+         * contiene routeIndex utilizable, utilizamos
+         * vehicleIndex y finalmente la misma posición
+         * del arreglo como fallback controlado.
+         */
+
+        const validatedRoute =
+          finalValidationRoutes.find(
+            candidate =>
+              candidate?.routeIndex ===
+              routeIndex
+          ) ||
+          finalValidationRoutes.find(
+            candidate =>
+              (
+                route?.vehicleIndex !==
+                  null &&
+                route?.vehicleIndex !==
+                  undefined &&
+                candidate?.vehicleIndex ===
+                  route?.vehicleIndex
+              )
+          ) ||
+          finalValidationRoutes[
+            routeIndex
+          ] ||
+          null
+
+        /*
+         * La ruta del planner puede contener polyline.
+         *
+         * Para compatibilidad también contemplamos
+         * routePolyline.points / encodedPolyline.
+         */
+
+        const plannerPolyline =
+          route?.polyline ||
+          route
+            ?.routePolyline
+            ?.points ||
+          route
+            ?.routePolyline
+            ?.encodedPolyline ||
+          route
+            ?.raw
+            ?.routePolyline
+            ?.points ||
+          route
+            ?.raw
+            ?.routePolyline
+            ?.encodedPolyline ||
+          null
+
+        /*
+         * Google Routes es la geometría carretera final
+         * obtenida durante routeFinalValidation.
+         */
+
+        const roadValidationPolyline =
+          validatedRoute
+            ?.roadValidation
+            ?.polyline ||
+          null
+
+        const resolvedPolyline =
+          plannerPolyline ||
+          roadValidationPolyline ||
+          null
+
+        /*
+         * Siempre devolvemos una copia de la ruta para evitar
+         * mutar planner.routes.
+         *
+         * Si ninguna fuente produjo geometría, polyline queda
+         * null y el resultado sigue siendo utilizable:
+         * la ausencia de polyline no convierte una ruta válida
+         * en FAILED.
+         */
+
+        return {
+          ...route,
+
+          polyline:
+            resolvedPolyline
+        }
+      }
     )
 
   return buildOperationalResult({
