@@ -180,7 +180,10 @@ export const PLANNING_ROUTE_MODE =
       'ROUND_TRIP',
 
     FOREIGN_ROUTE:
-      'FOREIGN_ROUTE'
+      'FOREIGN_ROUTE',
+
+    HYBRID_PROJECT:
+      'HYBRID_PROJECT'
   })
 
 /**
@@ -291,6 +294,15 @@ function normalizeRouteMode(
   ) {
     return PLANNING_ROUTE_MODE
       .FOREIGN_ROUTE
+  }
+
+  if (
+    normalized ===
+    PLANNING_ROUTE_MODE
+      .HYBRID_PROJECT
+  ) {
+    return PLANNING_ROUTE_MODE
+      .HYBRID_PROJECT
   }
 
   return normalized ||
@@ -1331,6 +1343,12 @@ export function buildPlanningSummary({
       capacityIndependent:
         true,
 
+      composition:
+        null,
+
+      hybridFeasibility:
+        null,
+
       demand: {
         totalDestinations:
           null,
@@ -1474,6 +1492,28 @@ export function buildPlanningSummary({
     asArray(
       planner.routes
     )
+
+  const hybridComposition =
+    routeMode ===
+      PLANNING_ROUTE_MODE
+        .HYBRID_PROJECT
+      ? (
+          planner
+            ?.composition ||
+          null
+        )
+      : null
+
+  const hybridFeasibility =
+    routeMode ===
+      PLANNING_ROUTE_MODE
+        .HYBRID_PROJECT
+      ? (
+          planner
+            ?.hybridFeasibility ||
+          null
+        )
+      : null
 
   const assignedDestinations =
     countUniqueAssignedDestinations(
@@ -1710,6 +1750,11 @@ export function buildPlanningSummary({
      */
     capacityIndependent:
       true,
+
+    composition:
+      hybridComposition,
+
+    hybridFeasibility,
 
     demand: {
       totalDestinations,

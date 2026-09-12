@@ -88,7 +88,10 @@ export const INTEGRAL_ROUTE_MODES =
       'ROUND_TRIP',
 
     FOREIGN_ROUTE:
-      'FOREIGN_ROUTE'
+      'FOREIGN_ROUTE',
+
+    HYBRID_PROJECT:
+      'HYBRID_PROJECT'
   })
 
 export class IntegralPlanningGatewayError
@@ -282,6 +285,14 @@ function normalizeRouteMode(
     return mode
   }
 
+  if (
+    mode ===
+    INTEGRAL_ROUTE_MODES
+      .HYBRID_PROJECT
+  ) {
+    return mode
+  }
+
   throw new IntegralPlanningGatewayError(
     `routeMode no soportado por ${INTEGRAL_MOTOR_MODE}: ${String(value)}`,
     {
@@ -300,7 +311,10 @@ function normalizeRouteMode(
             .ROUND_TRIP,
 
           INTEGRAL_ROUTE_MODES
-            .FOREIGN_ROUTE
+            .FOREIGN_ROUTE,
+
+          INTEGRAL_ROUTE_MODES
+            .HYBRID_PROJECT
         ]
       }
     }
@@ -1875,6 +1889,1277 @@ async function executeForeignPlanning({
 
 /**
  * ============================================================
+ * HYBRID_PROJECT
+ * ============================================================
+ *
+ * Orquestador de proyecto completo.
+ *
+ * PRINCIPIO:
+ *
+ * 1. La demanda se divide inicialmente por región sanitaria.
+ *
+ * 2. Cada región intenta primero ROUND_TRIP.
+ *
+ * 3. Si ROUND_TRIP no resulta técnicamente viable,
+ *    la región pasa automáticamente a FOREIGN_ROUTE.
+ *
+ * 4. Los dos motores existentes siguen siendo la autoridad
+ *    técnica. HYBRID_PROJECT únicamente los coordina.
+ *
+ * 5. El resultado consolida:
+ *
+ *    - cobertura
+ *    - rutas ida/vuelta
+ *    - expediciones foráneas
+ *    - operadores requeridos
+ *    - vehículos requeridos
+ *    - días de ejecución
+ *    - kilómetros
+ *    - tiempos
+ *
+ * 6. La capacidad real disponible NO modifica la necesidad
+ *    recomendada por el planner.
+ *
+ * ============================================================
+ */
+
+async function executeHybridProjectPlanning({
+  origin,
+  points,
+  planningDate,
+  timeZone,
+  roundTripPolicy,
+  foreignPolicy,
+  avoidTolls,
+  maxSolverCalls,
+  warnings
+}) {
+  const HYBRID_ROUTE_MODE =
+    'HYBRID_PROJECT'
+
+  /*
+   * ==========================================================
+   * HELPERS
+   * ==========================================================
+   */
+
+  const finiteNumber =
+    value => {
+      if (
+        value === null ||
+        value === undefined ||
+        value === ''
+      ) {
+        return null
+      }
+
+      const number =
+        Number(value)
+
+      return Number.isFinite(number)
+        ? number
+        : null
+    }
+
+  const sum =
+    values =>
+      values.reduce(
+        (
+          total,
+          value
+        ) => {
+          const number =
+            finiteNumber(value)
+
+          return (
+            total +
+            (
+              number ??
+              0
+            )
+          )
+        },
+        0
+      )
+
+  const maximum =
+    values => {
+      const numbers =
+        values
+          .map(
+            finiteNumber
+          )
+          .filter(
+            value =>
+              value !==
+              null
+          )
+
+      if (
+        !numbers.length
+      ) {
+        return null
+      }
+
+      return Math.max(
+        ...numbers
+      )
+    }
+
+  const getPointKey =
+    (
+      point,
+      index = 0
+    ) => {
+      if (
+        point?.__plannerKey
+      ) {
+        return String(
+          point.__plannerKey
+        )
+      }
+
+      if (
+        point?.id !==
+          null &&
+        point?.id !==
+          undefined
+      ) {
+        return (
+          `id:${String(point.id)}`
+        )
+      }
+
+      return [
+        'geo',
+        Number(
+          point?.lat
+        ),
+        Number(
+          point?.lng
+        ),
+        index
+      ].join(':')
+    }
+
+  const getPointRegion =
+    point =>
+      normalizeOptionalText(
+        point?.meta?.region_sanitaria ??
+        point?.meta?.regionSanitaria ??
+        point?.regionSanitaria ??
+        point?.region_sanitaria ??
+        point?.region ??
+        point?.jurisdiccion ??
+        point?.jurisdicción
+      ) ||
+      'SIN_REGION'
+
+  /*
+   * ==========================================================
+   * AGRUPACIÓN TERRITORIAL INICIAL
+   * ==========================================================
+   *
+   * La región sanitaria funciona como partición territorial
+   * estable para esta primera versión del coordinador.
+   *
+   * El motor sigue decidiendo posteriormente si esa demanda
+   * corresponde a ROUND_TRIP o FOREIGN_ROUTE.
+   * ==========================================================
+   */
+
+  const groupsByRegion =
+    new Map()
+
+  for (
+    const point
+    of asArray(points)
+  ) {
+    const region =
+      getPointRegion(
+        point
+      )
+
+    if (
+      !groupsByRegion.has(
+        region
+      )
+    ) {
+      groupsByRegion.set(
+        region,
+        []
+      )
+    }
+
+    groupsByRegion
+      .get(region)
+      .push(point)
+  }
+
+  const groups =
+    Array.from(
+      groupsByRegion.entries()
+    )
+      .map(
+        (
+          [
+            region,
+            regionPoints
+          ]
+        ) => ({
+          region,
+          points:
+            regionPoints
+        })
+      )
+      .sort(
+        (
+          a,
+          b
+        ) =>
+          a.region.localeCompare(
+            b.region,
+            'es'
+          )
+      )
+
+  /*
+   * ==========================================================
+   * RESULTADOS PARCIALES
+   * ==========================================================
+   */
+
+  const selectedExecutions =
+    []
+
+  const failedGroups =
+    []
+
+  /*
+   * ==========================================================
+   * EVALUACIÓN DE CADA TERRITORIO
+   * ==========================================================
+   */
+
+  for (
+    const group
+    of groups
+  ) {
+    /*
+     * --------------------------------------------------------
+     * 1. PRIMER INTENTO: ROUND_TRIP
+     * --------------------------------------------------------
+     */
+
+    let roundTripExecution =
+      null
+
+    try {
+      roundTripExecution =
+        await executeRoundTripPlanning({
+          origin,
+
+          points:
+            group.points,
+
+          planningDate,
+
+          timeZone,
+
+          policy:
+            roundTripPolicy,
+
+          avoidTolls,
+
+          maxSolverCalls,
+
+          warnings
+        })
+    } catch (
+      error
+    ) {
+      warnings.push({
+        severity:
+          'WARNING',
+
+        code:
+          'HYBRID_ROUND_TRIP_EVALUATION_ERROR',
+
+        message:
+          `No fue posible completar la evaluación ROUND_TRIP de ${group.region}. Se intentará como FOREIGN_ROUTE.`,
+
+        details: {
+          region:
+            group.region,
+
+          error:
+            serializeError(
+              error
+            )
+        }
+      })
+    }
+
+    if (
+      roundTripExecution
+        ?.planner
+        ?.feasible ===
+      true
+    ) {
+      selectedExecutions.push({
+        region:
+          group.region,
+
+        mode:
+          INTEGRAL_ROUTE_MODES
+            .ROUND_TRIP,
+
+        points:
+          group.points,
+
+        execution:
+          roundTripExecution
+      })
+
+      continue
+    }
+
+    /*
+     * --------------------------------------------------------
+     * 2. SEGUNDO INTENTO: FOREIGN_ROUTE
+     * --------------------------------------------------------
+     */
+
+    let foreignExecution =
+      null
+
+    try {
+      foreignExecution =
+        await executeForeignPlanning({
+          origin,
+
+          points:
+            group.points,
+
+          planningDate,
+
+          timeZone,
+
+          policy:
+            foreignPolicy,
+
+          avoidTolls,
+
+          maxSolverCalls,
+
+          warnings
+        })
+    } catch (
+      error
+    ) {
+      warnings.push({
+        severity:
+          'WARNING',
+
+        code:
+          'HYBRID_FOREIGN_EVALUATION_ERROR',
+
+        message:
+          `No fue posible completar la evaluación FOREIGN_ROUTE de ${group.region}.`,
+
+        details: {
+          region:
+            group.region,
+
+          error:
+            serializeError(
+              error
+            )
+        }
+      })
+    }
+
+    if (
+      foreignExecution
+        ?.planner
+        ?.feasible ===
+      true
+    ) {
+      selectedExecutions.push({
+        region:
+          group.region,
+
+        mode:
+          INTEGRAL_ROUTE_MODES
+            .FOREIGN_ROUTE,
+
+        points:
+          group.points,
+
+        execution:
+          foreignExecution
+      })
+
+      continue
+    }
+
+    /*
+     * --------------------------------------------------------
+     * 3. TERRITORIO NO RESUELTO
+     * --------------------------------------------------------
+     */
+
+    failedGroups.push({
+      region:
+        group.region,
+
+      pointCount:
+        group.points.length,
+
+      pointKeys:
+        group.points
+          .map(
+            getPointKey
+          )
+          .filter(
+            key =>
+              key !==
+              null &&
+              key !==
+              undefined
+          ),
+
+      roundTripPlanner:
+        roundTripExecution
+          ?.planner ??
+        null,
+
+      foreignPlanner:
+        foreignExecution
+          ?.planner ??
+        null
+    })
+  }
+
+  /*
+   * ==========================================================
+   * CONSOLIDACIÓN DE RUTAS
+   * ==========================================================
+   */
+
+  const routes =
+    []
+
+  let nextRouteIndex =
+    0
+
+  for (
+    const selected
+    of selectedExecutions
+  ) {
+    const childPlanner =
+      selected
+        .execution
+        ?.planner
+
+    const childFinalRoutes =
+      asArray(
+        selected
+          .execution
+          ?.finalValidation
+          ?.routes
+      )
+
+    const childRoutes =
+      asArray(
+        childPlanner
+          ?.routes
+      )
+
+    for (
+      let childRouteIndex = 0;
+      childRouteIndex <
+        childRoutes.length;
+      childRouteIndex++
+    ) {
+      const route =
+        childRoutes[
+          childRouteIndex
+        ]
+
+      const validatedRoute =
+        childFinalRoutes.find(
+          candidate =>
+            candidate
+              ?.routeIndex ===
+            childRouteIndex
+        ) ||
+        childFinalRoutes[
+          childRouteIndex
+        ] ||
+        null
+
+      const resolvedPolyline =
+        route?.polyline ||
+        route
+          ?.routePolyline
+          ?.points ||
+        route
+          ?.routePolyline
+          ?.encodedPolyline ||
+        validatedRoute
+          ?.roadValidation
+          ?.polyline ||
+        null
+
+      routes.push({
+        ...route,
+
+        routeIndex:
+          nextRouteIndex,
+
+        polyline:
+          resolvedPolyline,
+
+        hybrid: {
+          mode:
+            selected.mode,
+
+          region:
+            selected.region,
+
+          childRouteIndex
+        }
+      })
+
+      nextRouteIndex++
+    }
+  }
+
+  /*
+   * ==========================================================
+   * COBERTURA
+   * ==========================================================
+   */
+
+  const expectedPointKeys =
+    new Set(
+      asArray(points)
+        .map(
+          getPointKey
+        )
+        .filter(
+          key =>
+            key !==
+            null &&
+            key !==
+            undefined
+        )
+        .map(
+          key =>
+            String(key)
+        )
+    )
+
+  const assignedPointKeys =
+    new Set()
+
+  for (
+    const route
+    of routes
+  ) {
+    for (
+      const key
+      of asArray(
+        route?.pointKeys
+      )
+    ) {
+      if (
+        key === null ||
+        key === undefined
+      ) {
+        continue
+      }
+
+      assignedPointKeys.add(
+        String(key)
+      )
+    }
+  }
+
+  const unresolvedPointKeys =
+    Array.from(
+      expectedPointKeys
+    )
+      .filter(
+        key =>
+          !assignedPointKeys.has(
+            key
+          )
+      )
+
+  const duplicateAssignments =
+    (() => {
+      const counts =
+        new Map()
+
+      for (
+        const route
+        of routes
+      ) {
+        for (
+          const key
+          of asArray(
+            route?.pointKeys
+          )
+        ) {
+          if (
+            key === null ||
+            key === undefined
+          ) {
+            continue
+          }
+
+          const normalized =
+            String(key)
+
+          counts.set(
+            normalized,
+            (
+              counts.get(
+                normalized
+              ) ||
+              0
+            ) +
+            1
+          )
+        }
+      }
+
+      return Array.from(
+        counts.entries()
+      )
+        .filter(
+          (
+            [
+              ,
+              count
+            ]
+          ) =>
+            count >
+            1
+        )
+        .map(
+          (
+            [
+              key,
+              count
+            ]
+          ) => ({
+            key,
+            count
+          })
+        )
+    })()
+
+  const coveragePercent =
+    expectedPointKeys.size >
+      0
+      ? (
+          assignedPointKeys.size /
+          expectedPointKeys.size *
+          100
+        )
+      : 0
+
+  /*
+   * ==========================================================
+   * COMPOSICIÓN OPERATIVA
+   * ==========================================================
+   */
+
+  const roundTripSelections =
+    selectedExecutions.filter(
+      selected =>
+        selected.mode ===
+        INTEGRAL_ROUTE_MODES
+          .ROUND_TRIP
+    )
+
+  const foreignSelections =
+    selectedExecutions.filter(
+      selected =>
+        selected.mode ===
+        INTEGRAL_ROUTE_MODES
+          .FOREIGN_ROUTE
+    )
+
+  const roundTripRoutes =
+    routes.filter(
+      route =>
+        route
+          ?.hybrid
+          ?.mode ===
+        INTEGRAL_ROUTE_MODES
+          .ROUND_TRIP
+    )
+
+  const foreignRoutes =
+    routes.filter(
+      route =>
+        route
+          ?.hybrid
+          ?.mode ===
+        INTEGRAL_ROUTE_MODES
+          .FOREIGN_ROUTE
+    )
+
+  const roundTripDestinationCount =
+    sum(
+      roundTripSelections.map(
+        selected =>
+          selected
+            .points
+            .length
+      )
+    )
+
+  const foreignDestinationCount =
+    sum(
+      foreignSelections.map(
+        selected =>
+          selected
+            .points
+            .length
+      )
+    )
+
+  /*
+   * ==========================================================
+   * RECURSOS
+   * ==========================================================
+   *
+   * Para el plan recomendado:
+   *
+   * operadores / vehículos =
+   * recursos simultáneos necesarios para ejecutar todas
+   * las rutas y expediciones recomendadas.
+   *
+   * requiredDays =
+   * horizonte máximo necesario entre todos los componentes.
+   * ==========================================================
+   */
+
+  const requiredRoutes =
+    routes.length
+
+  const requiredOperators =
+    sum(
+      selectedExecutions.map(
+        selected =>
+          selected
+            .execution
+            ?.planner
+            ?.requiredOperators ??
+          selected
+            .execution
+            ?.planner
+            ?.requiredRoutes ??
+          asArray(
+            selected
+              .execution
+              ?.planner
+              ?.routes
+          ).length
+      )
+    )
+
+  const requiredVehicles =
+    sum(
+      selectedExecutions.map(
+        selected =>
+          selected
+            .execution
+            ?.planner
+            ?.requiredVehicles ??
+          selected
+            .execution
+            ?.planner
+            ?.requiredRoutes ??
+          asArray(
+            selected
+              .execution
+              ?.planner
+              ?.routes
+          ).length
+      )
+    )
+
+  const requiredDays =
+    maximum(
+      selectedExecutions.map(
+        selected =>
+          selected
+            .execution
+            ?.planner
+            ?.requiredDays ??
+          selected
+            .execution
+            ?.planner
+            ?.targetOperationalDays ??
+          1
+      )
+    ) ??
+    1
+
+  /*
+   * ==========================================================
+   * VALIDACIÓN CARRETERA CONSOLIDADA
+   * ==========================================================
+   */
+
+  const childFinalValidations =
+    selectedExecutions
+      .map(
+        selected =>
+          selected
+            .execution
+            ?.finalValidation
+      )
+      .filter(Boolean)
+
+  const roadVerified =
+    selectedExecutions.length >
+      0 &&
+    childFinalValidations.length ===
+      selectedExecutions.length &&
+    childFinalValidations.every(
+      validation =>
+        validation
+          ?.verified ===
+        true
+    )
+
+  const totalDistanceMeters =
+    sum(
+      selectedExecutions.map(
+        selected =>
+          selected
+            .execution
+            ?.finalValidation
+            ?.totals
+            ?.distanceMeters ??
+          selected
+            .execution
+            ?.planner
+            ?.totalDistanceMeters
+      )
+    )
+
+  const totalTravelDurationSeconds =
+    sum(
+      selectedExecutions.map(
+        selected =>
+          selected
+            .execution
+            ?.finalValidation
+            ?.totals
+            ?.travelDurationSeconds
+      )
+    )
+
+  const totalOperationalDurationSeconds =
+    sum(
+      selectedExecutions.map(
+        selected =>
+          selected
+            .execution
+            ?.finalValidation
+            ?.totals
+            ?.operationalDurationSeconds
+      )
+    )
+
+  const maximumRouteOperationalSeconds =
+    maximum(
+      selectedExecutions.map(
+        selected =>
+          selected
+            .execution
+            ?.finalValidation
+            ?.totals
+            ?.maximumRouteOperationalSeconds
+      )
+    )
+
+  const normalRoutes =
+    sum(
+      roundTripSelections.map(
+        selected =>
+          selected
+            .execution
+            ?.finalValidation
+            ?.normalRoutes ??
+          selected
+            .execution
+            ?.planner
+            ?.normalRoutes ??
+          0
+      )
+    )
+
+  const extendedReturnRoutes =
+    sum(
+      roundTripSelections.map(
+        selected =>
+          selected
+            .execution
+            ?.finalValidation
+            ?.extendedReturnRoutes ??
+          selected
+            .execution
+            ?.planner
+            ?.extendedReturnRoutes ??
+          0
+      )
+    )
+
+  const maxGraceUsedMinutes =
+    maximum(
+      roundTripSelections.map(
+        selected =>
+          selected
+            .execution
+            ?.finalValidation
+            ?.maxGraceUsedMinutes ??
+          selected
+            .execution
+            ?.planner
+            ?.maxGraceUsedMinutes
+      )
+    )
+
+  const finalValidation = {
+    status:
+      roadVerified
+        ? 'VERIFIED'
+        : 'PARTIAL',
+
+    verified:
+      roadVerified,
+
+    basePlanUsable:
+      routes.length >
+      0,
+
+    routeCount:
+      routes.length,
+
+    infeasibleRouteCount:
+      0,
+
+    invalidRouteCount:
+      0,
+
+    normalRoutes,
+
+    extendedReturnRoutes,
+
+    maxGraceUsedMinutes,
+
+    routes: [],
+
+    totals: {
+      distanceMeters:
+        totalDistanceMeters,
+
+      travelDurationSeconds:
+        totalTravelDurationSeconds,
+
+      operationalDurationSeconds:
+        totalOperationalDurationSeconds,
+
+      maximumRouteOperationalSeconds
+    }
+  }
+
+  /*
+   * ==========================================================
+   * ROUTE QUALITY CONSOLIDADO
+   * ==========================================================
+   */
+
+  const qualityResults =
+    selectedExecutions
+      .map(
+        selected =>
+          selected
+            .execution
+            ?.routeQuality
+      )
+      .filter(Boolean)
+
+  const rejectedRouteCount =
+    sum(
+      qualityResults.map(
+        quality =>
+          quality
+            ?.rejectedRouteCount ??
+          0
+      )
+    )
+
+  const reviewRouteCount =
+    sum(
+      qualityResults.map(
+        quality =>
+          quality
+            ?.reviewRouteCount ??
+          0
+      )
+    )
+
+  const passedRouteCount =
+    sum(
+      qualityResults.map(
+        quality =>
+          quality
+            ?.passedRouteCount ??
+          0
+      )
+    )
+
+  const qualityStatus =
+    rejectedRouteCount >
+      0
+      ? 'REJECT'
+      : (
+          reviewRouteCount >
+            0 ||
+          qualityResults.length !==
+            selectedExecutions.length
+            ? 'REVIEW'
+            : 'PASS'
+        )
+
+  const routeQuality = {
+    status:
+      qualityStatus,
+
+    acceptable:
+      rejectedRouteCount ===
+      0,
+
+    routeCount:
+      routes.length,
+
+    passedRouteCount,
+
+    reviewRouteCount,
+
+    rejectedRouteCount
+  }
+
+  /*
+   * ==========================================================
+   * PLANNER CONSOLIDADO
+   * ==========================================================
+   */
+
+  const feasible =
+    routes.length >
+      0 &&
+    failedGroups.length ===
+      0 &&
+    unresolvedPointKeys.length ===
+      0 &&
+    duplicateAssignments.length ===
+      0 &&
+    assignedPointKeys.size ===
+      expectedPointKeys.size
+
+  const planner = {
+    feasible,
+
+    routeMode:
+      HYBRID_ROUTE_MODE,
+
+    resourcePlanningMode:
+      'AUTO_REQUIREMENTS',
+
+    allDestinationsAssigned:
+      unresolvedPointKeys.length ===
+        0 &&
+      assignedPointKeys.size ===
+        expectedPointKeys.size,
+
+    totalDestinations:
+      expectedPointKeys.size,
+
+    destinationCount:
+      expectedPointKeys.size,
+
+    assignedDestinations:
+      assignedPointKeys.size,
+
+    coveragePercent,
+
+    requiredRoutes,
+
+    requiredOperators,
+
+    requiredVehicles,
+
+    requiredDays,
+
+    targetOperationalDays:
+      requiredDays,
+
+    routes,
+
+    composition: {
+      roundTrip: {
+        groups:
+          roundTripSelections.length,
+
+        regions:
+          roundTripSelections.map(
+            selected =>
+              selected.region
+          ),
+
+        destinations:
+          roundTripDestinationCount,
+
+        routes:
+          roundTripRoutes.length
+      },
+
+      foreign: {
+        groups:
+          foreignSelections.length,
+
+        regions:
+          foreignSelections.map(
+            selected =>
+              selected.region
+          ),
+
+        destinations:
+          foreignDestinationCount,
+
+        expeditions:
+          foreignRoutes.length
+      },
+
+      total: {
+        groups:
+          selectedExecutions.length,
+
+        destinations:
+          expectedPointKeys.size,
+
+        routesAndExpeditions:
+          routes.length
+      }
+    },
+
+    hybridFeasibility: {
+      totalGroups:
+        groups.length,
+
+      resolvedGroups:
+        selectedExecutions.length,
+
+      failedGroups:
+        failedGroups.length,
+
+      unresolvedDestinations:
+        unresolvedPointKeys.length,
+
+      duplicateAssignments:
+        duplicateAssignments.length,
+
+      roadVerified
+    },
+
+    unresolvedPointKeys,
+
+    duplicateAssignments,
+
+    failedGroups
+  }
+
+  /*
+   * Si la cobertura híbrida queda incompleta,
+   * no ocultamos el problema.
+   */
+
+  if (
+    !feasible
+  ) {
+    warnings.push({
+      severity:
+        'HIGH',
+
+      code:
+        'HYBRID_PROJECT_INCOMPLETE',
+
+      message:
+        'La planeación híbrida no logró cubrir correctamente el 100% del proyecto.',
+
+      details: {
+        totalDestinations:
+          expectedPointKeys.size,
+
+        assignedDestinations:
+          assignedPointKeys.size,
+
+        coveragePercent,
+
+        unresolvedPointKeys,
+
+        duplicateAssignments,
+
+        failedGroups:
+          failedGroups.map(
+            group => ({
+              region:
+                group.region,
+
+              pointCount:
+                group.pointCount
+            })
+          )
+      }
+    })
+  }
+
+  return {
+    planner,
+
+    finalValidation,
+
+    routeQuality,
+
+    hybrid: {
+      composition:
+        planner.composition,
+
+      feasibility:
+        planner.hybridFeasibility,
+
+      unresolvedPointKeys,
+
+      duplicateAssignments,
+
+      failedGroups
+    }
+  }
+}
+
+/**
+ * ============================================================
  * MAIN GATEWAY
  * ============================================================
  */
@@ -2014,19 +3299,37 @@ export async function computeIntegralPlanning(
   const demandStartedAt =
     performance.now()
 
+  const hybridProjectMode =
+    routeMode ===
+    INTEGRAL_ROUTE_MODES
+      .HYBRID_PROJECT
+
+  const effectiveRegionSanitaria =
+    hybridProjectMode
+      ? null
+      : regionSanitaria
+
+  const effectiveScope =
+    hybridProjectMode
+      ? 'PROJECT'
+      : scope
+
   const demand =
     await loadDemandPoints({
       proyecto,
 
       estado,
 
-      regionSanitaria,
+      regionSanitaria:
+        effectiveRegionSanitaria,
 
-      scope,
+      scope:
+        effectiveScope,
 
       projectWide:
+        hybridProjectMode ||
         body.projectWide ===
-        true,
+          true,
 
       manualOrderIds:
         body.manualOrderIds,
@@ -2115,7 +3418,11 @@ export async function computeIntegralPlanning(
 
         warnings
       })
-  } else {
+  } else if (
+    routeMode ===
+    INTEGRAL_ROUTE_MODES
+      .FOREIGN_ROUTE
+  ) {
     execution =
       await executeForeignPlanning({
         origin:
@@ -2141,6 +3448,55 @@ export async function computeIntegralPlanning(
 
         warnings
       })
+  } else if (
+    routeMode ===
+    INTEGRAL_ROUTE_MODES
+      .HYBRID_PROJECT
+  ) {
+    execution =
+      await executeHybridProjectPlanning({
+        origin:
+          originConfig.origin,
+
+        points,
+
+        planningDate:
+          originConfig
+            .planningDate,
+
+        timeZone:
+          originConfig
+            .timeZone,
+
+        roundTripPolicy:
+          originConfig
+            .roundTripPolicy,
+
+        foreignPolicy:
+          originConfig
+            .foreignPolicy,
+
+        avoidTolls,
+
+        maxSolverCalls,
+
+        warnings
+      })
+  } else {
+    throw new IntegralPlanningGatewayError(
+      `routeMode no soportado por ${INTEGRAL_MOTOR_MODE}: ${String(routeMode)}`,
+      {
+        code:
+          'INTEGRAL_ROUTE_MODE_NOT_SUPPORTED',
+
+        statusCode:
+          400,
+
+        details: {
+          routeMode
+        }
+      }
+    )
   }
 
   const planningMs =
