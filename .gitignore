@@ -45,3 +45,8 @@ dist-ssr
 *.sln
 *.sw?
 git
+# Local/generated development artifacts
+.ui-font-backup-*/
+.ui-font-scale.json
+backend/reports/
+*.bak

@@ -10,9 +10,6 @@
       aria-modal="true"
       aria-labelledby="route-modal-title"
     >
-      <!-- ===================================================
-           HEADER
-      ==================================================== -->
       <div class="modal-header">
         <div class="header-copy">
           <div class="header-kicker">
@@ -40,13 +37,7 @@
         </button>
       </div>
 
-      <!-- ===================================================
-           CONTENIDO
-      ==================================================== -->
       <div class="modal-body">
-        <!-- =================================================
-             CONTEXTO DEL PROYECTO
-        ================================================== -->
         <section class="project-context">
           <div>
             <span class="context-label">
@@ -64,8 +55,7 @@
           <span
             class="context-status"
             :class="{
-              ready:
-                normalizedProject,
+              ready: normalizedProject,
             }"
           >
             {{
@@ -77,7 +67,7 @@
         </section>
 
         <!-- =================================================
-             ÁMBITO
+             1. ÁMBITO
         ================================================== -->
         <details
           open
@@ -199,7 +189,7 @@
         </details>
 
         <!-- =================================================
-             ORIGEN
+             2. ORIGEN
         ================================================== -->
         <details
           open
@@ -219,7 +209,6 @@
             </p>
 
             <div class="origin-option-grid">
-              <!-- CEDIS -->
               <label
                 class="origin-option"
                 :class="{
@@ -259,7 +248,6 @@
                 </span>
               </label>
 
-              <!-- BUSCAR -->
               <label
                 class="origin-option"
                 :class="{
@@ -289,7 +277,6 @@
                 </span>
               </label>
 
-              <!-- FARMACIA -->
               <label
                 class="origin-option"
                 :class="{
@@ -320,9 +307,6 @@
               </label>
             </div>
 
-            <!-- =============================================
-                 CEDIS
-            ============================================== -->
             <div
               v-if="
                 originModeProxy ===
@@ -439,9 +423,6 @@
               </div>
             </div>
 
-            <!-- =============================================
-                 BUSCADOR DE LUGAR
-            ============================================== -->
             <div
               v-if="
                 originModeProxy ===
@@ -608,7 +589,6 @@
                 </div>
               </div>
 
-              <!-- COORDENADAS MANUALES -->
               <details class="manual-coordinates">
                 <summary>
                   Capturar coordenadas manualmente
@@ -656,9 +636,6 @@
               </details>
             </div>
 
-            <!-- =============================================
-                 FARMACIA COMO ORIGEN
-            ============================================== -->
             <div
               v-if="
                 originModeProxy ===
@@ -732,7 +709,7 @@
         </details>
 
         <!-- =================================================
-             ESTRATEGIA
+             3. ESTRATEGIA
         ================================================== -->
         <details
           open
@@ -827,25 +804,156 @@
                 </select>
               </div>
 
-              <div class="field-block">
+              <div
+                v-if="
+                  criteria.routeMode ===
+                  'ROUND_TRIP'
+                "
+                class="field-block"
+              >
                 <label class="field-label">
-                  {{
-                    criteria.routeMode ===
-                    'FOREIGN_ROUTE'
-                      ? 'Operadores disponibles'
-                      : 'Número de rutas'
-                  }}
+                  Planificación de rutas
+                </label>
+
+                <select
+                  v-model="
+                    roundTripPlanningModeProxy
+                  "
+                  class="field-control"
+                >
+                  <option value="AUTO">
+                    Calcular automáticamente
+                  </option>
+
+                  <option value="MANUAL">
+                    Definir número de rutas
+                  </option>
+                </select>
+              </div>
+
+              <div
+                v-else
+                class="field-block"
+              >
+                <label class="field-label">
+                  Operadores disponibles
                 </label>
 
                 <input
                   v-model.number="
-                    criteria.operatorCount
+                    availableOperatorsProxy
                   "
                   type="number"
                   min="1"
                   max="50"
                   class="field-control"
                 />
+
+                <p class="field-help">
+                  Indica la capacidad disponible para
+                  la operación foránea. El motor
+                  determinará cuántos necesita usar.
+                </p>
+              </div>
+            </div>
+
+            <div
+              v-if="
+                criteria.routeMode ===
+                  'ROUND_TRIP' &&
+                roundTripPlanningModeProxy ===
+                  'AUTO'
+              "
+              class="planning-card planning-card-auto"
+            >
+              <div class="planning-icon">
+                A
+              </div>
+
+              <div class="planning-copy">
+                <strong>
+                  Rutas calculadas automáticamente
+                </strong>
+
+                <span>
+                  El motor determinará el mínimo de
+                  rutas ida y vuelta necesarias para
+                  cubrir la selección dentro de la
+                  jornada operativa configurada.
+                </span>
+
+                <small>
+                  Cada ruta saldrá del origen y
+                  regresará al origen.
+                </small>
+              </div>
+            </div>
+
+            <div
+              v-if="
+                criteria.routeMode ===
+                  'ROUND_TRIP' &&
+                roundTripPlanningModeProxy ===
+                  'MANUAL'
+              "
+              class="planning-card"
+            >
+              <div class="planning-manual-grid">
+                <div class="field-block">
+                  <label class="field-label">
+                    Número de rutas
+                  </label>
+
+                  <input
+                    v-model.number="
+                      requestedRouteCountProxy
+                    "
+                    type="number"
+                    min="1"
+                    max="50"
+                    class="field-control"
+                  />
+
+                  <p class="field-help">
+                    Fuerza una simulación con esta
+                    cantidad de rutas. El resultado
+                    podrá indicar si son insuficientes
+                    para cumplir la jornada.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div
+              v-if="
+                criteria.routeMode ===
+                'FOREIGN_ROUTE'
+              "
+              class="planning-card planning-card-foreign"
+            >
+              <div class="planning-manual-grid">
+                <div class="field-block">
+                  <label class="field-label">
+                    Máximo de días por operador
+                  </label>
+
+                  <input
+                    v-model.number="
+                      maxForeignDaysProxy
+                    "
+                    type="number"
+                    min="1"
+                    max="30"
+                    class="field-control"
+                  />
+
+                  <p class="field-help">
+                    El motor calculará la operación
+                    completa y comparará los operadores
+                    disponibles contra los requeridos
+                    para cumplir este límite.
+                  </p>
+                </div>
               </div>
             </div>
 
@@ -902,7 +1010,7 @@
         </details>
 
         <!-- =================================================
-             PUNTOS MANUALES
+             4. MANUAL
         ================================================== -->
         <details
           v-if="
@@ -1048,23 +1156,26 @@
               </label>
 
               <label
-                class="check-card"
-                :class="{
-                  checked:
-                    criteria.options
-                      .returnToOrigin,
-                }"
+                v-if="
+                  criteria.routeMode ===
+                  'ROUND_TRIP'
+                "
+                class="check-card checked fixed-option"
               >
                 <input
-                  v-model="
-                    criteria.options
-                      .returnToOrigin
-                  "
                   type="checkbox"
+                  checked
+                  disabled
                 />
 
-                <span>
-                  Regresar al origen
+                <span class="check-copy">
+                  <strong>
+                    Regresar al origen
+                  </strong>
+
+                  <small>
+                    Obligatorio en ida y vuelta
+                  </small>
                 </span>
               </label>
 
@@ -1093,9 +1204,6 @@
         </details>
       </div>
 
-      <!-- ===================================================
-           FOOTER
-      ==================================================== -->
       <div class="modal-footer">
         <div class="footer-status">
           <span
@@ -1302,6 +1410,197 @@ const selectedCedisIdProxy =
 
 /*
  * ============================================================
+ * PLANIFICACIÓN DE RUTAS
+ * ============================================================
+ */
+
+function normalizePositiveInteger(
+  value,
+  fallback = 1
+) {
+  const number =
+    Math.floor(
+      Number(
+        value
+      )
+    )
+
+  if (
+    !Number.isFinite(
+      number
+    ) ||
+    number < 1
+  ) {
+    return fallback
+  }
+
+  return number
+}
+
+const roundTripPlanningModeProxy =
+  computed({
+    get:
+      () => {
+        const value =
+          String(
+            props.criteria
+              ?.routePlanningMode ||
+            'AUTO'
+          )
+            .trim()
+            .toUpperCase()
+
+        return value ===
+          'MANUAL'
+          ? 'MANUAL'
+          : 'AUTO'
+      },
+
+    set:
+      value => {
+        const normalized =
+          String(
+            value ||
+            'AUTO'
+          )
+            .trim()
+            .toUpperCase() ===
+          'MANUAL'
+            ? 'MANUAL'
+            : 'AUTO'
+
+        props.criteria
+          .routePlanningMode =
+          normalized
+
+        if (
+          normalized ===
+          'AUTO'
+        ) {
+          /*
+           * Compatibilidad temporal.
+           *
+           * F8A.5.3B hará que el backend
+           * calcule automáticamente el número
+           * real de rutas.
+           */
+          props.criteria
+            .operatorCount =
+            1
+
+          return
+        }
+
+        const routeCount =
+          normalizePositiveInteger(
+            props.criteria
+              ?.requestedRouteCount ??
+            props.criteria
+              ?.operatorCount,
+            1
+          )
+
+        props.criteria
+          .requestedRouteCount =
+          routeCount
+
+        props.criteria
+          .operatorCount =
+          routeCount
+      },
+  })
+
+const requestedRouteCountProxy =
+  computed({
+    get:
+      () =>
+        normalizePositiveInteger(
+          props.criteria
+            ?.requestedRouteCount ??
+          props.criteria
+            ?.operatorCount,
+          1
+        ),
+
+    set:
+      value => {
+        const normalized =
+          normalizePositiveInteger(
+            value,
+            1
+          )
+
+        props.criteria
+          .requestedRouteCount =
+          normalized
+
+        /*
+         * Compatibilidad con backend actual.
+         */
+        props.criteria
+          .operatorCount =
+          normalized
+      },
+  })
+
+const availableOperatorsProxy =
+  computed({
+    get:
+      () =>
+        normalizePositiveInteger(
+          props.criteria
+            ?.availableOperators ??
+          props.criteria
+            ?.operatorCount,
+          1
+        ),
+
+    set:
+      value => {
+        const normalized =
+          normalizePositiveInteger(
+            value,
+            1
+          )
+
+        props.criteria
+          .availableOperators =
+          normalized
+
+        /*
+         * Para FOREIGN_ROUTE operatorCount
+         * sigue siendo temporalmente el campo
+         * enviado al núcleo actual.
+         */
+        props.criteria
+          .operatorCount =
+          normalized
+      },
+  })
+
+const maxForeignDaysProxy =
+  computed({
+    get:
+      () =>
+        normalizePositiveInteger(
+          props.criteria
+            ?.maxForeignDays,
+          3
+        ),
+
+    set:
+      value => {
+        props.criteria
+          .maxForeignDays =
+          normalizePositiveInteger(
+            value,
+            3
+          )
+      },
+  })
+
+/*
+ * ============================================================
  * PROYECTO
  * ============================================================
  */
@@ -1464,13 +1763,44 @@ const hasValidOrigin =
     }
   )
 
+const hasValidPlanning =
+  computed(
+    () => {
+      if (
+        props.criteria
+          ?.routeMode ===
+        'FOREIGN_ROUTE'
+      ) {
+        return (
+          availableOperatorsProxy.value >=
+            1 &&
+          maxForeignDaysProxy.value >=
+            1
+        )
+      }
+
+      if (
+        roundTripPlanningModeProxy.value ===
+        'MANUAL'
+      ) {
+        return (
+          requestedRouteCountProxy.value >=
+          1
+        )
+      }
+
+      return true
+    }
+  )
+
 const canCalculate =
   computed(
     () =>
       Boolean(
         normalizedProject.value &&
         hasValidScope.value &&
-        hasValidOrigin.value
+        hasValidOrigin.value &&
+        hasValidPlanning.value
       )
   )
 
@@ -1510,9 +1840,160 @@ const calculationStatusText =
         return 'Selecciona un origen válido.'
       }
 
-      return 'Configuración lista para calcular.'
+      if (
+        !hasValidPlanning.value
+      ) {
+        return 'Revisa la configuración de planeación.'
+      }
+
+      if (
+        props.criteria
+          ?.routeMode ===
+        'FOREIGN_ROUTE'
+      ) {
+        return 'Configuración lista. El motor evaluará los operadores disponibles.'
+      }
+
+      if (
+        roundTripPlanningModeProxy.value ===
+        'AUTO'
+      ) {
+        return 'Configuración lista. El motor determinará las rutas necesarias.'
+      }
+
+      return 'Configuración lista para simular el número de rutas definido.'
     }
   )
+
+/*
+ * ============================================================
+ * SEMÁNTICA DE PLANEACIÓN
+ * ============================================================
+ */
+
+watch(
+  [
+    () =>
+      props.open,
+
+    () =>
+      props.criteria
+        ?.routeMode,
+  ],
+
+  ([
+    isOpen,
+    routeMode,
+  ]) => {
+    if (
+      !isOpen
+    ) {
+      return
+    }
+
+    if (
+      !props.criteria
+        .options
+    ) {
+      props.criteria
+        .options = {}
+    }
+
+    if (
+      routeMode ===
+      'FOREIGN_ROUTE'
+    ) {
+      const operators =
+        normalizePositiveInteger(
+          props.criteria
+            ?.availableOperators ??
+          props.criteria
+            ?.operatorCount,
+          1
+        )
+
+      props.criteria
+        .availableOperators =
+        operators
+
+      props.criteria
+        .operatorCount =
+        operators
+
+      props.criteria
+        .maxForeignDays =
+        normalizePositiveInteger(
+          props.criteria
+            ?.maxForeignDays,
+          3
+        )
+
+      /*
+       * La ruta foránea no regresa al
+       * CEDIS entre jornadas.
+       *
+       * El núcleo gestiona el retorno
+       * final de la operación.
+       */
+      props.criteria
+        .options
+        .returnToOrigin =
+        false
+
+      return
+    }
+
+    if (
+      !props.criteria
+        .routePlanningMode
+    ) {
+      props.criteria
+        .routePlanningMode =
+        'AUTO'
+    }
+
+    if (
+      roundTripPlanningModeProxy.value ===
+      'AUTO'
+    ) {
+      props.criteria
+        .operatorCount =
+        1
+    } else {
+      const routeCount =
+        normalizePositiveInteger(
+          props.criteria
+            ?.requestedRouteCount ??
+          props.criteria
+            ?.operatorCount,
+          1
+        )
+
+      props.criteria
+        .requestedRouteCount =
+        routeCount
+
+      props.criteria
+        .operatorCount =
+        routeCount
+    }
+
+    /*
+     * ROUND_TRIP significa siempre:
+     *
+     * ORIGEN → ENTREGAS → ORIGEN
+     */
+    props.criteria
+      .options
+      .returnToOrigin =
+      true
+  },
+
+  {
+    immediate:
+      true,
+  }
+)
 
 /*
  * ============================================================
@@ -1612,9 +2093,6 @@ async function searchOriginPlace() {
     let results =
       []
 
-    /*
-     * Primero intentamos Places Search.
-     */
     try {
       results =
         await searchWithPlaces(
@@ -1629,9 +2107,6 @@ async function searchOriginPlace() {
       )
     }
 
-    /*
-     * Respaldo con Geocoder.
-     */
     if (
       !results.length
     ) {
@@ -2069,21 +2544,12 @@ function formatCoordinate(
 </script>
 
 <style scoped>
-/*
- * ============================================================
- * MODAL
- * ============================================================
- */
-
 .modal-backdrop {
   position: fixed;
-
   inset: 0;
-
   z-index: 10000;
 
   display: flex;
-
   align-items: center;
   justify-content: center;
 
@@ -2135,12 +2601,6 @@ function formatCoordinate(
         .22
       );
 }
-
-/*
- * ============================================================
- * HEADER
- * ============================================================
- */
 
 .modal-header {
   display: flex;
@@ -2255,12 +2715,6 @@ function formatCoordinate(
     #0f64ad;
 }
 
-/*
- * ============================================================
- * BODY
- * ============================================================
- */
-
 .modal-body {
   overflow:
     auto;
@@ -2275,12 +2729,6 @@ function formatCoordinate(
   background:
     #f8fafc;
 }
-
-/*
- * ============================================================
- * PROYECTO
- * ============================================================
- */
 
 .project-context {
   display: flex;
@@ -2385,12 +2833,6 @@ function formatCoordinate(
     #166534;
 }
 
-/*
- * ============================================================
- * SECCIONES
- * ============================================================
- */
-
 .section-card {
   margin:
     0
@@ -2472,12 +2914,6 @@ summary {
     1.5;
 }
 
-/*
- * ============================================================
- * RADIO CARDS
- * ============================================================
- */
-
 .radio-card-group {
   display: grid;
 
@@ -2549,12 +2985,6 @@ summary {
   line-height:
     1.35;
 }
-
-/*
- * ============================================================
- * ORIGEN
- * ============================================================
- */
 
 .origin-option-grid {
   display: grid;
@@ -2734,12 +3164,6 @@ summary {
     #fbfdff;
 }
 
-/*
- * ============================================================
- * CAMPOS
- * ============================================================
- */
-
 .field-block {
   margin-top:
     0;
@@ -2888,12 +3312,6 @@ select.field-control option {
   line-height:
     1.45;
 }
-
-/*
- * ============================================================
- * BUSCADOR
- * ============================================================
- */
 
 .search-row {
   display: grid;
@@ -3154,12 +3572,6 @@ select.field-control option {
     850;
 }
 
-/*
- * ============================================================
- * ORIGEN SELECCIONADO
- * ============================================================
- */
-
 .selected-origin-card {
   display: flex;
 
@@ -3261,12 +3673,6 @@ select.field-control option {
     1.35;
 }
 
-/*
- * ============================================================
- * COORDENADAS
- * ============================================================
- */
-
 .manual-coordinates {
   margin-top:
     12px;
@@ -3310,12 +3716,6 @@ select.field-control option {
     10px;
 }
 
-/*
- * ============================================================
- * FORM
- * ============================================================
- */
-
 .form-grid {
   display: grid;
 
@@ -3329,6 +3729,127 @@ select.field-control option {
     );
 
   gap: 12px;
+}
+
+/*
+ * ============================================================
+ * PLANIFICACIÓN
+ * ============================================================
+ */
+
+.planning-card {
+  display: flex;
+
+  align-items:
+    flex-start;
+
+  gap: 11px;
+
+  margin-top:
+    12px;
+
+  padding:
+    12px;
+
+  border:
+    1px solid #dbe4ee;
+
+  border-radius:
+    11px;
+
+  background:
+    #f8fafc;
+}
+
+.planning-card-auto {
+  border-color:
+    #bfdbfe;
+
+  background:
+    #eff8ff;
+}
+
+.planning-card-foreign {
+  border-color:
+    #d8e1ea;
+
+  background:
+    #fbfdff;
+}
+
+.planning-icon {
+  display: grid;
+
+  width: 32px;
+  height: 32px;
+
+  flex:
+    0
+    0
+    32px;
+
+  place-items:
+    center;
+
+  border-radius:
+    9px;
+
+  background:
+    #dbeafe;
+
+  color:
+    #0f64ad;
+
+  font-size:
+    12px;
+
+  font-weight:
+    900;
+}
+
+.planning-copy {
+  display: flex;
+
+  min-width: 0;
+
+  flex-direction:
+    column;
+
+  gap: 3px;
+}
+
+.planning-copy strong {
+  color:
+    #1e293b;
+
+  font-size:
+    11px;
+}
+
+.planning-copy span {
+  color:
+    #475569;
+
+  font-size:
+    10px;
+
+  line-height:
+    1.45;
+}
+
+.planning-copy small {
+  color:
+    #64748b;
+
+  font-size:
+    9px;
+
+  line-height:
+    1.4;
+}
+
+.planning-manual-grid {
+  width: 100%;
 }
 
 .metrics-grid {
@@ -3354,12 +3875,6 @@ select.field-control option {
   border-top:
     1px solid #edf2f7;
 }
-
-/*
- * ============================================================
- * OPCIONES
- * ============================================================
- */
 
 .options-grid {
   display: grid;
@@ -3424,17 +3939,41 @@ select.field-control option {
     #0f4f87;
 }
 
+.check-card.fixed-option {
+  cursor:
+    default;
+}
+
+.check-copy {
+  display: flex;
+
+  flex-direction:
+    column;
+
+  gap: 1px;
+}
+
+.check-copy strong {
+  font-size:
+    11px;
+}
+
+.check-copy small {
+  color:
+    #64748b;
+
+  font-size:
+    9px;
+
+  font-weight:
+    600;
+}
+
 input[type="radio"],
 input[type="checkbox"] {
   accent-color:
     #0f64ad;
 }
-
-/*
- * ============================================================
- * MANUAL
- * ============================================================
- */
 
 .manual-list {
   display: grid;
@@ -3559,12 +4098,6 @@ input[type="checkbox"] {
     center;
 }
 
-/*
- * ============================================================
- * AVISOS
- * ============================================================
- */
-
 .notice {
   display: flex;
 
@@ -3641,12 +4174,6 @@ input[type="checkbox"] {
   text-decoration:
     underline;
 }
-
-/*
- * ============================================================
- * FOOTER
- * ============================================================
- */
 
 .modal-footer {
   display: flex;
@@ -3755,11 +4282,6 @@ input[type="checkbox"] {
     box-shadow .15s ease;
 }
 
-/*
- * IMPORTANTE:
- * ya no existe botón primario negro.
- */
-
 .btn-primary {
   border:
     1px solid #0f64ad;
@@ -3826,12 +4348,6 @@ input[type="checkbox"] {
   color:
     #1e293b !important;
 }
-
-/*
- * ============================================================
- * RESPONSIVE
- * ============================================================
- */
 
 @media (
   max-width: 700px
