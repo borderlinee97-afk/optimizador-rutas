@@ -176,6 +176,8 @@ export function checkInPlanItem(
   coordinates: {
     lat: number
     lng: number
+    accuracyM?: number | null
+    mocked?: boolean
   },
   accessToken: string,
 ): Promise<PlanItemExecutionResponse> {
@@ -201,6 +203,8 @@ export function checkOutPlanItem(
   coordinates: {
     lat: number
     lng: number
+    accuracyM?: number | null
+    mocked?: boolean
   },
   accessToken: string,
 ): Promise<PlanItemExecutionResponse> {

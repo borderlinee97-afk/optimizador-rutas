@@ -5,6 +5,9 @@ import {
 import mobileExtraStopsRouter
   from './mobile.extraStops.route.js'
 
+import mobileVisitGeofenceRouter
+  from './mobile.visitGeofence.route.js'
+
 import mobileFarmaciasRouter
   from './mobile.farmacias.route.js'
 
@@ -102,6 +105,11 @@ router.use(
 router.use(
   '/farmacias/extra-stops',
   mobileExtraStopsRouter,
+)
+
+router.use(
+  '/farmacias',
+  mobileVisitGeofenceRouter,
 )
 
 router.use(

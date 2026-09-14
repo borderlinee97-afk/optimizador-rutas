@@ -778,6 +778,13 @@ export default function UnitDetailScreen() {
           position
             .coords
             .longitude,
+
+        accuracyM:
+          position.coords.accuracy ??
+          null,
+
+        mocked:
+          position.mocked === true,
       }
 
       const response =
@@ -2648,6 +2655,48 @@ function getExecutionErrorMessage(
       'CANCELLATION_REQUEST_NOT_ALLOWED_FOR_EXTRA_STOP'
     ) {
       return 'Las paradas adicionales utilizan su propio flujo de cancelación.'
+    }
+
+    if (
+      error.code ===
+      'PHARMACY_ACCESS_NOT_ALLOWED'
+    ) {
+      return 'La unidad ya no está dentro de tus asignaciones o coberturas vigentes. Actualiza tu plan o solicita revisión al coordinador.'
+    }
+
+    if (
+      error.code ===
+      'OUTSIDE_GEOFENCE'
+    ) {
+      return error.message
+    }
+
+    if (
+      error.code ===
+      'LOCATION_ACCURACY_TOO_LOW'
+    ) {
+      return error.message
+    }
+
+    if (
+      error.code ===
+      'LOCATION_ACCURACY_REQUIRED'
+    ) {
+      return 'No fue posible validar la precisión del GPS. Espera unos segundos e intenta nuevamente.'
+    }
+
+    if (
+      error.code ===
+      'MOCK_LOCATION_DETECTED'
+    ) {
+      return 'El dispositivo reportó una ubicación simulada. Desactiva las ubicaciones de prueba e intenta nuevamente.'
+    }
+
+    if (
+      error.code ===
+      'DESTINATION_COORDINATES_MISSING'
+    ) {
+      return 'La unidad no tiene coordenadas válidas. Solicita su corrección antes de registrar la visita.'
     }
 
     if (
