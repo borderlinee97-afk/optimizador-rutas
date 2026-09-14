@@ -2659,6 +2659,13 @@ function getExecutionErrorMessage(
 
     if (
       error.code ===
+      'PHARMACY_ACCESS_NOT_ALLOWED'
+    ) {
+      return 'La unidad ya no está dentro de tus asignaciones o coberturas vigentes. Actualiza tu plan o solicita revisión al coordinador.'
+    }
+
+    if (
+      error.code ===
       'OUTSIDE_GEOFENCE'
     ) {
       return error.message

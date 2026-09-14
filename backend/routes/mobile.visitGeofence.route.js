@@ -3,6 +3,9 @@ import { Router } from 'express'
 import { pool } from '../db/pool.js'
 import { requireAuth } from '../middleware/requireAuth.js'
 import {
+  getPharmacyAccess,
+} from '../services/pharmacyAccess.service.js'
+import {
   evaluateVisitGeofence,
   getVisitGeofenceConfig,
 } from '../services/visitGeofence.service.js'
@@ -51,6 +54,11 @@ function validateVisitLocation(action) {
           `
           SELECT
             p.id AS person_id,
+            p.pharmacy_scope_mode,
+            wpi.pharmacy_id,
+            wpi.scheduled_date,
+            wpi.item_type::text AS item_type,
+            wpi.source::text AS source,
 
             COALESCE(
               wpi.custom_lat,
@@ -95,6 +103,50 @@ function validateVisitLocation(action) {
 
       const target =
         result.rows[0]
+
+      if (
+        action ===
+          'CHECK_IN' &&
+        target.item_type ===
+          'PHARMACY' &&
+        target.source ===
+          'PLAN'
+      ) {
+        const pharmacyAccess =
+          await getPharmacyAccess(
+            pool,
+            {
+              pharmacyId:
+                target.pharmacy_id,
+
+              profile: {
+                id:
+                  target.person_id,
+
+                pharmacy_scope_mode:
+                  target.pharmacy_scope_mode,
+              },
+
+              accessDate:
+                target.scheduled_date,
+            },
+          )
+
+        if (
+          !pharmacyAccess.exists ||
+          !pharmacyAccess.allowed
+        ) {
+          return res
+            .status(403)
+            .json({
+              error:
+                'La unidad ya no se encuentra dentro de las asignaciones o coberturas vigentes del supervisor.',
+
+              code:
+                'PHARMACY_ACCESS_NOT_ALLOWED',
+            })
+        }
+      }
 
       const evaluation =
         evaluateVisitGeofence(

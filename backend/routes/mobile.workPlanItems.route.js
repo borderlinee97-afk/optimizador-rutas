@@ -1230,7 +1230,7 @@ async function loadFarmaciasProfile(
           area,
           rol,
           activo,
-          superior_id
+          superior_id,
           pharmacy_scope_mode
 
         FROM public.personas
@@ -1334,8 +1334,7 @@ function getPharmacyAccessError(
   pharmacyAccess,
 ) {
   if (
-    pharmacyAccess.status ===
-    'NOT_FOUND'
+    !pharmacyAccess.exists
   ) {
     return {
       status: 404,
@@ -1351,8 +1350,7 @@ function getPharmacyAccessError(
   }
 
   if (
-    pharmacyAccess.status ===
-    'FORBIDDEN'
+    !pharmacyAccess.allowed
   ) {
     return {
       status: 403,

@@ -5,6 +5,9 @@ import { requireAuth } from '../middleware/requireAuth.js'
 import {
   appendWorkPlanEvent,
 } from '../services/workPlanAudit.service.js'
+import {
+  getPharmacyAccess,
+} from '../services/pharmacyAccess.service.js'
 
 const router = Router()
 
@@ -1223,6 +1226,26 @@ router.post(
           )
       }
 
+      if (
+        item.item_type !==
+          'PHARMACY' ||
+        item.source !==
+          'PLAN' ||
+        !item.pharmacy_id
+      ) {
+        await client.query(
+          'ROLLBACK',
+        )
+
+        return res.status(409).json({
+          error:
+            'Esta función solo aplica a visitas programadas a unidades del plan.',
+
+          code:
+            'RESCHEDULE_NOT_ALLOWED_FOR_EXTRA_STOP',
+        })
+      }
+
       const todayResult =
         await client.query(
           `
@@ -1272,6 +1295,38 @@ router.post(
 
           code:
             'RESCHEDULE_DATE_OUTSIDE_PLAN',
+        })
+      }
+
+      const pharmacyAccess =
+        await getPharmacyAccess(
+          client,
+          {
+            pharmacyId:
+              item.pharmacy_id,
+
+            profile:
+              req.profile,
+
+            accessDate:
+              scheduledDate,
+          },
+        )
+
+      if (
+        !pharmacyAccess.exists ||
+        !pharmacyAccess.allowed
+      ) {
+        await client.query(
+          'ROLLBACK',
+        )
+
+        return res.status(403).json({
+          error:
+            'La unidad no está autorizada para el supervisor en la nueva fecha seleccionada.',
+
+          code:
+            'PHARMACY_ACCESS_NOT_ALLOWED',
         })
       }
 
@@ -2190,7 +2245,8 @@ async function loadSupervisorProfile(
           area,
           rol,
           activo,
-          superior_id
+          superior_id,
+          pharmacy_scope_mode
 
         FROM public.personas
 
