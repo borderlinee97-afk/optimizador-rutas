@@ -1,6 +1,7 @@
 import { Router } from 'express'
 import { pool } from '../db/pool.js'
 import { requireAuth } from '../middleware/requireAuth.js'
+import supervisorTerritorialRouter from './web.supervisorTerritorialRoutes.route.js'
 
 const router = Router()
 
@@ -14,6 +15,7 @@ const WEB_AREAS = [
 
 router.use(requireAuth)
 router.use(loadOperationalProfile)
+router.use('/supervisor-territorial-routes', supervisorTerritorialRouter)
 
 /**
  * ============================================================

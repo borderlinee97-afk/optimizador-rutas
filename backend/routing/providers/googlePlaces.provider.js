@@ -34,6 +34,45 @@ import {
 const GOOGLE_PLACES_NEARBY_URL =
   'https://places.googleapis.com/v1/places:searchNearby'
 
+// Reconciliation helpers share the existing Places key and error contract.
+// They do not change Nearby Search or any operational routing behavior.
+async function originGoogleJson(url, options = {}) {
+  const response = await fetch(url, { ...options, signal: options.signal ?? AbortSignal.timeout(20000) })
+  const data = await response.json()
+  if (!response.ok || data.error || (data.status && !['OK', 'ZERO_RESULTS'].includes(data.status))) {
+    throw new GooglePlacesProviderError(data.error?.message || data.error_message || 'Google no pudo resolver el lugar', {
+      status: response.status, code: data.error?.status || data.status || 'GOOGLE_PLACES_ERROR',
+    })
+  }
+  return data
+}
+
+export async function getOriginPlaceDetails(placeId) {
+  const url = new URL(`https://places.googleapis.com/v1/places/${encodeURIComponent(placeId)}`)
+  url.searchParams.set('languageCode', 'es')
+  return originGoogleJson(url, { headers: { 'X-Goog-Api-Key': getApiKey(),
+    'X-Goog-FieldMask': 'id,displayName,formattedAddress,location,googleMapsUri,types' } })
+}
+
+export async function searchOriginPlaces(textQuery) {
+  const data = await originGoogleJson('https://places.googleapis.com/v1/places:searchText', {
+    method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Goog-Api-Key': getApiKey(),
+      'X-Goog-FieldMask': 'places.id,places.displayName,places.formattedAddress,places.location,places.googleMapsUri,places.types' },
+    body: JSON.stringify({ textQuery, languageCode: 'es', pageSize: 5 }),
+  })
+  return data.places || []
+}
+
+export async function reverseOriginCoordinates({ lat, lng }) {
+  if (!isValidLatLng({ lat, lng })) throw new GooglePlacesProviderError('Coordenadas inválidas', { code: 'INVALID_COORDINATES' })
+  const url = new URL('https://maps.googleapis.com/maps/api/geocode/json')
+  url.searchParams.set('latlng', `${lat},${lng}`)
+  url.searchParams.set('language', 'es')
+  url.searchParams.set('key', getApiKey())
+  const data = await originGoogleJson(url)
+  return data.results || []
+}
+
 export const GOOGLE_PLACE_TYPES = {
   LODGING:
     'lodging',

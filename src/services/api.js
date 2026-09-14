@@ -1082,3 +1082,11 @@ export async function getRouteStaticMapBlob(
 export {
   BASE_API,
 }
+
+// Reutiliza sesión, errores y cabeceras del cliente web existente.
+export function territorialApi(path = '', { method = 'GET', body } = {}) {
+  return fetchJSON(`${BASE_API}/web/supervisor-territorial-routes${path}?area=FARMACIAS`, {
+    method, ...(body === undefined ? {} : { body: JSON.stringify(body) }),
+    timeoutMs: path === '/calculate-all' ? 1800000 : 300000,
+  })
+}

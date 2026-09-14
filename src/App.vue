@@ -585,6 +585,12 @@ const showAreaSwitcher =
 
 const farmaciasMenuDefinition = [
   {
+    key: 'territorial',
+    label: 'Ruta territorial',
+    to: '/farmacias/ruta-territorial',
+    roles: ['GERENTE', 'COORDINADOR', 'SUPERVISOR'],
+  },
+  {
     key:
       'map',
 

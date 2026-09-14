@@ -49,4 +49,8 @@ git
 .ui-font-backup-*/
 .ui-font-scale.json
 backend/reports/
+# Private inputs and reconciliation outputs (never version personal data).
+backend/data/
+*.xlsx
+*.xls
 *.bak

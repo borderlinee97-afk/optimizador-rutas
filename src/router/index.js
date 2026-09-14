@@ -20,6 +20,7 @@ import AssignmentsView
 
 import PersonasView
   from '../views/farmacias/PersonasView.vue'
+import SupervisorTerritorialView from '../views/farmacias/SupervisorTerritorialView.vue'
 
 const router =
   createRouter({
@@ -27,6 +28,12 @@ const router =
       createWebHistory(),
 
     routes: [
+      {
+        path: '/farmacias/ruta-territorial',
+        name: 'farmacias-ruta-territorial',
+        component: SupervisorTerritorialView,
+        meta: { area: 'FARMACIAS', roles: ['GERENTE', 'COORDINADOR', 'SUPERVISOR'] },
+      },
       {
         path:
           '/',
