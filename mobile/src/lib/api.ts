@@ -1,4 +1,4 @@
-import type {
+﻿import type {
   ApiErrorResponse,
   AuthMeResponse,
 } from '../types/auth'
@@ -136,7 +136,7 @@ export async function apiRequest<T>(
 
     throw new ApiError(
       apiError.error ||
-        `El servidor respondió con estado ${response.status}.`,
+        `El servidor respondiÃ³ con estado ${response.status}.`,
       response.status,
       apiError.code,
     )
@@ -176,6 +176,8 @@ export function checkInPlanItem(
   coordinates: {
     lat: number
     lng: number
+    accuracyM?: number | null
+    mocked?: boolean
   },
   accessToken: string,
 ): Promise<PlanItemExecutionResponse> {
@@ -201,6 +203,8 @@ export function checkOutPlanItem(
   coordinates: {
     lat: number
     lng: number
+    accuracyM?: number | null
+    mocked?: boolean
   },
   accessToken: string,
 ): Promise<PlanItemExecutionResponse> {
@@ -277,7 +281,7 @@ export function reschedulePlanItem(
 }
 
 /**
- * Solicita la cancelación de una visita
+ * Solicita la cancelaciÃ³n de una visita
  * perteneciente al plan.
  *
  * No cambia inmediatamente el estado

@@ -1,9 +1,12 @@
-import {
+﻿import {
   Router,
 } from 'express'
 
 import mobileExtraStopsRouter
   from './mobile.extraStops.route.js'
+
+import mobileVisitGeofenceRouter
+  from './mobile.visitGeofence.route.js'
 
 import mobileFarmaciasRouter
   from './mobile.farmacias.route.js'
@@ -59,7 +62,7 @@ router.use(
 )
 
 /*
- * Acciones compartidas de aprobación
+ * Acciones compartidas de aprobaciÃ³n
  * de planes.
  */
 router.use(
@@ -68,7 +71,7 @@ router.use(
 )
 
 /*
- * Acciones compartidas de aprobación
+ * Acciones compartidas de aprobaciÃ³n
  * de cancelaciones.
  */
 router.use(
@@ -77,12 +80,12 @@ router.use(
 )
 
 /*
- * Consultas históricas / bandeja móvil.
+ * Consultas histÃ³ricas / bandeja mÃ³vil.
  *
  * Sus handlers antiguos de aprobar/rechazar
  * permanecen por compatibilidad, pero las
  * rutas anteriores interceptan las acciones
- * antes de llegar aquí.
+ * antes de llegar aquÃ­.
  */
 router.use(
   '/work-plans/approvals',
@@ -102,6 +105,11 @@ router.use(
 router.use(
   '/farmacias/extra-stops',
   mobileExtraStopsRouter,
+)
+
+router.use(
+  '/farmacias',
+  mobileVisitGeofenceRouter,
 )
 
 router.use(
