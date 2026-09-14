@@ -1,4 +1,4 @@
-﻿import type {
+import type {
   ApiErrorResponse,
   AuthMeResponse,
 } from '../types/auth'
@@ -136,7 +136,7 @@ export async function apiRequest<T>(
 
     throw new ApiError(
       apiError.error ||
-        `El servidor respondiÃ³ con estado ${response.status}.`,
+        `El servidor respondió con estado ${response.status}.`,
       response.status,
       apiError.code,
     )
@@ -281,7 +281,7 @@ export function reschedulePlanItem(
 }
 
 /**
- * Solicita la cancelaciÃ³n de una visita
+ * Solicita la cancelación de una visita
  * perteneciente al plan.
  *
  * No cambia inmediatamente el estado

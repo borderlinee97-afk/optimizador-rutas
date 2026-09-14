@@ -1,4 +1,4 @@
-﻿import {
+import {
   Router,
 } from 'express'
 
@@ -62,7 +62,7 @@ router.use(
 )
 
 /*
- * Acciones compartidas de aprobaciÃ³n
+ * Acciones compartidas de aprobación
  * de planes.
  */
 router.use(
@@ -71,7 +71,7 @@ router.use(
 )
 
 /*
- * Acciones compartidas de aprobaciÃ³n
+ * Acciones compartidas de aprobación
  * de cancelaciones.
  */
 router.use(
@@ -80,12 +80,12 @@ router.use(
 )
 
 /*
- * Consultas histÃ³ricas / bandeja mÃ³vil.
+ * Consultas históricas / bandeja móvil.
  *
  * Sus handlers antiguos de aprobar/rechazar
  * permanecen por compatibilidad, pero las
  * rutas anteriores interceptan las acciones
- * antes de llegar aquÃ­.
+ * antes de llegar aquí.
  */
 router.use(
   '/work-plans/approvals',

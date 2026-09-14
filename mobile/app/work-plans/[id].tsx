@@ -898,6 +898,22 @@ export default function WorkPlanDetailScreen() {
     pharmacy:
       PharmacyCatalogItem,
   ) {
+
+    if (
+      selectedPharmacy?.id ===
+      pharmacy.id
+    ) {
+      setSelectedPharmacy(
+        null,
+      )
+
+      setSearch(
+        '',
+      )
+
+      return
+    }
+
     const authorizedDays =
       days.filter(
         day =>
@@ -2151,7 +2167,14 @@ export default function WorkPlanDetailScreen() {
                 </View>
               ) : (
                 <View className="mt-4 gap-3">
-                  {catalog.map(
+                  {(selectedPharmacy
+                    ? catalog.filter(
+                        pharmacy =>
+                          pharmacy.id ===
+                          selectedPharmacy.id,
+                      )
+                    : catalog
+                  ).map(
                     pharmacy => {
                       const selected =
                         selectedPharmacy

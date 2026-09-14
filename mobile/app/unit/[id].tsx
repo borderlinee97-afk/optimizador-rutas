@@ -1,4 +1,4 @@
-﻿import { Ionicons } from '@expo/vector-icons'
+import { Ionicons } from '@expo/vector-icons'
 import {
   type Href,
   router,
@@ -599,7 +599,7 @@ export default function UnitDetailScreen() {
       item.lng === null
     ) {
       Alert.alert(
-        'UbicaciÃ³n no disponible',
+        'Ubicación no disponible',
         'Esta actividad no tiene coordenadas registradas.',
       )
 
@@ -622,7 +622,7 @@ export default function UnitDetailScreen() {
       if (!supported) {
         Alert.alert(
           'No fue posible abrir Google Maps',
-          'El dispositivo no pudo abrir la direcciÃ³n de navegaciÃ³n.',
+          'El dispositivo no pudo abrir la dirección de navegación.',
         )
 
         return
@@ -639,7 +639,7 @@ export default function UnitDetailScreen() {
 
       Alert.alert(
         'Error',
-        'No fue posible abrir la navegaciÃ³n.',
+        'No fue posible abrir la navegación.',
       )
     }
   }
@@ -651,8 +651,8 @@ export default function UnitDetailScreen() {
 
     if (!servicesEnabled) {
       Alert.alert(
-        'UbicaciÃ³n desactivada',
-        'Activa la ubicaciÃ³n del dispositivo para registrar la actividad.',
+        'Ubicación desactivada',
+        'Activa la ubicación del dispositivo para registrar la actividad.',
       )
 
       return null
@@ -667,8 +667,8 @@ export default function UnitDetailScreen() {
       'granted'
     ) {
       Alert.alert(
-        'Permiso de ubicaciÃ³n requerido',
-        'La aplicaciÃ³n necesita acceso a tu ubicaciÃ³n para registrar el check-in y el check-out.',
+        'Permiso de ubicación requerido',
+        'La aplicación necesita acceso a tu ubicación para registrar el check-in y el check-out.',
       )
 
       return null
@@ -698,8 +698,8 @@ export default function UnitDetailScreen() {
 
     if (!accessToken) {
       Alert.alert(
-        'SesiÃ³n no disponible',
-        'Vuelve a iniciar sesiÃ³n para registrar la actividad.',
+        'Sesión no disponible',
+        'Vuelve a iniciar sesión para registrar la actividad.',
       )
 
       return
@@ -718,13 +718,13 @@ export default function UnitDetailScreen() {
     ) {
       Alert.alert(
         'Solicitud pendiente',
-        'Esta visita tiene una solicitud de cancelaciÃ³n pendiente de revisiÃ³n.',
+        'Esta visita tiene una solicitud de cancelación pendiente de revisión.',
       )
 
       return
     }
       Alert.alert(
-        'AcciÃ³n no disponible',
+        'Acción no disponible',
         `Esta ${activitySingular} ya no se encuentra pendiente.`,
       )
 
@@ -749,7 +749,7 @@ export default function UnitDetailScreen() {
         'IN_PROGRESS'
     ) {
       Alert.alert(
-        'AcciÃ³n no disponible',
+        'Acción no disponible',
         `Esta ${activitySingular} no se encuentra en progreso.`,
       )
 
@@ -785,7 +785,6 @@ export default function UnitDetailScreen() {
 
         mocked:
           position.mocked === true,
-
       }
 
       const response =
@@ -813,8 +812,8 @@ export default function UnitDetailScreen() {
           : 'Actividad finalizada',
 
         type === 'IN'
-          ? `La ${activitySingular} se iniciÃ³ y quedÃ³ registrada en el servidor.`
-          : 'El check-out y la duraciÃ³n quedaron registrados correctamente.',
+          ? `La ${activitySingular} se inició y quedó registrada en el servidor.`
+          : 'El check-out y la duración quedaron registrados correctamente.',
 
         [
           {
@@ -870,8 +869,8 @@ export default function UnitDetailScreen() {
 
     if (!accessToken) {
       Alert.alert(
-        'SesiÃ³n no disponible',
-        'Vuelve a iniciar sesiÃ³n para cerrar la actividad.',
+        'Sesión no disponible',
+        'Vuelve a iniciar sesión para cerrar la actividad.',
       )
 
       return
@@ -882,7 +881,7 @@ export default function UnitDetailScreen() {
       'PENDING'
     ) {
       Alert.alert(
-        'AcciÃ³n no disponible',
+        'Acción no disponible',
         'Solo pueden omitirse actividades pendientes.',
       )
 
@@ -927,7 +926,7 @@ export default function UnitDetailScreen() {
 
       Alert.alert(
         'Actividad cerrada',
-        `La ${activitySingular} quedÃ³ registrada como no realizada.`,
+        `La ${activitySingular} quedó registrada como no realizada.`,
 
         [
           {
@@ -978,8 +977,8 @@ export default function UnitDetailScreen() {
 
     if (!accessToken) {
       Alert.alert(
-        'SesiÃ³n no disponible',
-        'Vuelve a iniciar sesiÃ³n para registrar la acciÃ³n.',
+        'Sesión no disponible',
+        'Vuelve a iniciar sesión para registrar la acción.',
       )
 
       return
@@ -989,8 +988,8 @@ export default function UnitDetailScreen() {
       !isPlannedPharmacy
     ) {
       Alert.alert(
-        'AcciÃ³n no disponible',
-        'Esta funciÃ³n solo aplica a visitas programadas del plan.',
+        'Acción no disponible',
+        'Esta función solo aplica a visitas programadas del plan.',
       )
 
       return
@@ -1001,7 +1000,7 @@ export default function UnitDetailScreen() {
       'PENDING'
     ) {
       Alert.alert(
-        'AcciÃ³n no disponible',
+        'Acción no disponible',
         'Solo pueden modificarse visitas pendientes.',
       )
 
@@ -1013,7 +1012,7 @@ export default function UnitDetailScreen() {
     ) {
       Alert.alert(
         'Existe otra actividad activa',
-        'Finaliza la actividad actual antes de realizar esta acciÃ³n.',
+        'Finaliza la actividad actual antes de realizar esta acción.',
       )
 
       return
@@ -1025,7 +1024,7 @@ export default function UnitDetailScreen() {
     ) {
       Alert.alert(
         'Solicitud pendiente',
-        'La visita ya tiene una solicitud de cancelaciÃ³n en revisiÃ³n.',
+        'La visita ya tiene una solicitud de cancelación en revisión.',
       )
 
       return
@@ -1075,7 +1074,7 @@ export default function UnitDetailScreen() {
 
         Alert.alert(
           'Visita reprogramada',
-          'La programaciÃ³n original quedÃ³ registrada como reprogramada y se creÃ³ una nueva visita pendiente.',
+          'La programación original quedó registrada como reprogramada y se creó una nueva visita pendiente.',
 
           [
             {
@@ -1123,14 +1122,14 @@ export default function UnitDetailScreen() {
 
       Alert.alert(
         'Solicitud enviada',
-        'La visita permanecerÃ¡ pendiente mientras se revisa la solicitud de cancelaciÃ³n.',
+        'La visita permanecerá pendiente mientras se revisa la solicitud de cancelación.',
       )
     } catch (error) {
       console.error(
         payload.mode ===
           'RESCHEDULE'
           ? 'Error reprogramando visita:'
-          : 'Error solicitando cancelaciÃ³n:',
+          : 'Error solicitando cancelación:',
         error,
       )
 
@@ -1170,8 +1169,8 @@ export default function UnitDetailScreen() {
 
     if (!accessToken) {
       Alert.alert(
-        'SesiÃ³n no disponible',
-        'Vuelve a iniciar sesiÃ³n para cancelar la parada.',
+        'Sesión no disponible',
+        'Vuelve a iniciar sesión para cancelar la parada.',
       )
 
       return
@@ -1181,7 +1180,7 @@ export default function UnitDetailScreen() {
       !isCancellableExtraStop
     ) {
       Alert.alert(
-        'AcciÃ³n no disponible',
+        'Acción no disponible',
         'Solo pueden cancelarse paradas adicionales pendientes creadas por el Supervisor.',
       )
 
@@ -1215,7 +1214,7 @@ export default function UnitDetailScreen() {
 
       Alert.alert(
         'Parada cancelada',
-        'La parada adicional quedÃ³ cancelada y se conservarÃ¡ en el historial.',
+        'La parada adicional quedó cancelada y se conservará en el historial.',
 
         [
           {
@@ -1253,7 +1252,7 @@ export default function UnitDetailScreen() {
   function confirmCheckOut() {
     Alert.alert(
       'Finalizar actividad',
-      'Al continuar, el sistema registrarÃ¡ tu ubicaciÃ³n y marcarÃ¡ la actividad como finalizada.',
+      'Al continuar, el sistema registrará tu ubicación y marcará la actividad como finalizada.',
 
       [
         {
@@ -1316,7 +1315,7 @@ export default function UnitDetailScreen() {
           </Text>
 
           <Text className="mt-2 text-center text-base leading-6 text-slate-500">
-            La actividad no existe en el plan sincronizado o ya no estÃ¡ disponible.
+            La actividad no existe en el plan sincronizado o ya no está disponible.
           </Text>
 
           <Pressable
@@ -1487,7 +1486,7 @@ export default function UnitDetailScreen() {
         </View>
 
         <Text className="mb-3 mt-7 text-lg font-bold text-slate-900">
-          InformaciÃ³n de la actividad
+          Información de la actividad
         </Text>
 
         <View className="rounded-3xl border border-slate-200 bg-white">
@@ -1509,7 +1508,7 @@ export default function UnitDetailScreen() {
                 ? formatTime(
                     item.scheduled_time,
                   )
-                : 'Sin horario especÃ­fico'
+                : 'Sin horario específico'
             }
           />
 
@@ -1519,7 +1518,7 @@ export default function UnitDetailScreen() {
 
               <InfoRow
                 icon="pricetag-outline"
-                label="CategorÃ­a"
+                label="Categoría"
                 value={getExtraStopCategoryLabel(
                   item.activity_category,
                 )}
@@ -1554,7 +1553,7 @@ export default function UnitDetailScreen() {
 
               <InfoRow
                 icon="calendar-number-outline"
-                label="Fecha de incorporaciÃ³n"
+                label="Fecha de incorporación"
                 value={formatDateTime(
                   item.added_at,
                 )}
@@ -1566,7 +1565,7 @@ export default function UnitDetailScreen() {
 
                   <InfoRow
                     icon="create-outline"
-                    label="Ãšltima modificaciÃ³n"
+                    label="Última modificación"
                     value={formatDateTime(
                       item.updated_at,
                     )}
@@ -1591,7 +1590,7 @@ export default function UnitDetailScreen() {
 
               <InfoRow
                 icon="business-outline"
-                label="RegiÃ³n sanitaria"
+                label="Región sanitaria"
                 value={
                   item.region ??
                   'No disponible'
@@ -1616,7 +1615,7 @@ export default function UnitDetailScreen() {
         item.addition_reason ? (
           <>
             <Text className="mb-3 mt-7 text-lg font-bold text-slate-900">
-              Motivo de incorporaciÃ³n
+              Motivo de incorporación
             </Text>
 
             <View className="rounded-3xl border border-violet-200 bg-violet-50 p-5">
@@ -1640,7 +1639,7 @@ export default function UnitDetailScreen() {
         {item.address ? (
           <>
             <Text className="mb-3 mt-7 text-lg font-bold text-slate-900">
-              DirecciÃ³n
+              Dirección
             </Text>
 
             <View className="rounded-3xl border border-slate-200 bg-white p-5">
@@ -1660,7 +1659,7 @@ export default function UnitDetailScreen() {
         ) : null}
 
         <Text className="mb-3 mt-7 text-lg font-bold text-slate-900">
-          Registro de ejecuciÃ³n
+          Registro de ejecución
         </Text>
 
         <View className="rounded-3xl border border-slate-200 bg-white">
@@ -1686,7 +1685,7 @@ export default function UnitDetailScreen() {
 
           <InfoRow
             icon="timer-outline"
-            label="DuraciÃ³n"
+            label="Duración"
             value={
               visitDuration ??
               'No disponible'
@@ -1697,7 +1696,7 @@ export default function UnitDetailScreen() {
 
           <InfoRow
             icon="navigate-outline"
-            label="UbicaciÃ³n del check-in"
+            label="Ubicación del check-in"
             value={formatCoordinates(
               item.check_in_lat,
               item.check_in_lng,
@@ -1708,7 +1707,7 @@ export default function UnitDetailScreen() {
 
           <InfoRow
             icon="flag-outline"
-            label="UbicaciÃ³n del check-out"
+            label="Ubicación del check-out"
             value={formatCoordinates(
               item.check_out_lat,
               item.check_out_lng,
@@ -1741,7 +1740,7 @@ export default function UnitDetailScreen() {
             </Text>
 
             <Text className="mt-1 text-sm leading-5 text-slate-500">
-              Abre la navegaciÃ³n hacia esta{' '}
+              Abre la navegación hacia esta{' '}
               {destinationSingular}.
             </Text>
           </View>
@@ -1779,7 +1778,7 @@ export default function UnitDetailScreen() {
               </Text>
 
               <Text className="mt-1 text-sm leading-5 text-violet-700">
-                Modifica el lugar, categorÃ­a, motivo o tiempo estimado antes del check-in.
+                Modifica el lugar, categoría, motivo o tiempo estimado antes del check-in.
               </Text>
             </View>
 
@@ -1824,7 +1823,7 @@ export default function UnitDetailScreen() {
 
               <View className="ml-4 flex-1">
                 <Text className="text-base font-bold text-amber-900">
-                  Solicitud de cancelaciÃ³n pendiente
+                  Solicitud de cancelación pendiente
                 </Text>
 
                 <Text className="mt-2 text-sm font-semibold text-amber-800">
@@ -1842,7 +1841,7 @@ export default function UnitDetailScreen() {
                 ) : null}
 
                 <Text className="mt-3 text-xs leading-5 text-amber-700">
-                  No podrÃ¡s iniciar ni cerrar esta visita hasta que la solicitud sea revisada.
+                  No podrás iniciar ni cerrar esta visita hasta que la solicitud sea revisada.
                 </Text>
               </View>
             </View>
@@ -1862,7 +1861,7 @@ export default function UnitDetailScreen() {
 
               <View className="ml-4 flex-1">
                 <Text className="text-base font-bold text-rose-900">
-                  Solicitud de cancelaciÃ³n rechazada
+                  Solicitud de cancelación rechazada
                 </Text>
 
                 <Text className="mt-2 text-sm font-semibold text-rose-800">
@@ -1886,7 +1885,7 @@ export default function UnitDetailScreen() {
                 ) : null}
 
                 <Text className="mt-3 text-xs leading-5 text-rose-600">
-                  La visita continÃºa pendiente y puede ejecutarse, reprogramarse o volver a solicitarse su cancelaciÃ³n.
+                  La visita continúa pendiente y puede ejecutarse, reprogramarse o volver a solicitarse su cancelación.
                 </Text>
               </View>
             </View>
@@ -1938,7 +1937,7 @@ export default function UnitDetailScreen() {
                 </Text>
 
                 <Text className="mt-1 text-sm leading-5 text-slate-500">
-                  Selecciona quÃ© ocurriÃ³ con esta visita.
+                  Selecciona qué ocurrió con esta visita.
                 </Text>
 
                 <Pressable
@@ -1968,7 +1967,7 @@ export default function UnitDetailScreen() {
                     </Text>
 
                     <Text className="mt-1 text-xs leading-4 text-violet-700">
-                      Traslada la visita a otro dÃ­a disponible de la misma semana.
+                      Traslada la visita a otro día disponible de la misma semana.
                     </Text>
                   </View>
 
@@ -2040,11 +2039,11 @@ export default function UnitDetailScreen() {
 
                   <View className="ml-3 flex-1">
                     <Text className="font-bold text-rose-900">
-                      Solicitar cancelaciÃ³n
+                      Solicitar cancelación
                     </Text>
 
                     <Text className="mt-1 text-xs leading-4 text-rose-700">
-                      EnvÃ­a la solicitud para revisiÃ³n. No cancela la visita automÃ¡ticamente.
+                      Envía la solicitud para revisión. No cancela la visita automáticamente.
                     </Text>
                   </View>
 
@@ -2160,7 +2159,7 @@ export default function UnitDetailScreen() {
               </Text>
 
               <Text className="mt-1 text-sm leading-5 text-emerald-700">
-                El check-out y la duraciÃ³n quedaron guardados en el servidor.
+                El check-out y la duración quedaron guardados en el servidor.
               </Text>
             </View>
           </View>
@@ -2241,7 +2240,7 @@ export default function UnitDetailScreen() {
                 </Text>
 
                 <Text className="mt-3 text-xs leading-5 text-violet-600">
-                  Esta es la programaciÃ³n original. La nueva visita quedÃ³ vinculada como una actividad pendiente independiente.
+                  Esta es la programación original. La nueva visita quedó vinculada como una actividad pendiente independiente.
                 </Text>
               </View>
             </View>
@@ -2299,7 +2298,7 @@ export default function UnitDetailScreen() {
                 item.cancellation_review_comment ? (
                   <>
                     <Text className="mt-3 text-xs font-semibold uppercase tracking-wide text-rose-500">
-                      ResoluciÃ³n
+                      Resolución
                     </Text>
 
                     <Text className="mt-1 text-sm leading-5 text-rose-800">
@@ -2311,7 +2310,7 @@ export default function UnitDetailScreen() {
                 ) : null}
 
                 <Text className="mt-3 text-xs font-semibold uppercase tracking-wide text-rose-500">
-                  Fecha de cancelaciÃ³n
+                  Fecha de cancelación
                 </Text>
 
                 <Text className="mt-1 text-sm font-bold text-rose-800">
@@ -2480,21 +2479,21 @@ function getExecutionErrorMessage(
       error.status ===
       401
     ) {
-      return 'La sesiÃ³n dejÃ³ de ser vÃ¡lida. Cierra sesiÃ³n e ingresa nuevamente.'
+      return 'La sesión dejó de ser válida. Cierra sesión e ingresa nuevamente.'
     }
 
     if (
       error.code ===
       'PLAN_NOT_APPROVED'
     ) {
-      return 'El plan de trabajo todavÃ­a no estÃ¡ autorizado.'
+      return 'El plan de trabajo todavía no está autorizado.'
     }
 
     if (
       error.code ===
       'ITEM_NOT_SCHEDULED_TODAY'
     ) {
-      return 'La actividad no estÃ¡ programada para la fecha actual.'
+      return 'La actividad no está programada para la fecha actual.'
     }
 
     if (
@@ -2515,7 +2514,7 @@ function getExecutionErrorMessage(
       error.code ===
       'ITEM_NOT_IN_PROGRESS'
     ) {
-      return 'La actividad no tiene una ejecuciÃ³n activa.'
+      return 'La actividad no tiene una ejecución activa.'
     }
 
     if (
@@ -2529,7 +2528,7 @@ function getExecutionErrorMessage(
       error.code ===
       'INVALID_SKIP_REASON'
     ) {
-      return 'El motivo seleccionado no es vÃ¡lido.'
+      return 'El motivo seleccionado no es válido.'
     }
 
     if (
@@ -2543,28 +2542,28 @@ function getExecutionErrorMessage(
       error.code ===
       'CANCELLATION_REASON_REQUIRED'
     ) {
-      return 'Debes seleccionar un motivo de cancelaciÃ³n.'
+      return 'Debes seleccionar un motivo de cancelación.'
     }
 
     if (
       error.code ===
       'INVALID_CANCELLATION_REASON'
     ) {
-      return 'El motivo de cancelaciÃ³n seleccionado no es vÃ¡lido.'
+      return 'El motivo de cancelación seleccionado no es válido.'
     }
 
     if (
       error.code ===
       'CANCELLATION_NOTES_REQUIRED'
     ) {
-      return 'Describe por quÃ© se cancela la parada adicional.'
+      return 'Describe por qué se cancela la parada adicional.'
     }
 
     if (
       error.code ===
       'ITEM_NOT_CANCELLABLE'
     ) {
-      return 'Esta actividad no puede cancelarse mediante esta funciÃ³n.'
+      return 'Esta actividad no puede cancelarse mediante esta función.'
     }
 
     if (
@@ -2578,14 +2577,14 @@ function getExecutionErrorMessage(
       error.code ===
       'EXTRA_STOP_NOT_FOUND'
     ) {
-      return 'La parada adicional no existe o ya no estÃ¡ disponible.'
+      return 'La parada adicional no existe o ya no está disponible.'
     }
 
     if (
       error.code ===
       'CANCELLATION_REQUEST_PENDING'
     ) {
-      return 'La visita tiene una solicitud de cancelaciÃ³n pendiente de revisiÃ³n.'
+      return 'La visita tiene una solicitud de cancelación pendiente de revisión.'
     }
 
     if (
@@ -2599,28 +2598,28 @@ function getExecutionErrorMessage(
       error.code ===
       'RESCHEDULE_REASON_REQUIRED'
     ) {
-      return 'Selecciona un motivo de reprogramaciÃ³n.'
+      return 'Selecciona un motivo de reprogramación.'
     }
 
     if (
       error.code ===
       'INVALID_RESCHEDULE_REASON'
     ) {
-      return 'El motivo de reprogramaciÃ³n no es vÃ¡lido.'
+      return 'El motivo de reprogramación no es válido.'
     }
 
     if (
       error.code ===
       'RESCHEDULE_NOTES_REQUIRED'
     ) {
-      return 'Describe el motivo de la reprogramaciÃ³n.'
+      return 'Describe el motivo de la reprogramación.'
     }
 
     if (
       error.code ===
       'RESCHEDULE_DATE_NOT_FUTURE'
     ) {
-      return 'La nueva fecha debe ser posterior al dÃ­a de hoy.'
+      return 'La nueva fecha debe ser posterior al día de hoy.'
     }
 
     if (
@@ -2634,14 +2633,14 @@ function getExecutionErrorMessage(
       error.code ===
       'CANCELLATION_REQUEST_REASON_REQUIRED'
     ) {
-      return 'Selecciona un motivo para solicitar la cancelaciÃ³n.'
+      return 'Selecciona un motivo para solicitar la cancelación.'
     }
 
     if (
       error.code ===
       'INVALID_CANCELLATION_REQUEST_REASON'
     ) {
-      return 'El motivo de cancelaciÃ³n seleccionado no es vÃ¡lido.'
+      return 'El motivo de cancelación seleccionado no es válido.'
     }
 
     if (
@@ -2655,8 +2654,9 @@ function getExecutionErrorMessage(
       error.code ===
       'CANCELLATION_REQUEST_NOT_ALLOWED_FOR_EXTRA_STOP'
     ) {
-      return 'Las paradas adicionales utilizan su propio flujo de cancelaciÃ³n.'
+      return 'Las paradas adicionales utilizan su propio flujo de cancelación.'
     }
+
     if (
       error.code ===
       'OUTSIDE_GEOFENCE'
@@ -2675,28 +2675,28 @@ function getExecutionErrorMessage(
       error.code ===
       'LOCATION_ACCURACY_REQUIRED'
     ) {
-      return 'No fue posible validar la precision del GPS. Espera unos segundos e intenta nuevamente.'
+      return 'No fue posible validar la precisión del GPS. Espera unos segundos e intenta nuevamente.'
     }
 
     if (
       error.code ===
       'MOCK_LOCATION_DETECTED'
     ) {
-      return 'El dispositivo reporto una ubicacion simulada. Desactiva las ubicaciones de prueba e intenta nuevamente.'
+      return 'El dispositivo reportó una ubicación simulada. Desactiva las ubicaciones de prueba e intenta nuevamente.'
     }
 
     if (
       error.code ===
       'DESTINATION_COORDINATES_MISSING'
     ) {
-      return 'La unidad no tiene coordenadas validas. Solicita su correccion antes de registrar la visita.'
+      return 'La unidad no tiene coordenadas válidas. Solicita su corrección antes de registrar la visita.'
     }
 
     if (
       error.code ===
       'NETWORK_ERROR'
     ) {
-      return 'No hay conexiÃ³n con el servidor. Revisa tu red e intenta nuevamente.'
+      return 'No hay conexión con el servidor. Revisa tu red e intenta nuevamente.'
     }
 
     return error.message
@@ -2709,7 +2709,7 @@ function getExecutionErrorMessage(
     return error.message
   }
 
-  return 'OcurriÃ³ un error inesperado al registrar la actividad.'
+  return 'Ocurrió un error inesperado al registrar la actividad.'
 }
 
 function formatDate(
