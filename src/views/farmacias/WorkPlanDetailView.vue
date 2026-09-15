@@ -271,7 +271,7 @@
                   detail.items.length
                 )
               }}
-              actividades
+              visitas
             </small>
           </header>
 
@@ -383,6 +383,62 @@
                       >
                         Actividad
                       </span>
+                    </div>
+
+                    <div
+                      v-if="
+                        item.itemType ===
+                          'PHARMACY' &&
+                        item.source ===
+                          'PLAN'
+                      "
+                      class="planned-activities"
+                    >
+                      <div class="planned-activities-heading">
+                        <strong>
+                          Actividades planeadas
+                        </strong>
+
+                        <span>
+                          {{
+                            item.activities?.length ||
+                            0
+                          }}
+                        </span>
+                      </div>
+
+                      <ol
+                        v-if="item.activities?.length"
+                        class="planned-activities-list"
+                      >
+                        <li
+                          v-for="activity in [...item.activities].sort(
+                            (a, b) =>
+                              a.order - b.order
+                          )"
+                          :key="activity.id"
+                        >
+                          <div>
+                            <strong>
+                              {{ activity.activityType }}
+                            </strong>
+
+                            <span
+                              v-if="activity.note"
+                            >
+                              {{ activity.note }}
+                            </span>
+                          </div>
+                        </li>
+                      </ol>
+
+                      <div
+                        v-else
+                        class="planned-activities-empty"
+                      >
+                        Esta visita no tiene actividades
+                        planeadas registradas.
+                      </div>
                     </div>
 
                     <div
@@ -1898,6 +1954,117 @@ function formatNumber(
 
   font-size: 7.5px;
   font-weight: 750;
+}
+
+.planned-activities {
+  margin-top: 9px;
+
+  padding: 9px;
+
+  border:
+    1px solid #e2e8f0;
+
+  border-radius: 10px;
+
+  background: #f8fafc;
+}
+
+.planned-activities-heading {
+  display: flex;
+
+  align-items: center;
+  justify-content: space-between;
+
+  gap: 8px;
+}
+
+.planned-activities-heading strong {
+  color: #475569;
+
+  font-size: 8.5px;
+  font-weight: 900;
+
+  letter-spacing: .04em;
+
+  text-transform: uppercase;
+}
+
+.planned-activities-heading span {
+  display: inline-grid;
+
+  min-width: 20px;
+  height: 20px;
+
+  place-items: center;
+
+  padding: 0 5px;
+
+  border-radius: 999px;
+
+  background: #fff;
+
+  color: #64748b;
+
+  font-size: 8px;
+  font-weight: 900;
+}
+
+.planned-activities-list {
+  display: grid;
+
+  gap: 6px;
+
+  margin:
+    7px
+    0
+    0;
+
+  padding-left: 18px;
+}
+
+.planned-activities-list li {
+  color: #64748b;
+
+  font-size: 8.5px;
+}
+
+.planned-activities-list li > div {
+  display: flex;
+
+  flex-direction: column;
+
+  gap: 2px;
+}
+
+.planned-activities-list strong {
+  color: #334155;
+
+  font-size: 9px;
+}
+
+.planned-activities-list span {
+  color: #64748b;
+
+  font-size: 8.5px;
+  line-height: 1.4;
+}
+
+.planned-activities-empty {
+  margin-top: 7px;
+
+  padding: 7px 8px;
+
+  border:
+    1px solid #fde68a;
+
+  border-radius: 8px;
+
+  background: #fffbeb;
+
+  color: #92400e;
+
+  font-size: 8.5px;
+  line-height: 1.4;
 }
 
 .cancellation-tag {

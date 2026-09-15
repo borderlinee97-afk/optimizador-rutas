@@ -2174,6 +2174,81 @@ function ReviewVisitCard({
               }
             </Text>
           ) : null}
+
+          {item.itemType ===
+            'PHARMACY' &&
+          item.source ===
+            'PLAN' ? (
+            <View className="mt-4 rounded-2xl border border-slate-200 bg-slate-50 p-3">
+              <View className="flex-row items-center justify-between">
+                <View className="flex-row items-center">
+                  <Ionicons
+                    name="list-outline"
+                    size={17}
+                    color="#475569"
+                  />
+
+                  <Text className="ml-2 text-xs font-bold uppercase tracking-wide text-slate-600">
+                    Actividades planeadas
+                  </Text>
+                </View>
+
+                <View className="rounded-full bg-white px-2.5 py-1">
+                  <Text className="text-[10px] font-bold text-slate-500">
+                    {item.activities?.length ?? 0}
+                  </Text>
+                </View>
+              </View>
+
+              {item.activities?.length ? (
+                <View className="mt-3 gap-2">
+                  {[...item.activities]
+                    .sort(
+                      (
+                        firstActivity,
+                        secondActivity,
+                      ) =>
+                        firstActivity.order -
+                        secondActivity.order,
+                    )
+                    .map(
+                      activity => (
+                        <View
+                          key={
+                            activity.id
+                          }
+                          className="flex-row items-start"
+                        >
+                          <View className="mt-0.5 h-5 w-5 items-center justify-center rounded-full bg-white">
+                            <Text className="text-[10px] font-bold text-slate-600">
+                              {activity.order}
+                            </Text>
+                          </View>
+
+                          <View className="ml-2 flex-1">
+                            <Text className="text-xs font-semibold leading-5 text-slate-700">
+                              {activity.activityType}
+                            </Text>
+
+                            {activity.note ? (
+                              <Text className="mt-0.5 text-xs leading-5 text-slate-500">
+                                {activity.note}
+                              </Text>
+                            ) : null}
+                          </View>
+                        </View>
+                      ),
+                    )}
+                </View>
+              ) : (
+                <View className="mt-3 rounded-xl border border-amber-200 bg-amber-50 p-3">
+                  <Text className="text-xs leading-5 text-amber-800">
+                    Esta visita no tiene actividades planeadas registradas.
+                  </Text>
+                </View>
+              )}
+            </View>
+          ) : null}
         </View>
       </View>
     </View>
