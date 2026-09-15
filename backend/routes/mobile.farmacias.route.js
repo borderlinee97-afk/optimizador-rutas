@@ -9,7 +9,9 @@ import {
   getPharmacyAccess,
 } from '../services/pharmacyAccess.service.js'
 import {
+  attachActivitiesToItems,
   copyPlannedActivities,
+  getActivitiesForPlanItem,
 } from '../services/pharmacyActivity.service.js'
 
 const router = Router()
@@ -363,8 +365,11 @@ router.get(
           mappedPlans,
 
         items:
-          itemsResult.rows.map(
-            mapPlanItem,
+          await attachActivitiesToItems(
+            pool,
+            itemsResult.rows.map(
+              mapPlanItem,
+            ),
           ),
       })
     } catch (error) {
@@ -586,6 +591,44 @@ router.post(
 
 /**
  * POST
+ * /api/mobile/farmacias/items/:itemId/activities/:activityId/done
+ *
+ * Resuelve una actividad planeada como realizada.
+ */
+router.post(
+  '/items/:itemId/activities/:activityId/done',
+  async (
+    req,
+    res,
+  ) =>
+    handleActivityResolution(
+      req,
+      res,
+      'DONE',
+    ),
+)
+
+/**
+ * POST
+ * /api/mobile/farmacias/items/:itemId/activities/:activityId/skip
+ *
+ * Resuelve una actividad planeada como no realizada.
+ */
+router.post(
+  '/items/:itemId/activities/:activityId/skip',
+  async (
+    req,
+    res,
+  ) =>
+    handleActivityResolution(
+      req,
+      res,
+      'SKIPPED',
+    ),
+)
+
+/**
+ * POST
  * /api/mobile/farmacias/items/:itemId/check-out
  */
 router.post(
@@ -677,6 +720,62 @@ router.post(
 
           code:
             'ITEM_NOT_IN_PROGRESS',
+        })
+      }
+
+      const activityStatsResult =
+        await client.query(
+          `
+          SELECT
+            COUNT(*)::integer
+              AS total,
+
+            COUNT(*) FILTER (
+              WHERE status =
+                'PENDING'
+            )::integer
+              AS pending
+
+          FROM public.pharmacy_activity
+
+          WHERE plan_item_id =
+            $1::uuid
+          `,
+          [
+            itemId,
+          ],
+        )
+
+      const activityStats =
+        activityStatsResult.rows[0]
+
+      if (
+        Number(
+          activityStats.total ??
+          0,
+        ) >
+          0 &&
+        Number(
+          activityStats.pending ??
+          0,
+        ) >
+          0
+      ) {
+        await client.query(
+          'ROLLBACK',
+        )
+
+        return res.status(409).json({
+          error:
+            'Debes resolver todas las actividades planeadas antes de finalizar la visita',
+
+          code:
+            'VISIT_ACTIVITIES_PENDING',
+
+          pendingActivities:
+            Number(
+              activityStats.pending,
+            ),
         })
       }
 
@@ -2103,6 +2202,453 @@ router.post(
     }
   },
 )
+
+async function handleActivityResolution(
+  req,
+  res,
+  targetStatus,
+) {
+  const itemId =
+    String(
+      req.params.itemId ??
+      '',
+    ).trim()
+
+  const activityId =
+    String(
+      req.params.activityId ??
+      '',
+    ).trim()
+
+  if (
+    !UUID_PATTERN.test(
+      itemId,
+    ) ||
+    !UUID_PATTERN.test(
+      activityId,
+    )
+  ) {
+    return res.status(400).json({
+      error:
+        'El identificador de la visita o de la actividad no es válido',
+
+      code:
+        'INVALID_VISIT_ACTIVITY_ID',
+    })
+  }
+
+  const executionNote =
+    String(
+      req.body?.executionNote ??
+      '',
+    ).trim()
+
+  const skipReason =
+    String(
+      req.body?.skipReason ??
+      '',
+    ).trim()
+
+  if (
+    executionNote.length >
+    2000
+  ) {
+    return res.status(400).json({
+      error:
+        'La nota de ejecución no puede superar 2000 caracteres',
+
+      code:
+        'ACTIVITY_EXECUTION_NOTE_TOO_LONG',
+    })
+  }
+
+  if (
+    targetStatus ===
+      'SKIPPED' &&
+    !skipReason
+  ) {
+    return res.status(400).json({
+      error:
+        'Debes indicar el motivo por el que no se realizó la actividad',
+
+      code:
+        'ACTIVITY_SKIP_REASON_REQUIRED',
+    })
+  }
+
+  if (
+    skipReason.length >
+    1000
+  ) {
+    return res.status(400).json({
+      error:
+        'El motivo no puede superar 1000 caracteres',
+
+      code:
+        'ACTIVITY_SKIP_REASON_TOO_LONG',
+    })
+  }
+
+  const client =
+    await pool.connect()
+
+  try {
+    await client.query(
+      'BEGIN',
+    )
+
+    const item =
+      await getLockedOwnedItem(
+        client,
+        itemId,
+        req.profile.id,
+      )
+
+    if (!item) {
+      await client.query(
+        'ROLLBACK',
+      )
+
+      return res.status(404).json({
+        error:
+          'La visita no existe o no pertenece al usuario autenticado',
+
+        code:
+          'PLAN_ITEM_NOT_FOUND',
+      })
+    }
+
+    if (
+      item.plan_status !==
+        'APPROVED'
+    ) {
+      await client.query(
+        'ROLLBACK',
+      )
+
+      return res.status(409).json({
+        error:
+          'El plan de trabajo no está autorizado',
+
+        code:
+          'PLAN_NOT_APPROVED',
+      })
+    }
+
+    if (
+      item.status !==
+        'IN_PROGRESS' ||
+      !item.check_in_at
+    ) {
+      await client.query(
+        'ROLLBACK',
+      )
+
+      return res.status(409).json({
+        error:
+          'Las actividades solo pueden resolverse durante una visita activa',
+
+        code:
+          'ITEM_NOT_IN_PROGRESS',
+      })
+    }
+
+    if (
+      item.item_type !==
+        'PHARMACY' ||
+      item.source !==
+        'PLAN'
+    ) {
+      await client.query(
+        'ROLLBACK',
+      )
+
+      return res.status(409).json({
+        error:
+          'Las actividades planeadas solo aplican a visitas programadas del plan',
+
+        code:
+          'VISIT_ACTIVITIES_NOT_ALLOWED_FOR_EXTRA_STOP',
+      })
+    }
+
+    const activityResult =
+      await client.query(
+        `
+        SELECT *
+
+        FROM public.pharmacy_activity
+
+        WHERE id =
+            $1::uuid
+
+          AND plan_item_id =
+            $2::uuid
+
+        LIMIT 1
+
+        FOR UPDATE
+        `,
+        [
+          activityId,
+          itemId,
+        ],
+      )
+
+    if (
+      activityResult.rowCount ===
+      0
+    ) {
+      await client.query(
+        'ROLLBACK',
+      )
+
+      return res.status(404).json({
+        error:
+          'La actividad no existe o no pertenece a esta visita',
+
+        code:
+          'VISIT_ACTIVITY_NOT_FOUND',
+      })
+    }
+
+    const beforeActivity =
+      activityResult.rows[0]
+
+    if (
+      beforeActivity.status !==
+      'PENDING'
+    ) {
+      await client.query(
+        'ROLLBACK',
+      )
+
+      return res.status(409).json({
+        error:
+          'La actividad ya fue resuelta y no puede modificarse nuevamente',
+
+        code:
+          'VISIT_ACTIVITY_ALREADY_RESOLVED',
+      })
+    }
+
+    if (
+      targetStatus ===
+      'DONE'
+    ) {
+      await client.query(
+        `
+        UPDATE public.pharmacy_activity
+
+        SET
+          status =
+            'DONE',
+
+          execution_note =
+            NULLIF($3::text, ''),
+
+          completed_by =
+            $4::uuid,
+
+          completed_at =
+            NOW(),
+
+          skipped_by =
+            NULL,
+
+          skipped_at =
+            NULL,
+
+          skip_reason =
+            NULL,
+
+          updated_by =
+            $4::uuid,
+
+          updated_at =
+            NOW()
+
+        WHERE id =
+            $1::uuid
+
+          AND plan_item_id =
+            $2::uuid
+        `,
+        [
+          activityId,
+          itemId,
+          executionNote,
+          req.profile.id,
+        ],
+      )
+    } else {
+      await client.query(
+        `
+        UPDATE public.pharmacy_activity
+
+        SET
+          status =
+            'SKIPPED',
+
+          execution_note =
+            NULLIF($3::text, ''),
+
+          completed_by =
+            NULL,
+
+          completed_at =
+            NULL,
+
+          skipped_by =
+            $4::uuid,
+
+          skipped_at =
+            NOW(),
+
+          skip_reason =
+            $5::text,
+
+          updated_by =
+            $4::uuid,
+
+          updated_at =
+            NOW()
+
+        WHERE id =
+            $1::uuid
+
+          AND plan_item_id =
+            $2::uuid
+        `,
+        [
+          activityId,
+          itemId,
+          executionNote,
+          req.profile.id,
+          skipReason,
+        ],
+      )
+    }
+
+    const activities =
+      await getActivitiesForPlanItem(
+        client,
+        itemId,
+      )
+
+    const activity =
+      activities.find(
+        current =>
+          current.id ===
+          activityId,
+      )
+
+    if (!activity) {
+      throw new Error(
+        'La actividad actualizada no pudo recuperarse',
+      )
+    }
+
+    await appendWorkPlanEvent(
+      client,
+      {
+        planId:
+          item.plan_id,
+
+        entityType:
+          'EXECUTION',
+
+        entityId:
+          activityId,
+
+        revisionNumber:
+          Number(
+            item.revision_number ??
+            0,
+          ),
+
+        eventType:
+          targetStatus ===
+            'DONE'
+            ? 'VISIT_ACTIVITY_DONE'
+            : 'VISIT_ACTIVITY_SKIPPED',
+
+        actor:
+          req.profile,
+
+        previousStatus:
+          'PENDING',
+
+        newStatus:
+          targetStatus,
+
+        comment:
+          targetStatus ===
+            'SKIPPED'
+            ? skipReason
+            : executionNote ||
+              activity.activityType,
+
+        beforeData:
+          beforeActivity,
+
+        afterData:
+          activity,
+
+        metadata: {
+          executionEntityType:
+            'PHARMACY_ACTIVITY',
+
+          planItemId:
+            itemId,
+
+          activityId,
+
+          executionNote:
+            executionNote ||
+            null,
+
+          skipReason:
+            targetStatus ===
+              'SKIPPED'
+              ? skipReason
+              : null,
+        },
+      },
+    )
+
+    await client.query(
+      'COMMIT',
+    )
+
+    return res.json({
+      ok:
+        true,
+
+      activity,
+      activities,
+    })
+  } catch (error) {
+    await rollbackSafely(
+      client,
+    )
+
+    console.error(
+      '[mobile.farmacias][activity-resolution]',
+      error,
+    )
+
+    return res.status(500).json({
+      error:
+        'No fue posible actualizar la actividad de la visita',
+
+      code:
+        'VISIT_ACTIVITY_RESOLUTION_FAILED',
+    })
+  } finally {
+    client.release()
+  }
+}
 
 async function getLockedOwnedItem(
   client,
