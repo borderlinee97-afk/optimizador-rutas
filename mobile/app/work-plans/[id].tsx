@@ -70,6 +70,15 @@ type VisitModalMode =
   | 'ADD'
   | 'EDIT'
 
+type DraftVisitActivity = {
+  key: string
+  activityType: string
+  note: string
+}
+
+const MAX_VISIT_ACTIVITIES =
+  50
+
 const PLAN_STATUS_CONFIG: Record<
   WorkPlanStatus,
   {
@@ -319,6 +328,14 @@ export default function WorkPlanDetailScreen() {
     )
 
   const [
+    activities,
+    setActivities,
+  ] =
+    useState<DraftVisitActivity[]>(
+      [],
+    )
+
+  const [
     saving,
     setSaving,
   ] =
@@ -471,6 +488,38 @@ export default function WorkPlanDetailScreen() {
       [
         selectedPharmacy,
         scheduledDate,
+      ],
+    )
+
+  const activitiesValid =
+    useMemo(
+      () =>
+        activities.length >
+          0 &&
+        activities.length <=
+          MAX_VISIT_ACTIVITIES &&
+        activities.every(
+          activity => {
+            const activityType =
+              activity.activityType
+                .trim()
+
+            const note =
+              activity.note
+                .trim()
+
+            return (
+              activityType.length >
+                0 &&
+              activityType.length <=
+                160 &&
+              note.length <=
+                1000
+            )
+          },
+        ),
+      [
+        activities,
       ],
     )
 
@@ -745,6 +794,10 @@ export default function WorkPlanDetailScreen() {
       true,
     )
 
+    setActivities([
+      createDraftVisitActivity(),
+    ])
+
     setSearch(
       '',
     )
@@ -796,6 +849,37 @@ export default function WorkPlanDetailScreen() {
 
     setRequired(
       item.required,
+    )
+
+    const plannedActivities =
+      [...(
+        item.activities ??
+        []
+      )]
+        .sort(
+          (
+            first,
+            second,
+          ) =>
+            first.order -
+            second.order,
+        )
+        .map(
+          activity =>
+            createDraftVisitActivity(
+              activity.activityType,
+              activity.note ??
+                '',
+            ),
+        )
+
+    setActivities(
+      plannedActivities.length >
+        0
+        ? plannedActivities
+        : [
+            createDraftVisitActivity(),
+          ],
     )
 
     setSearch(
@@ -979,6 +1063,119 @@ export default function WorkPlanDetailScreen() {
     }
   }
 
+  function addActivity() {
+    if (
+      activities.length >=
+      MAX_VISIT_ACTIVITIES
+    ) {
+      Alert.alert(
+        'Límite de actividades',
+        `Cada visita admite hasta ${MAX_VISIT_ACTIVITIES} actividades.`,
+      )
+
+      return
+    }
+
+    setActivities(
+      current => [
+        ...current,
+        createDraftVisitActivity(),
+      ],
+    )
+  }
+
+  function updateActivity(
+    key: string,
+    field:
+      | 'activityType'
+      | 'note',
+    value: string,
+  ) {
+    setActivities(
+      current =>
+        current.map(
+          activity =>
+            activity.key ===
+            key
+              ? {
+                  ...activity,
+                  [field]:
+                    value,
+                }
+              : activity,
+        ),
+    )
+  }
+
+  function removeActivity(
+    key: string,
+  ) {
+    setActivities(
+      current =>
+        current.filter(
+          activity =>
+            activity.key !==
+            key,
+        ),
+    )
+  }
+
+  function moveActivity(
+    key: string,
+    direction:
+      | 'UP'
+      | 'DOWN',
+  ) {
+    setActivities(
+      current => {
+        const index =
+          current.findIndex(
+            activity =>
+              activity.key ===
+              key,
+          )
+
+        if (
+          index <
+          0
+        ) {
+          return current
+        }
+
+        const target =
+          direction ===
+          'UP'
+            ? index -
+              1
+            : index +
+              1
+
+        if (
+          target <
+            0 ||
+          target >=
+            current.length
+        ) {
+          return current
+        }
+
+        const next =
+          [...current]
+
+        const temporary =
+          next[index]
+
+        next[index] =
+          next[target]
+
+        next[target] =
+          temporary
+
+        return next
+      },
+    )
+  }
+
   async function handleSaveVisit() {
     if (
       !accessToken ||
@@ -1041,6 +1238,57 @@ export default function WorkPlanDetailScreen() {
       return
     }
 
+    if (
+      activities.length ===
+      0
+    ) {
+      Alert.alert(
+        'Agrega una actividad',
+        'La visita debe tener al menos una actividad a realizar.',
+      )
+
+      return
+    }
+
+    const normalizedActivities =
+      activities.map(
+        activity => ({
+          activityType:
+            activity.activityType
+              .trim(),
+
+          note:
+            activity.note
+              .trim() ||
+            null,
+        }),
+      )
+
+    const invalidActivityIndex =
+      normalizedActivities.findIndex(
+        activity =>
+          !activity.activityType ||
+          activity.activityType.length >
+            160 ||
+          (
+            activity.note?.length ??
+            0
+          ) >
+            1000,
+      )
+
+    if (
+      invalidActivityIndex >=
+      0
+    ) {
+      Alert.alert(
+        'Revisa las actividades',
+        `La actividad ${invalidActivityIndex + 1} está vacía o supera el límite permitido.`,
+      )
+
+      return
+    }
+
     setSaving(
       true,
     )
@@ -1063,6 +1311,9 @@ export default function WorkPlanDetailScreen() {
             scheduledTime,
 
             required,
+
+            activities:
+              normalizedActivities,
           },
           accessToken,
         )
@@ -1078,6 +1329,9 @@ export default function WorkPlanDetailScreen() {
             scheduledTime,
 
             required,
+
+            activities:
+              normalizedActivities,
           },
           accessToken,
         )
@@ -1317,6 +1571,33 @@ export default function WorkPlanDetailScreen() {
       Alert.alert(
         'Plan vacío',
         'Agrega al menos una visita antes de enviarlo.',
+      )
+
+      return
+    }
+
+    const itemWithoutActivities =
+      items.find(
+        item =>
+          item.itemType ===
+            'PHARMACY' &&
+          item.source ===
+            'PLAN' &&
+          (
+            !Array.isArray(
+              item.activities,
+            ) ||
+            item.activities.length ===
+              0
+          ),
+      )
+
+    if (
+      itemWithoutActivities
+    ) {
+      Alert.alert(
+        'Visita sin actividades',
+        `La unidad "${itemWithoutActivities.name}" no tiene actividades programadas. Edítala antes de enviar el plan.`,
       )
 
       return
@@ -1999,8 +2280,8 @@ export default function WorkPlanDetailScreen() {
                   <Text className="mt-1 text-sm leading-5 text-slate-500">
                     {visitModalMode ===
                     'EDIT'
-                      ? 'Modifica la unidad, fecha, hora u obligatoriedad.'
-                      : 'Selecciona una unidad asignada o cubierta temporalmente.'}
+                      ? 'Modifica la unidad, fecha, hora, actividades u obligatoriedad.'
+                      : 'Selecciona una unidad y define las actividades que realizarás durante la visita.'}
                   </Text>
                 </View>
 
@@ -2504,6 +2785,215 @@ export default function WorkPlanDetailScreen() {
                 />
               </View>
 
+              <View className="mt-7 rounded-3xl border border-slate-200 bg-slate-50 p-4">
+                <View className="flex-row items-start justify-between">
+                  <View className="mr-4 flex-1">
+                    <Text className="text-sm font-bold text-slate-800">
+                      Actividades a realizar
+                    </Text>
+
+                    <Text className="mt-1 text-xs leading-5 text-slate-500">
+                      Define qué se realizará en esta unidad. El orden se conservará en la visita.
+                    </Text>
+                  </View>
+
+                  <View className="rounded-full bg-white px-3 py-1.5">
+                    <Text className="text-xs font-bold text-slate-600">
+                      {activities.length}/{MAX_VISIT_ACTIVITIES}
+                    </Text>
+                  </View>
+                </View>
+
+                <View className="mt-4 gap-3">
+                  {activities.map(
+                    (
+                      activity,
+                      index,
+                    ) => (
+                      <View
+                        key={
+                          activity.key
+                        }
+                        className="rounded-2xl border border-slate-200 bg-white p-4"
+                      >
+                        <View className="flex-row items-center justify-between">
+                          <Text className="text-xs font-bold uppercase tracking-wide text-slate-500">
+                            Actividad {index + 1}
+                          </Text>
+
+                          <View className="flex-row items-center gap-1">
+                            <Pressable
+                              className="h-9 w-9 items-center justify-center rounded-xl bg-slate-100"
+                              disabled={
+                                index ===
+                                  0 ||
+                                saving
+                              }
+                              onPress={() =>
+                                moveActivity(
+                                  activity.key,
+                                  'UP',
+                                )
+                              }
+                            >
+                              <Ionicons
+                                name="arrow-up"
+                                size={16}
+                                color={
+                                  index ===
+                                  0
+                                    ? '#cbd5e1'
+                                    : '#475569'
+                                }
+                              />
+                            </Pressable>
+
+                            <Pressable
+                              className="h-9 w-9 items-center justify-center rounded-xl bg-slate-100"
+                              disabled={
+                                index ===
+                                  activities.length -
+                                    1 ||
+                                saving
+                              }
+                              onPress={() =>
+                                moveActivity(
+                                  activity.key,
+                                  'DOWN',
+                                )
+                              }
+                            >
+                              <Ionicons
+                                name="arrow-down"
+                                size={16}
+                                color={
+                                  index ===
+                                  activities.length -
+                                    1
+                                    ? '#cbd5e1'
+                                    : '#475569'
+                                }
+                              />
+                            </Pressable>
+
+                            <Pressable
+                              className="h-9 w-9 items-center justify-center rounded-xl bg-rose-50"
+                              disabled={
+                                saving
+                              }
+                              onPress={() =>
+                                removeActivity(
+                                  activity.key,
+                                )
+                              }
+                            >
+                              <Ionicons
+                                name="trash-outline"
+                                size={16}
+                                color="#be123c"
+                              />
+                            </Pressable>
+                          </View>
+                        </View>
+
+                        <TextInput
+                          className="mt-3 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900"
+                          value={
+                            activity.activityType
+                          }
+                          onChangeText={
+                            value =>
+                              updateActivity(
+                                activity.key,
+                                'activityType',
+                                value,
+                              )
+                          }
+                          placeholder="Ej. Revisión de inventario"
+                          placeholderTextColor="#94a3b8"
+                          maxLength={160}
+                          editable={
+                            !saving
+                          }
+                        />
+
+                        <TextInput
+                          className="mt-3 min-h-[76px] rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900"
+                          value={
+                            activity.note
+                          }
+                          onChangeText={
+                            value =>
+                              updateActivity(
+                                activity.key,
+                                'note',
+                                value,
+                              )
+                          }
+                          placeholder="Nota opcional"
+                          placeholderTextColor="#94a3b8"
+                          maxLength={1000}
+                          multiline
+                          textAlignVertical="top"
+                          editable={
+                            !saving
+                          }
+                        />
+                      </View>
+                    ),
+                  )}
+                </View>
+
+                {activities.length ===
+                0 ? (
+                  <View className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 p-3">
+                    <Text className="text-xs leading-5 text-amber-800">
+                      Agrega al menos una actividad para poder guardar la visita.
+                    </Text>
+                  </View>
+                ) : null}
+
+                <Pressable
+                  className={`mt-4 h-12 flex-row items-center justify-center rounded-2xl ${
+                    activities.length >=
+                      MAX_VISIT_ACTIVITIES ||
+                    saving
+                      ? 'bg-slate-200'
+                      : 'bg-white'
+                  }`}
+                  disabled={
+                    activities.length >=
+                      MAX_VISIT_ACTIVITIES ||
+                    saving
+                  }
+                  onPress={
+                    addActivity
+                  }
+                >
+                  <Ionicons
+                    name="add-circle-outline"
+                    size={19}
+                    color={
+                      activities.length >=
+                      MAX_VISIT_ACTIVITIES
+                        ? '#94a3b8'
+                        : '#0f64ad'
+                    }
+                  />
+
+                  <Text
+                    className={`ml-2 text-sm font-bold ${
+                      activities.length >=
+                      MAX_VISIT_ACTIVITIES
+                        ? 'text-slate-400'
+                        : 'text-primary-700'
+                    }`}
+                  >
+                    Agregar actividad
+                  </Text>
+                </Pressable>
+              </View>
+
               <View className="mt-6 flex-row items-center justify-between rounded-3xl border border-slate-200 bg-slate-50 p-4">
                 <View className="mr-4 flex-1">
                   <Text className="font-bold text-slate-800">
@@ -2551,7 +3041,8 @@ export default function WorkPlanDetailScreen() {
                 className={`mt-7 h-14 flex-row items-center justify-center rounded-2xl ${
                   saving ||
                   !selectedPharmacy ||
-                  !selectedDateAuthorized
+                  !selectedDateAuthorized ||
+                  !activitiesValid
                     ? 'bg-primary-300'
                     : 'bg-primary-600'
                 }`}
@@ -2561,7 +3052,8 @@ export default function WorkPlanDetailScreen() {
                 disabled={
                   saving ||
                   !selectedPharmacy ||
-                  !selectedDateAuthorized
+                  !selectedDateAuthorized ||
+                  !activitiesValid
                 }
               >
                 {saving ? (
@@ -2597,6 +3089,21 @@ export default function WorkPlanDetailScreen() {
       </Modal>
     </SafeAreaView>
   )
+}
+
+function createDraftVisitActivity(
+  activityType =
+    '',
+  note =
+    '',
+): DraftVisitActivity {
+  return {
+    key:
+      `${Date.now()}-${Math.random().toString(36).slice(2)}`,
+
+    activityType,
+    note,
+  }
 }
 
 function VisitCard({
@@ -2804,6 +3311,63 @@ function VisitCard({
                 item.project
               }
             </Text>
+          ) : null}
+
+          {item.activities?.length >
+          0 ? (
+            <View className="mt-4 rounded-2xl border border-slate-200 bg-slate-50 p-3">
+              <View className="flex-row items-center">
+                <Ionicons
+                  name="list-outline"
+                  size={17}
+                  color="#475569"
+                />
+
+                <Text className="ml-2 text-xs font-bold uppercase tracking-wide text-slate-600">
+                  Actividades a realizar
+                </Text>
+              </View>
+
+              <View className="mt-3 gap-2">
+                {[...item.activities]
+                  .sort(
+                    (
+                      firstActivity,
+                      secondActivity,
+                    ) =>
+                      firstActivity.order -
+                      secondActivity.order,
+                  )
+                  .map(
+                    activity => (
+                      <View
+                        key={
+                          activity.id
+                        }
+                        className="flex-row items-start"
+                      >
+                        <View className="mt-0.5 h-5 w-5 items-center justify-center rounded-full bg-white">
+                          <Text className="text-[10px] font-bold text-slate-600">
+                            {activity.order}
+                          </Text>
+                        </View>
+
+                        <View className="ml-2 flex-1">
+                          <Text className="text-xs font-semibold leading-5 text-slate-700">
+                            {activity.activityType}
+                          </Text>
+
+                          {activity.note ? (
+                            <Text className="mt-0.5 text-xs leading-5 text-slate-500">
+                              {activity.note}
+                            </Text>
+                          ) : null}
+                        </View>
+                      </View>
+                    ),
+                  )}
+              </View>
+            </View>
           ) : null}
         </View>
       </View>

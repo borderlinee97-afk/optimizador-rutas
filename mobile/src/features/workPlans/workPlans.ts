@@ -163,6 +163,56 @@ interface ApprovalMutationResponse {
     WorkPlan
 }
 
+export interface WorkPlanActivity {
+  id: string
+  planItemId: string
+
+  activityType: string
+
+  note:
+    string | null
+
+  order: number
+
+  status:
+    | 'PENDING'
+    | 'DONE'
+    | 'SKIPPED'
+
+  executionNote:
+    string | null
+
+  completedBy:
+    string | null
+
+  completedAt:
+    string | null
+
+  skippedBy:
+    string | null
+
+  skippedAt:
+    string | null
+
+  skipReason:
+    string | null
+
+  createdBy: string
+  createdAt: string
+
+  updatedBy:
+    string | null
+
+  updatedAt: string
+}
+
+export interface PlannedWorkPlanActivityInput {
+  activityType: string
+
+  note?:
+    string | null
+}
+
 export interface WorkPlanItem {
   id: string
   planId: string
@@ -231,6 +281,9 @@ export interface WorkPlanItem {
     | 'SKIPPED'
     | 'CANCELLED'
     | 'RESCHEDULED'
+
+  activities:
+    WorkPlanActivity[]
 
   addedBy:
     string | null
@@ -447,6 +500,9 @@ export interface AddWorkPlanItemPayload {
 
   order?:
     number | null
+
+  activities:
+    PlannedWorkPlanActivityInput[]
 }
 
 export interface UpdateWorkPlanItemPayload {
@@ -458,6 +514,9 @@ export interface UpdateWorkPlanItemPayload {
 
   required?: boolean
   order?: number
+
+  activities?:
+    PlannedWorkPlanActivityInput[]
 }
 
 export interface PharmacyCatalogQuery {
