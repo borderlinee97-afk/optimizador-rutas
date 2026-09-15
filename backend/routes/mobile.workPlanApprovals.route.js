@@ -5,6 +5,9 @@ import { requireAuth } from '../middleware/requireAuth.js'
 import {
   appendWorkPlanEvent,
 } from '../services/workPlanAudit.service.js'
+import {
+  attachActivitiesToItems,
+} from '../services/pharmacyActivity.service.js'
 
 const router = Router()
 
@@ -664,8 +667,11 @@ router.get(
         },
 
         items:
-          itemsResult.rows.map(
-            mapPlanItem,
+          await attachActivitiesToItems(
+            pool,
+            itemsResult.rows.map(
+              mapPlanItem,
+            ),
           ),
 
         revisions:

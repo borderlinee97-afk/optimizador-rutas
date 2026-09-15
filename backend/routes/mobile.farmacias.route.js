@@ -8,6 +8,9 @@ import {
 import {
   getPharmacyAccess,
 } from '../services/pharmacyAccess.service.js'
+import {
+  copyPlannedActivities,
+} from '../services/pharmacyActivity.service.js'
 
 const router = Router()
 
@@ -1530,6 +1533,20 @@ router.post(
         insertResult
           .rows[0]
           .id
+
+      await copyPlannedActivities(
+        client,
+        {
+          fromPlanItemId:
+            itemId,
+
+          toPlanItemId:
+            newItemId,
+
+          actorId:
+            req.profile.id,
+        },
+      )
 
       await client.query(
         `

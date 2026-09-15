@@ -6,6 +6,10 @@ import {
   appendWorkPlanEvent,
 } from './workPlanAudit.service.js'
 
+import {
+  findPlanItemWithoutActivities,
+} from './pharmacyActivity.service.js'
+
 const UUID_PATTERN =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
@@ -113,6 +117,66 @@ export async function approveWorkPlan({
             'WORK_PLAN_WITHOUT_ITEMS',
         },
       )
+    }
+
+    const revisionResult =
+      await client.query(
+        `
+        SELECT
+          snapshot
+
+        FROM public.work_plan_revision
+
+        WHERE plan_id =
+            $1::uuid
+
+          AND revision_number =
+            $2::integer
+
+        LIMIT 1
+        `,
+        [
+          planId,
+          Number(
+            plan.revision_number ??
+            0,
+          ),
+        ],
+      )
+
+    const activityPlanningVersion =
+      Number(
+        revisionResult
+          .rows[0]
+          ?.snapshot
+          ?.activityPlanningVersion ??
+        0,
+      )
+
+    if (
+      activityPlanningVersion >=
+      1
+    ) {
+      const itemWithoutActivities =
+        await findPlanItemWithoutActivities(
+          client,
+          planId,
+        )
+
+      if (
+        itemWithoutActivities
+      ) {
+        throw new WorkPlanApprovalError(
+          `No puede aprobarse el plan porque la visita "${itemWithoutActivities.name}" no tiene actividades programadas.`,
+          {
+            status:
+              409,
+
+            code:
+              'WORK_PLAN_ITEM_WITHOUT_ACTIVITIES',
+          },
+        )
+      }
     }
 
     const updateResult =

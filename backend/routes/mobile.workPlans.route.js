@@ -19,6 +19,11 @@ import {
   normalizePharmacyScopeMode,
 } from '../services/pharmacyAccess.service.js'
 
+import {
+  attachActivitiesToItems,
+  findPlanItemWithoutActivities,
+} from '../services/pharmacyActivity.service.js'
+
 const router =
   Router()
 
@@ -839,8 +844,11 @@ router.get(
           ),
 
         items:
-          itemsResult.rows.map(
-            mapPlanItem,
+          await attachActivitiesToItems(
+            pool,
+            itemsResult.rows.map(
+              mapPlanItem,
+            ),
           ),
 
         revisions:
@@ -1421,6 +1429,34 @@ router.post(
           })
       }
 
+      const itemWithoutActivities =
+        await findPlanItemWithoutActivities(
+          client,
+          planId,
+        )
+
+      if (
+        itemWithoutActivities
+      ) {
+        await client.query(
+          'ROLLBACK',
+        )
+
+        return res
+          .status(409)
+          .json({
+            error:
+              `La visita "${itemWithoutActivities.name}" no tiene actividades programadas.`,
+
+            code:
+              'WORK_PLAN_ITEM_WITHOUT_ACTIVITIES',
+
+            itemId:
+              itemWithoutActivities
+                .item_id,
+          })
+      }
+
       const periodStart =
         normalizeDateValue(
           currentPlan.period_start,
@@ -1673,16 +1709,25 @@ router.post(
         hierarchyResult.rows[0] ??
         null
 
+      const snapshotItems =
+        await attachActivitiesToItems(
+          client,
+          itemsResult.rows.map(
+            mapSnapshotItem,
+          ),
+        )
+
       const snapshot = {
+        activityPlanningVersion:
+          1,
+
         plan:
           mapPlan(
             submittedPlan,
           ),
 
         items:
-          itemsResult.rows.map(
-            mapSnapshotItem,
-          ),
+          snapshotItems,
 
         hierarchy,
 

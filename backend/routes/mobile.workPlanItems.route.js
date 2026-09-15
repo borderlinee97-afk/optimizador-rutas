@@ -9,6 +9,11 @@ import {
   getPharmacyAccess,
   normalizePharmacyScopeMode,
 } from '../services/pharmacyAccess.service.js'
+import {
+  getActivitiesForPlanItem,
+  parsePlannedActivitiesInput,
+  replacePlannedActivities,
+} from '../services/pharmacyActivity.service.js'
 
 const router = Router()
 
@@ -221,6 +226,21 @@ router.post(
 
       const insertedItem =
         insertResult.rows[0]
+
+      await replacePlannedActivities(
+        client,
+        {
+          planItemId:
+            insertedItem.id,
+
+          activities:
+            payload.value
+              .activities,
+
+          actorId:
+            req.profile.id,
+        },
+      )
 
       await placeItemAtOrder(
         client,
@@ -544,6 +564,26 @@ router.patch(
           req.profile.id,
         ],
       )
+
+      if (
+        payload.value
+          .activitiesProvided
+      ) {
+        await replacePlannedActivities(
+          client,
+          {
+            planItemId:
+              itemId,
+
+            activities:
+              payload.value
+                .activities,
+
+            actorId:
+              req.profile.id,
+          },
+        )
+      }
 
       if (
         previousDate !==
@@ -1765,8 +1805,23 @@ async function getCompletePlanItem(
       ],
     )
 
-  return result.rows[0] ??
+  const item =
+    result.rows[0] ??
     null
+
+  if (!item) {
+    return null
+  }
+
+  return {
+    ...item,
+
+    activities:
+      await getActivitiesForPlanItem(
+        client,
+        itemId,
+      ),
+  }
 }
 
 async function placeItemAtOrder(
@@ -1930,9 +1985,19 @@ function parseCreateItemPayload(
       body.order,
     )
 
+  const activitiesResult =
+    parsePlannedActivitiesInput(
+      body.activities,
+      {
+        required:
+          true,
+      },
+    )
+
   if (!pharmacyId) {
     return {
-      ok: false,
+      ok:
+        false,
 
       response: {
         error:
@@ -1950,7 +2015,8 @@ function parseCreateItemPayload(
     )
   ) {
     return {
-      ok: false,
+      ok:
+        false,
 
       response: {
         error:
@@ -1964,10 +2030,11 @@ function parseCreateItemPayload(
 
   if (
     scheduledTime ===
-    undefined
+      undefined
   ) {
     return {
-      ok: false,
+      ok:
+        false,
 
       response: {
         error:
@@ -1981,7 +2048,8 @@ function parseCreateItemPayload(
 
   if (!requiredResult.ok) {
     return {
-      ok: false,
+      ok:
+        false,
 
       response: {
         error:
@@ -1995,7 +2063,8 @@ function parseCreateItemPayload(
 
   if (!orderResult.ok) {
     return {
-      ok: false,
+      ok:
+        false,
 
       response: {
         error:
@@ -2007,8 +2076,22 @@ function parseCreateItemPayload(
     }
   }
 
+  if (
+    !activitiesResult.ok
+  ) {
+    return {
+      ok:
+        false,
+
+      response:
+        activitiesResult
+          .response,
+    }
+  }
+
   return {
-    ok: true,
+    ok:
+      true,
 
     value: {
       pharmacyId,
@@ -2020,6 +2103,9 @@ function parseCreateItemPayload(
 
       order:
         orderResult.value,
+
+      activities:
+        activitiesResult.value,
     },
   }
 }
@@ -2028,6 +2114,15 @@ function parseUpdateItemPayload(
   body,
   currentItem,
 ) {
+  const activitiesProvided =
+    Object.prototype
+      .hasOwnProperty
+      .call(
+        body ??
+          {},
+        'activities',
+      )
+
   const hasChanges =
     [
       'pharmacyId',
@@ -2035,19 +2130,22 @@ function parseUpdateItemPayload(
       'scheduledTime',
       'required',
       'order',
+      'activities',
     ].some(
-      (key) =>
+      key =>
         Object.prototype
           .hasOwnProperty
           .call(
-            body ?? {},
+            body ??
+              {},
             key,
           ),
     )
 
   if (!hasChanges) {
     return {
-      ok: false,
+      ok:
+        false,
 
       response: {
         error:
@@ -2116,7 +2214,8 @@ function parseUpdateItemPayload(
           true,
         )
       : {
-          ok: true,
+          ok:
+            true,
 
           value:
             Boolean(
@@ -2135,7 +2234,8 @@ function parseUpdateItemPayload(
           body.order,
         )
       : {
-          ok: true,
+          ok:
+            true,
 
           value:
             Number(
@@ -2143,9 +2243,21 @@ function parseUpdateItemPayload(
             ),
         }
 
+  const activitiesResult =
+    parsePlannedActivitiesInput(
+      activitiesProvided
+        ? body.activities
+        : undefined,
+      {
+        required:
+          activitiesProvided,
+      },
+    )
+
   if (!pharmacyId) {
     return {
-      ok: false,
+      ok:
+        false,
 
       response: {
         error:
@@ -2163,7 +2275,8 @@ function parseUpdateItemPayload(
     )
   ) {
     return {
-      ok: false,
+      ok:
+        false,
 
       response: {
         error:
@@ -2177,10 +2290,11 @@ function parseUpdateItemPayload(
 
   if (
     scheduledTime ===
-    undefined
+      undefined
   ) {
     return {
-      ok: false,
+      ok:
+        false,
 
       response: {
         error:
@@ -2194,7 +2308,8 @@ function parseUpdateItemPayload(
 
   if (!requiredResult.ok) {
     return {
-      ok: false,
+      ok:
+        false,
 
       response: {
         error:
@@ -2208,7 +2323,8 @@ function parseUpdateItemPayload(
 
   if (!orderResult.ok) {
     return {
-      ok: false,
+      ok:
+        false,
 
       response: {
         error:
@@ -2220,8 +2336,22 @@ function parseUpdateItemPayload(
     }
   }
 
+  if (
+    !activitiesResult.ok
+  ) {
+    return {
+      ok:
+        false,
+
+      response:
+        activitiesResult
+          .response,
+    }
+  }
+
   return {
-    ok: true,
+    ok:
+      true,
 
     value: {
       pharmacyId,
@@ -2233,6 +2363,11 @@ function parseUpdateItemPayload(
 
       order:
         orderResult.value,
+
+      activitiesProvided,
+
+      activities:
+        activitiesResult.value,
     },
   }
 }
@@ -2550,6 +2685,13 @@ function mapPlanItem(
 
     status:
       row.status,
+
+    activities:
+      Array.isArray(
+        row.activities,
+      )
+        ? row.activities
+        : [],
 
     addedBy:
       row.added_by,
