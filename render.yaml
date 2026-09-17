@@ -3,7 +3,7 @@ services:
     name: app-de-rutas-api
     runtime: node
     rootDir: backend
-    plan: starter
+    plan: free
     region: oregon
     buildCommand: npm ci --omit=dev
     startCommand: npm start
