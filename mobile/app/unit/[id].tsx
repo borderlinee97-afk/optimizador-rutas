@@ -10,9 +10,11 @@ import {
   ActivityIndicator,
   Alert,
   Linking,
+  Modal,
   Pressable,
   ScrollView,
   Text,
+  TextInput,
   View,
 } from 'react-native'
 import {
@@ -34,9 +36,11 @@ import {
   ApiError,
   checkInPlanItem,
   checkOutPlanItem,
+  completeVisitActivity,
   requestPlanItemCancellation,
   reschedulePlanItem,
   skipPlanItem,
+  skipVisitActivity,
 } from '../../src/lib/api'
 import {
   cancelExtraStop,
@@ -69,7 +73,11 @@ import type {
   MobilePlanItemSource,
   MobilePlanItemType,
   MobilePlanStatus,
+  MobileVisitActivityStatus,
 } from '../../src/types/mobilePlan'
+import {
+  replaceCachedVisitActivities,
+} from '../../src/services/planSync'
 import {
   db,
   initDB,
@@ -157,6 +165,29 @@ type CachedPlanItem = {
   cancelled_by: string | null
 }
 
+type CachedVisitActivity = {
+  id: string
+  plan_item_id: string
+  activity_type: string
+  note: string | null
+  ord: number
+  status: MobileVisitActivityStatus
+  execution_note: string | null
+  completed_by: string | null
+  completed_at: number | null
+  skipped_by: string | null
+  skipped_at: number | null
+  skip_reason: string | null
+  created_by: string | null
+  created_at: number | null
+  updated_by: string | null
+  updated_at: number | null
+}
+
+type ActivityResolutionMode =
+  | 'DONE'
+  | 'SKIPPED'
+
 type ExecutionType =
   | 'IN'
   | 'OUT'
@@ -164,6 +195,7 @@ type ExecutionType =
   | 'CANCEL'
   | 'RESCHEDULE'
   | 'CANCEL_REQUEST'
+  | 'ACTIVITY'
 
 const STATUS_CONFIG: Record<
   MobilePlanStatus,
@@ -257,6 +289,37 @@ export default function UnitDetailScreen() {
     useState<
       CachedPlanItem | null
     >(null)
+
+  const [
+    activities,
+    setActivities,
+  ] = useState<
+    CachedVisitActivity[]
+  >([])
+
+  const [
+    activityResolutionMode,
+    setActivityResolutionMode,
+  ] = useState<
+    ActivityResolutionMode | null
+  >(null)
+
+  const [
+    selectedActivityId,
+    setSelectedActivityId,
+  ] = useState<
+    string | null
+  >(null)
+
+  const [
+    activityExecutionNote,
+    setActivityExecutionNote,
+  ] = useState('')
+
+  const [
+    activitySkipReason,
+    setActivitySkipReason,
+  ] = useState('')
 
   const [
     hasOtherActiveVisit,
@@ -420,6 +483,45 @@ export default function UnitDetailScreen() {
           return
         }
 
+        const currentActivities =
+          db.getAllSync(
+            `
+            SELECT
+              id,
+              plan_item_id,
+              activity_type,
+              note,
+              ord,
+              status,
+              execution_note,
+              completed_by,
+              completed_at,
+              skipped_by,
+              skipped_at,
+              skip_reason,
+              created_by,
+              created_at,
+              updated_by,
+              updated_at
+
+            FROM plan_item_activities
+
+            WHERE plan_item_id = ?
+
+            ORDER BY
+              ord ASC,
+              created_at ASC,
+              id ASC
+            `,
+            [
+              currentItem.id,
+            ],
+          ) as CachedVisitActivity[]
+
+        setActivities(
+          currentActivities,
+        )
+
         const activeVisits =
           db.getAllSync(
             `
@@ -575,6 +677,45 @@ export default function UnitDetailScreen() {
     }, [
       item,
     ])
+
+  const pendingActivityCount =
+    useMemo(
+      () =>
+        activities.filter(
+          activity =>
+            activity.status ===
+            'PENDING',
+        ).length,
+      [
+        activities,
+      ],
+    )
+
+  const completedActivityCount =
+    useMemo(
+      () =>
+        activities.filter(
+          activity =>
+            activity.status ===
+            'DONE',
+        ).length,
+      [
+        activities,
+      ],
+    )
+
+  const skippedActivityCount =
+    useMemo(
+      () =>
+        activities.filter(
+          activity =>
+            activity.status ===
+            'SKIPPED',
+        ).length,
+      [
+        activities,
+      ],
+    )
 
   function openEditExtraStop() {
     if (
@@ -1249,7 +1390,200 @@ export default function UnitDetailScreen() {
     }
   }
 
+  function openActivityResolution(
+    activityId: string,
+    mode: ActivityResolutionMode,
+  ) {
+    if (
+      !item ||
+      item.status !==
+        'IN_PROGRESS' ||
+      processing
+    ) {
+      return
+    }
+
+    const activity =
+      activities.find(
+        current =>
+          current.id ===
+          activityId,
+      )
+
+    if (
+      !activity ||
+      activity.status !==
+        'PENDING'
+    ) {
+      return
+    }
+
+    setSelectedActivityId(
+      activityId,
+    )
+    setActivityResolutionMode(
+      mode,
+    )
+    setActivityExecutionNote('')
+    setActivitySkipReason('')
+  }
+
+  function closeActivityResolution() {
+    if (
+      processing ===
+      'ACTIVITY'
+    ) {
+      return
+    }
+
+    setActivityResolutionMode(
+      null,
+    )
+    setSelectedActivityId(
+      null,
+    )
+    setActivityExecutionNote('')
+    setActivitySkipReason('')
+  }
+
+  async function performActivityResolution() {
+    if (
+      !item ||
+      !isPlannedPharmacy ||
+      item.status !== 'IN_PROGRESS' ||
+      !selectedActivityId ||
+      !activityResolutionMode ||
+      processing
+    ) {
+      return
+    }
+
+    if (!activities.some(activity =>
+      activity.id === selectedActivityId && activity.status === 'PENDING',
+    )) return
+
+    const accessToken =
+      session?.access_token
+
+    if (!accessToken) {
+      Alert.alert(
+        'Sesión no disponible',
+        'Vuelve a iniciar sesión para registrar la actividad.',
+      )
+
+      return
+    }
+
+    const executionNote =
+      activityExecutionNote.trim()
+
+    const skipReason =
+      activitySkipReason.trim()
+
+    if (
+      activityResolutionMode ===
+        'SKIPPED' &&
+      !skipReason
+    ) {
+      Alert.alert(
+        'Motivo requerido',
+        'Indica por qué no fue posible realizar esta actividad.',
+      )
+
+      return
+    }
+
+    try {
+      setProcessing(
+        'ACTIVITY',
+      )
+
+      const response =
+        activityResolutionMode ===
+          'DONE'
+          ? await completeVisitActivity(
+              item.id,
+              selectedActivityId,
+              {
+                executionNote:
+                  executionNote ||
+                  undefined,
+              },
+              accessToken,
+            )
+          : await skipVisitActivity(
+              item.id,
+              selectedActivityId,
+              {
+                skipReason,
+                executionNote:
+                  executionNote ||
+                  undefined,
+              },
+              accessToken,
+            )
+
+      replaceCachedVisitActivities(
+        item.id,
+        response.activities,
+      )
+
+      setActivityResolutionMode(
+        null,
+      )
+      setSelectedActivityId(
+        null,
+      )
+      setActivityExecutionNote('')
+      setActivitySkipReason('')
+
+      loadVisit()
+
+      Alert.alert(
+        activityResolutionMode ===
+          'DONE'
+          ? 'Actividad realizada'
+          : 'Actividad no realizada',
+        activityResolutionMode ===
+          'DONE'
+          ? 'La actividad quedó registrada como realizada.'
+          : 'La actividad quedó registrada con el motivo indicado.',
+      )
+    } catch (error) {
+      console.error(
+        'Error actualizando actividad de visita:',
+        error,
+      )
+
+      Alert.alert(
+        'No fue posible actualizar la actividad',
+        getExecutionErrorMessage(
+          error,
+        ),
+      )
+    } finally {
+      setProcessing(
+        null,
+      )
+    }
+  }
+
   function confirmCheckOut() {
+    if (
+      isPlannedPharmacy &&
+      activities.length >
+        0 &&
+      pendingActivityCount >
+        0
+    ) {
+      Alert.alert(
+        'Actividades pendientes',
+        `Aún quedan ${pendingActivityCount} actividades por resolver. Marca cada una como realizada o no realizada antes del check-out.`,
+      )
+
+      return
+    }
+
     Alert.alert(
       'Finalizar actividad',
       'Al continuar, el sistema registrará tu ubicación y marcará la actividad como finalizada.',
@@ -1654,6 +1988,233 @@ export default function UnitDetailScreen() {
                   {item.address}
                 </Text>
               </View>
+            </View>
+          </>
+        ) : null}
+
+        {isPlannedPharmacy ? (
+          <>
+            <View className="mb-3 mt-7 flex-row items-center justify-between">
+              <Text className="text-lg font-bold text-slate-900">
+                Actividades de la visita
+              </Text>
+
+              <View className="rounded-full bg-slate-100 px-3 py-1">
+                <Text className="text-xs font-bold text-slate-600">
+                  {activities.length}
+                </Text>
+              </View>
+            </View>
+
+            <View className="rounded-3xl border border-slate-200 bg-white p-4">
+              {activities.length >
+              0 ? (
+                <>
+                  <View className="mb-4 flex-row flex-wrap gap-2">
+                    <View className="rounded-full bg-slate-100 px-3 py-1.5">
+                      <Text className="text-xs font-bold text-slate-600">
+                        Pendientes {pendingActivityCount}
+                      </Text>
+                    </View>
+
+                    <View className="rounded-full bg-emerald-100 px-3 py-1.5">
+                      <Text className="text-xs font-bold text-emerald-700">
+                        Realizadas {completedActivityCount}
+                      </Text>
+                    </View>
+
+                    <View className="rounded-full bg-amber-100 px-3 py-1.5">
+                      <Text className="text-xs font-bold text-amber-700">
+                        No realizadas {skippedActivityCount}
+                      </Text>
+                    </View>
+                  </View>
+
+                  {activities.map(
+                    (
+                      activity,
+                      index,
+                    ) => (
+                      <View
+                        key={
+                          activity.id
+                        }
+                        className={
+                          index ===
+                          activities.length -
+                            1
+                            ? 'py-3'
+                            : 'border-b border-slate-100 py-3'
+                        }
+                      >
+                        <View className="flex-row items-start">
+                          <View className="h-8 w-8 items-center justify-center rounded-full bg-slate-100">
+                            <Text className="text-xs font-bold text-slate-600">
+                              {activity.ord}
+                            </Text>
+                          </View>
+
+                          <View className="ml-3 flex-1">
+                            <View className="flex-row items-start justify-between gap-3">
+                              <Text className="flex-1 text-sm font-bold leading-5 text-slate-800">
+                                {activity.activity_type}
+                              </Text>
+
+                              <View
+                                className={
+                                  activity.status ===
+                                  'DONE'
+                                    ? 'rounded-full bg-emerald-100 px-2.5 py-1'
+                                    : activity.status ===
+                                        'SKIPPED'
+                                      ? 'rounded-full bg-amber-100 px-2.5 py-1'
+                                      : 'rounded-full bg-slate-100 px-2.5 py-1'
+                                }
+                              >
+                                <Text
+                                  className={
+                                    activity.status ===
+                                    'DONE'
+                                      ? 'text-[10px] font-bold text-emerald-700'
+                                      : activity.status ===
+                                          'SKIPPED'
+                                        ? 'text-[10px] font-bold text-amber-700'
+                                        : 'text-[10px] font-bold text-slate-600'
+                                  }
+                                >
+                                  {activity.status ===
+                                  'DONE'
+                                    ? 'Realizada'
+                                    : activity.status ===
+                                        'SKIPPED'
+                                      ? 'No realizada'
+                                      : 'Pendiente'}
+                                </Text>
+                              </View>
+                            </View>
+
+                            {activity.note ? (
+                              <Text className="mt-1 text-xs leading-5 text-slate-500">
+                                {activity.note}
+                              </Text>
+                            ) : null}
+
+                            {activity.status ===
+                              'DONE' &&
+                            activity.execution_note ? (
+                              <View className="mt-2 rounded-xl bg-emerald-50 p-3">
+                                <Text className="text-xs font-semibold text-emerald-800">
+                                  Nota de ejecución
+                                </Text>
+
+                                <Text className="mt-1 text-xs leading-5 text-emerald-700">
+                                  {activity.execution_note}
+                                </Text>
+                              </View>
+                            ) : null}
+
+                            {activity.status ===
+                            'SKIPPED' ? (
+                              <View className="mt-2 rounded-xl bg-amber-50 p-3">
+                                <Text className="text-xs font-semibold text-amber-800">
+                                  Motivo
+                                </Text>
+
+                                <Text className="mt-1 text-xs leading-5 text-amber-700">
+                                  {activity.skip_reason ??
+                                    'No especificado'}
+                                </Text>
+
+                                {activity.execution_note ? (
+                                  <Text className="mt-2 text-xs leading-5 text-amber-700">
+                                    {activity.execution_note}
+                                  </Text>
+                                ) : null}
+                              </View>
+                            ) : null}
+
+                            {item.status ===
+                              'IN_PROGRESS' &&
+                            activity.status ===
+                              'PENDING' ? (
+                              <View className="mt-3 flex-row gap-2">
+                                <Pressable
+                                  className="flex-1 flex-row items-center justify-center rounded-xl bg-emerald-600 px-3 py-3"
+                                  onPress={() =>
+                                    openActivityResolution(
+                                      activity.id,
+                                      'DONE',
+                                    )
+                                  }
+                                  disabled={
+                                    Boolean(
+                                      processing,
+                                    )
+                                  }
+                                >
+                                  <Ionicons
+                                    name="checkmark-circle-outline"
+                                    size={18}
+                                    color="#ffffff"
+                                  />
+
+                                  <Text className="ml-1.5 text-xs font-bold text-white">
+                                    Realizada
+                                  </Text>
+                                </Pressable>
+
+                                <Pressable
+                                  className="flex-1 flex-row items-center justify-center rounded-xl border border-amber-300 bg-amber-50 px-3 py-3"
+                                  onPress={() =>
+                                    openActivityResolution(
+                                      activity.id,
+                                      'SKIPPED',
+                                    )
+                                  }
+                                  disabled={
+                                    Boolean(
+                                      processing,
+                                    )
+                                  }
+                                >
+                                  <Ionicons
+                                    name="close-circle-outline"
+                                    size={18}
+                                    color="#b45309"
+                                  />
+
+                                  <Text className="ml-1.5 text-xs font-bold text-amber-800">
+                                    No realizada
+                                  </Text>
+                                </Pressable>
+                              </View>
+                            ) : null}
+
+                            {item.status ===
+                              'PENDING' &&
+                            activity.status ===
+                              'PENDING' ? (
+                              <Text className="mt-2 text-xs leading-5 text-slate-400">
+                                Se habilitará después del check-in.
+                              </Text>
+                            ) : null}
+                          </View>
+                        </View>
+                      </View>
+                    ),
+                  )}
+                </>
+              ) : (
+                <View className="rounded-2xl border border-amber-200 bg-amber-50 p-4">
+                  <Text className="text-sm font-bold text-amber-900">
+                    Visita histórica sin actividades
+                  </Text>
+
+                  <Text className="mt-1 text-xs leading-5 text-amber-700">
+                    Este registro fue creado antes de que las actividades planeadas fueran obligatorias. Puede continuar con su flujo normal.
+                  </Text>
+                </View>
+              )}
             </View>
           </>
         ) : null}
@@ -2422,6 +2983,150 @@ export default function UnitDetailScreen() {
           )
         }}
       />
+
+      <Modal
+        transparent
+        animationType="fade"
+        visible={
+          activityResolutionMode !==
+          null
+        }
+        onRequestClose={
+          closeActivityResolution
+        }
+      >
+        <View className="flex-1 justify-end bg-black/40">
+          <View className="rounded-t-[28px] bg-white px-5 pb-8 pt-5">
+            <View className="flex-row items-center justify-between">
+              <View className="flex-1 pr-4">
+                <Text className="text-lg font-bold text-slate-900">
+                  {activityResolutionMode ===
+                  'DONE'
+                    ? 'Marcar actividad como realizada'
+                    : 'Marcar actividad como no realizada'}
+                </Text>
+
+                <Text className="mt-1 text-sm leading-5 text-slate-500">
+                  {activityResolutionMode ===
+                  'DONE'
+                    ? 'Puedes agregar una nota de ejecución si necesitas dejar contexto.'
+                    : 'El motivo es obligatorio. La nota adicional es opcional.'}
+                </Text>
+              </View>
+
+              <Pressable
+                className="h-10 w-10 items-center justify-center rounded-full bg-slate-100"
+                onPress={
+                  closeActivityResolution
+                }
+                disabled={
+                  processing ===
+                  'ACTIVITY'
+                }
+              >
+                <Ionicons
+                  name="close"
+                  size={22}
+                  color="#475569"
+                />
+              </Pressable>
+            </View>
+
+            {activityResolutionMode ===
+            'SKIPPED' ? (
+              <View className="mt-5">
+                <Text className="mb-2 text-xs font-bold uppercase tracking-wide text-slate-500">
+                  Motivo
+                </Text>
+
+                <TextInput
+                  className="min-h-[92px] rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900"
+                  value={
+                    activitySkipReason
+                  }
+                  onChangeText={
+                    setActivitySkipReason
+                  }
+                  placeholder="Describe por qué no fue posible realizarla"
+                  placeholderTextColor="#94a3b8"
+                  multiline
+                  maxLength={1000}
+                  editable={
+                    processing !==
+                    'ACTIVITY'
+                  }
+                  textAlignVertical="top"
+                />
+              </View>
+            ) : null}
+
+            <View className="mt-4">
+              <Text className="mb-2 text-xs font-bold uppercase tracking-wide text-slate-500">
+                Nota de ejecución opcional
+              </Text>
+
+              <TextInput
+                className="min-h-[92px] rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900"
+                value={
+                  activityExecutionNote
+                }
+                onChangeText={
+                  setActivityExecutionNote
+                }
+                placeholder="Agrega observaciones si es necesario"
+                placeholderTextColor="#94a3b8"
+                multiline
+                maxLength={2000}
+                editable={
+                  processing !==
+                  'ACTIVITY'
+                }
+                textAlignVertical="top"
+              />
+            </View>
+
+            <Pressable
+              className={
+                activityResolutionMode ===
+                'DONE'
+                  ? 'mt-5 h-14 flex-row items-center justify-center rounded-2xl bg-emerald-600'
+                  : 'mt-5 h-14 flex-row items-center justify-center rounded-2xl bg-amber-600'
+              }
+              onPress={() => {
+                void performActivityResolution()
+              }}
+              disabled={
+                processing ===
+                'ACTIVITY'
+              }
+            >
+              {processing ===
+              'ACTIVITY' ? (
+                <ActivityIndicator
+                  color="#ffffff"
+                />
+              ) : (
+                <>
+                  <Ionicons
+                    name={
+                      activityResolutionMode ===
+                      'DONE'
+                        ? 'checkmark-circle-outline'
+                        : 'close-circle-outline'
+                    }
+                    size={21}
+                    color="#ffffff"
+                  />
+
+                  <Text className="ml-2 text-base font-bold text-white">
+                    Guardar resultado
+                  </Text>
+                </>
+              )}
+            </Pressable>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   )
 }
@@ -2697,6 +3402,34 @@ function getExecutionErrorMessage(
       'DESTINATION_COORDINATES_MISSING'
     ) {
       return 'La unidad no tiene coordenadas válidas. Solicita su corrección antes de registrar la visita.'
+    }
+
+    if (
+      error.code ===
+      'VISIT_ACTIVITIES_PENDING'
+    ) {
+      return 'Debes resolver todas las actividades planeadas antes de registrar el check-out.'
+    }
+
+    if (
+      error.code ===
+      'VISIT_ACTIVITY_ALREADY_RESOLVED'
+    ) {
+      return 'La actividad ya fue resuelta y no puede modificarse nuevamente.'
+    }
+
+    if (
+      error.code ===
+      'VISIT_ACTIVITY_NOT_FOUND'
+    ) {
+      return 'La actividad ya no existe o no pertenece a esta visita.'
+    }
+
+    if (
+      error.code ===
+      'ACTIVITY_SKIP_REASON_REQUIRED'
+    ) {
+      return 'Debes indicar el motivo por el que no se realizó la actividad.'
     }
 
     if (

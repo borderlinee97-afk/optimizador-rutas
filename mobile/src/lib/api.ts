@@ -9,6 +9,7 @@ import type {
   ReschedulePlanItemPayload,
   ReschedulePlanItemResponse,
   TodayPlanResponse,
+  VisitActivityExecutionResponse,
 } from '../types/mobilePlan'
 
 const apiBaseUrl =
@@ -219,6 +220,61 @@ export function checkOutPlanItem(
       body:
         JSON.stringify(
           coordinates,
+        ),
+    },
+    accessToken,
+  )
+}
+
+export function completeVisitActivity(
+  itemId: string,
+  activityId: string,
+  payload: {
+    executionNote?: string
+  },
+  accessToken: string,
+): Promise<VisitActivityExecutionResponse> {
+  return apiRequest<VisitActivityExecutionResponse>(
+    `/api/mobile/farmacias/items/${encodeURIComponent(
+      itemId,
+    )}/activities/${encodeURIComponent(
+      activityId,
+    )}/done`,
+    {
+      method:
+        'POST',
+
+      body:
+        JSON.stringify(
+          payload,
+        ),
+    },
+    accessToken,
+  )
+}
+
+export function skipVisitActivity(
+  itemId: string,
+  activityId: string,
+  payload: {
+    skipReason: string
+    executionNote?: string
+  },
+  accessToken: string,
+): Promise<VisitActivityExecutionResponse> {
+  return apiRequest<VisitActivityExecutionResponse>(
+    `/api/mobile/farmacias/items/${encodeURIComponent(
+      itemId,
+    )}/activities/${encodeURIComponent(
+      activityId,
+    )}/skip`,
+    {
+      method:
+        'POST',
+
+      body:
+        JSON.stringify(
+          payload,
         ),
     },
     accessToken,

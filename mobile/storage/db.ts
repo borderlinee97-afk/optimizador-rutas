@@ -103,6 +103,31 @@ export function initDB() {
       synced_at INTEGER
     );
 
+    CREATE TABLE IF NOT EXISTS plan_item_activities (
+      id TEXT PRIMARY KEY NOT NULL,
+      plan_item_id TEXT NOT NULL,
+      activity_type TEXT NOT NULL,
+      note TEXT,
+      ord INTEGER NOT NULL DEFAULT 1,
+      status TEXT NOT NULL DEFAULT 'PENDING',
+      execution_note TEXT,
+      completed_by TEXT,
+      completed_at INTEGER,
+      skipped_by TEXT,
+      skipped_at INTEGER,
+      skip_reason TEXT,
+      created_by TEXT,
+      created_at INTEGER,
+      updated_by TEXT,
+      updated_at INTEGER,
+      synced_at INTEGER,
+
+      FOREIGN KEY (
+        plan_item_id
+      ) REFERENCES plan_items(id)
+        ON DELETE CASCADE
+    );
+
     CREATE TABLE IF NOT EXISTS plan_cache (
       cache_key TEXT PRIMARY KEY NOT NULL,
       plan_id TEXT,
@@ -375,6 +400,21 @@ export function initDB() {
   )
 
   db.execSync(`
+    CREATE INDEX IF NOT EXISTS
+      idx_plan_item_activities_plan_item
+    ON plan_item_activities(plan_item_id);
+
+    CREATE INDEX IF NOT EXISTS
+      idx_plan_item_activities_status
+    ON plan_item_activities(status);
+
+    CREATE INDEX IF NOT EXISTS
+      idx_plan_item_activities_order
+    ON plan_item_activities(
+      plan_item_id,
+      ord
+    );
+
     CREATE INDEX IF NOT EXISTS
       idx_plan_items_status
     ON plan_items(status);

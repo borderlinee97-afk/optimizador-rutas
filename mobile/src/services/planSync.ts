@@ -6,6 +6,7 @@ import type {
   MobilePlanItem,
   MobilePlanItemSource,
   MobilePlanItemType,
+  MobileVisitActivity,
   MobileWorkPlan,
   TodayPlanResponse,
 } from '../types/mobilePlan'
@@ -225,6 +226,10 @@ export async function syncTodayPlan(
   db.withTransactionSync(
     () => {
       db.runSync(`
+        DELETE FROM plan_item_activities
+      `)
+
+      db.runSync(`
         DELETE FROM plan_items
       `)
 
@@ -276,6 +281,13 @@ export async function syncTodayPlan(
       ) {
         insertPlanItem(
           item,
+          syncedAt,
+        )
+
+        insertPlanItemActivities(
+          item.id,
+          item.activities ??
+            [],
           syncedAt,
         )
       }
@@ -639,11 +651,43 @@ export function updateCachedExecution(
   }
 }
 
+export function replaceCachedVisitActivities(
+  planItemId: string,
+  activities: MobileVisitActivity[],
+) {
+  initDB()
+
+  db.withTransactionSync(
+    () => {
+      db.runSync(
+        `
+        DELETE FROM plan_item_activities
+
+        WHERE plan_item_id = ?
+        `,
+        [
+          planItemId,
+        ],
+      )
+
+      insertPlanItemActivities(
+        planItemId,
+        activities,
+        Date.now(),
+      )
+    },
+  )
+}
+
 export function clearCachedPlan() {
   initDB()
 
   db.withTransactionSync(
     () => {
+      db.runSync(`
+        DELETE FROM plan_item_activities
+      `)
+
       db.runSync(`
         DELETE FROM plan_items
       `)
@@ -897,6 +941,71 @@ function insertPlanItem(
     `,
     values,
   )
+}
+
+function insertPlanItemActivities(
+  planItemId: string,
+  activities: MobileVisitActivity[],
+  syncedAt: number,
+) {
+  for (
+    const activity
+    of activities
+  ) {
+    db.runSync(
+      `
+      INSERT INTO plan_item_activities (
+        id,
+        plan_item_id,
+        activity_type,
+        note,
+        ord,
+        status,
+        execution_note,
+        completed_by,
+        completed_at,
+        skipped_by,
+        skipped_at,
+        skip_reason,
+        created_by,
+        created_at,
+        updated_by,
+        updated_at,
+        synced_at
+      )
+      VALUES (
+        ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
+      )
+      `,
+      [
+        activity.id,
+        planItemId,
+        activity.activityType,
+        activity.note,
+        activity.order,
+        activity.status,
+        activity.executionNote,
+        activity.completedBy,
+        parseDateToTimestamp(
+          activity.completedAt,
+        ),
+        activity.skippedBy,
+        parseDateToTimestamp(
+          activity.skippedAt,
+        ),
+        activity.skipReason,
+        activity.createdBy,
+        parseDateToTimestamp(
+          activity.createdAt,
+        ),
+        activity.updatedBy,
+        parseDateToTimestamp(
+          activity.updatedAt,
+        ),
+        syncedAt,
+      ],
+    )
+  }
 }
 
 function mapCachedItem(

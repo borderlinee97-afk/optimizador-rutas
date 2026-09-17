@@ -19,6 +19,30 @@ export type MobileCancellationRequestStatus =
   | 'APPROVED'
   | 'REJECTED'
 
+export type MobileVisitActivityStatus =
+  | 'PENDING'
+  | 'DONE'
+  | 'SKIPPED'
+
+export type MobileVisitActivity = {
+  id: string
+  planItemId: string
+  activityType: string
+  note: string | null
+  order: number
+  status: MobileVisitActivityStatus
+  executionNote: string | null
+  completedBy: string | null
+  completedAt: string | null
+  skippedBy: string | null
+  skippedAt: string | null
+  skipReason: string | null
+  createdBy: string | null
+  createdAt: string | null
+  updatedBy: string | null
+  updatedAt: string | null
+}
+
 export type MobileWorkPlan = {
   id: string
   status: string
@@ -107,6 +131,8 @@ export type MobilePlanItem = {
 
   cancelledAt: string | null
   cancelledBy: string | null
+
+  activities?: MobileVisitActivity[]
 }
 
 export type TodayPlanResponse = {
@@ -127,6 +153,12 @@ export type TodayPlanResponse = {
 export type PlanItemExecutionResponse = {
   ok: boolean
   item: MobilePlanItem
+}
+
+export type VisitActivityExecutionResponse = {
+  ok: boolean
+  activity: MobileVisitActivity
+  activities: MobileVisitActivity[]
 }
 
 export type ReschedulePlanItemPayload = {
