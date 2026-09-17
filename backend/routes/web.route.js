@@ -376,6 +376,7 @@ router.get(
       } else if (
         !isAdmin &&
         ![
+          'DIRECTOR',
           'GERENTE',
           'COORDINADOR',
         ].includes(
@@ -603,8 +604,12 @@ router.get(
       }
 
       if (
-        req.profile.rol ===
-        'GERENTE'
+        [
+          'DIRECTOR',
+          'GERENTE',
+        ].includes(
+          req.profile.rol,
+        )
       ) {
         return await sendManagerStructure(
           req,
@@ -2146,8 +2151,12 @@ async function getAuthorizedUnits({
    * ----------------------------------------------------------
    */
   if (
-    profile.rol ===
-    'GERENTE'
+    [
+      'DIRECTOR',
+      'GERENTE',
+    ].includes(
+      profile.rol,
+    )
   ) {
     /**
      * Supervisor específico.
@@ -3223,6 +3232,8 @@ function buildCapabilities(
       (
         isAdmin ||
         profile.rol ===
+          'DIRECTOR' ||
+        profile.rol ===
           'GERENTE'
       ),
 
@@ -3230,6 +3241,8 @@ function buildCapabilities(
       isFarmacias &&
       (
         isAdmin ||
+        profile.rol ===
+          'DIRECTOR' ||
         profile.rol ===
           'GERENTE' ||
         profile.rol ===
@@ -3247,6 +3260,8 @@ function buildCapabilities(
       (
         isAdmin ||
         profile.rol ===
+          'DIRECTOR' ||
+        profile.rol ===
           'GERENTE' ||
         profile.rol ===
           'COORDINADOR'
@@ -3259,6 +3274,8 @@ function buildCapabilities(
       isFarmacias &&
       (
         isAdmin ||
+        profile.rol ===
+          'DIRECTOR' ||
         profile.rol ===
           'GERENTE'
       ),

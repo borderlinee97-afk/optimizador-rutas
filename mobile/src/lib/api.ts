@@ -11,6 +11,15 @@ import type {
   TodayPlanResponse,
   VisitActivityExecutionResponse,
 } from '../types/mobilePlan'
+import type {
+  EvidenceUploadTicket,
+  VisitEvidenceListResponse,
+} from '../types/evidence'
+import type {
+  OperationalTask,
+  OperationalTaskListResponse,
+  OperationalTaskStatus,
+} from '../types/task'
 
 const apiBaseUrl =
   process.env.EXPO_PUBLIC_API_URL?.replace(
@@ -361,6 +370,194 @@ export function requestPlanItemCancellation(
         JSON.stringify(
           payload,
         ),
+    },
+    accessToken,
+  )
+}
+
+export function createVisitEvidenceTicket(
+  itemId: string,
+  payload: {
+    evidenceId: string
+    idempotencyKey: string
+    activityId?: string
+    capturedAt: string
+    latitude: number
+    longitude: number
+    accuracyM: number
+    mocked: boolean
+    mimeType: string
+    byteSize: number
+    sha256?: string
+  },
+  accessToken: string,
+): Promise<EvidenceUploadTicket> {
+  return apiRequest<EvidenceUploadTicket>(
+    `/api/mobile/evidence/items/${encodeURIComponent(
+      itemId,
+    )}`,
+    {
+      method:
+        'POST',
+      body:
+        JSON.stringify(
+          payload,
+        ),
+    },
+    accessToken,
+  )
+}
+
+export function createTaskEvidenceTicket(
+  taskId: string,
+  payload: {
+    evidenceId: string
+    idempotencyKey: string
+    capturedAt: string
+    latitude: number
+    longitude: number
+    accuracyM: number
+    mocked: boolean
+    mimeType: string
+    byteSize: number
+    sha256?: string
+  },
+  accessToken: string,
+): Promise<EvidenceUploadTicket> {
+  return apiRequest<EvidenceUploadTicket>(
+    `/api/mobile/evidence/tasks/${encodeURIComponent(
+      taskId,
+    )}`,
+    {
+      method:
+        'POST',
+      body:
+        JSON.stringify(
+          payload,
+        ),
+    },
+    accessToken,
+  )
+}
+
+export function completeEvidenceUpload(
+  evidenceId: string,
+  accessToken: string,
+): Promise<EvidenceUploadTicket> {
+  return apiRequest<EvidenceUploadTicket>(
+    `/api/mobile/evidence/${encodeURIComponent(
+      evidenceId,
+    )}/complete`,
+    {
+      method:
+        'POST',
+    },
+    accessToken,
+  )
+}
+
+export function listVisitEvidence(
+  itemId: string,
+  accessToken: string,
+): Promise<VisitEvidenceListResponse> {
+  return apiRequest<VisitEvidenceListResponse>(
+    `/api/mobile/evidence/items/${encodeURIComponent(
+      itemId,
+    )}`,
+    {
+      method:
+        'GET',
+    },
+    accessToken,
+  )
+}
+
+export function listOperationalTasks(
+  accessToken: string,
+  mode: 'agenda' | 'assigned' = 'agenda',
+): Promise<OperationalTaskListResponse> {
+  return apiRequest<OperationalTaskListResponse>(
+    `/api/mobile/tasks?mode=${encodeURIComponent(
+      mode,
+    )}`,
+    {
+      method:
+        'GET',
+    },
+    accessToken,
+  )
+}
+
+export function createOperationalTask(
+  payload: {
+    assigneeId?: string
+    title: string
+    description?: string
+    priority?: string
+    dueAt?: string
+    requiresEvidence?: boolean
+  },
+  accessToken: string,
+): Promise<{
+  ok: boolean
+  task: OperationalTask
+}> {
+  return apiRequest(
+    '/api/mobile/tasks',
+    {
+      method:
+        'POST',
+      body:
+        JSON.stringify(
+          payload,
+        ),
+    },
+    accessToken,
+  )
+}
+
+export function updateOperationalTaskStatus(
+  taskId: string,
+  status: OperationalTaskStatus,
+  accessToken: string,
+): Promise<{
+  ok: boolean
+  task: OperationalTask
+}> {
+  return apiRequest(
+    `/api/mobile/tasks/${encodeURIComponent(
+      taskId,
+    )}/status`,
+    {
+      method:
+        'PATCH',
+      body:
+        JSON.stringify({
+          status,
+        }),
+    },
+    accessToken,
+  )
+}
+
+export function addOperationalTaskComment(
+  taskId: string,
+  body: string,
+  accessToken: string,
+): Promise<{
+  ok: boolean
+}> {
+  return apiRequest(
+    `/api/mobile/tasks/${encodeURIComponent(
+      taskId,
+    )}/comments`,
+    {
+      method:
+        'POST',
+      body:
+        JSON.stringify({
+          body,
+        }),
     },
     accessToken,
   )

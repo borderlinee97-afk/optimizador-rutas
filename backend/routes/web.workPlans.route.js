@@ -25,6 +25,7 @@ const ISO_DATE_PATTERN =
 
 const ALLOWED_ROLES =
   new Set([
+    'DIRECTOR',
     'GERENTE',
     'COORDINADOR',
     'SUPERVISOR',

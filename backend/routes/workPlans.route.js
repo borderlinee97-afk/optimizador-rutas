@@ -1,5 +1,8 @@
 import { Router } from 'express'
 import { pool } from '../db/pool.js'
+import {
+  requireRoles,
+} from '../middleware/operationalAccess.js'
 
 const router = Router()
 
@@ -7,7 +10,14 @@ const router = Router()
  * POST /api/work-plans
  * Crear plan de trabajo (status = DRAFT)
  */
-router.post('/', async (req, res) => {
+router.post(
+  '/',
+  requireRoles(
+    'DIRECTOR',
+    'GERENTE',
+    'COORDINADOR',
+  ),
+  async (req, res) => {
   const {
     supervisor_id,
     period_start,
@@ -76,6 +86,7 @@ router.post('/', async (req, res) => {
   } finally {
     client.release()
   }
-})
+  },
+)
 
 export default router

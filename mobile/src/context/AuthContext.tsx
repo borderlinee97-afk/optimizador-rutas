@@ -186,7 +186,7 @@ export function AuthProvider({
       await supabase.auth.resetPasswordForEmail(
         email.trim().toLowerCase(),
         {
-          redirectTo: 'mobile://reset-password',
+          redirectTo: 'appderutas://reset-password',
         },
       )
 

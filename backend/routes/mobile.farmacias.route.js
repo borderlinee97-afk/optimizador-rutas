@@ -9,6 +9,11 @@ import {
   getPharmacyAccess,
 } from '../services/pharmacyAccess.service.js'
 import {
+  getEvidencePolicy,
+  hasReadyActivityEvidence,
+  hasReadyItemEvidence,
+} from '../services/evidencePolicy.service.js'
+import {
   attachActivitiesToItems,
   copyPlannedActivities,
   getActivitiesForPlanItem,
@@ -776,6 +781,35 @@ router.post(
             Number(
               activityStats.pending,
             ),
+        })
+      }
+
+      const evidencePolicy =
+        getEvidencePolicy()
+
+      if (
+        evidencePolicy
+          .requireForCheckoutWithoutActivities &&
+        Number(
+          activityStats.total ??
+          0,
+        ) ===
+          0 &&
+        !await hasReadyItemEvidence(
+          client,
+          itemId,
+        )
+      ) {
+        await client.query(
+          'ROLLBACK',
+        )
+
+        return res.status(409).json({
+          error:
+            'Debes sincronizar al menos una evidencia antes de finalizar esta visita',
+
+          code:
+            'VISIT_EVIDENCE_REQUIRED',
         })
       }
 
@@ -2429,6 +2463,28 @@ async function handleActivityResolution(
 
         code:
           'VISIT_ACTIVITY_ALREADY_RESOLVED',
+      })
+    }
+
+    if (
+      getEvidencePolicy()
+        .requireForActivity &&
+      !await hasReadyActivityEvidence(
+        client,
+        itemId,
+        activityId,
+      )
+    ) {
+      await client.query(
+        'ROLLBACK',
+      )
+
+      return res.status(409).json({
+        error:
+          'Debes sincronizar una evidencia de esta actividad antes de resolverla',
+
+        code:
+          'ACTIVITY_EVIDENCE_REQUIRED',
       })
     }
 

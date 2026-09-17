@@ -5,6 +5,7 @@ export type AppArea =
 export type AppRole =
   | 'JEFE_TRAFICO'
   | 'OPERADOR'
+  | 'DIRECTOR'
   | 'GERENTE'
   | 'COORDINADOR'
   | 'SUPERVISOR'

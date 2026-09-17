@@ -142,6 +142,42 @@ export function initDB() {
       name TEXT PRIMARY KEY NOT NULL,
       applied_at INTEGER NOT NULL
     );
+
+    CREATE TABLE IF NOT EXISTS evidence_queue (
+      evidence_id TEXT PRIMARY KEY NOT NULL,
+      idempotency_key TEXT NOT NULL UNIQUE,
+      plan_item_id TEXT,
+      activity_id TEXT,
+      task_id TEXT,
+      local_uri TEXT NOT NULL,
+      mime_type TEXT NOT NULL,
+      byte_size INTEGER NOT NULL,
+      captured_at TEXT NOT NULL,
+      latitude REAL NOT NULL,
+      longitude REAL NOT NULL,
+      accuracy_m REAL NOT NULL,
+      mocked INTEGER NOT NULL DEFAULT 0,
+      status TEXT NOT NULL DEFAULT 'PENDING',
+      remote_path TEXT,
+      attempts INTEGER NOT NULL DEFAULT 0,
+      last_error TEXT,
+      created_at INTEGER NOT NULL,
+      updated_at INTEGER NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS execution_outbox (
+      id TEXT PRIMARY KEY NOT NULL,
+      action_type TEXT NOT NULL,
+      plan_item_id TEXT NOT NULL,
+      activity_id TEXT,
+      payload_json TEXT NOT NULL,
+      depends_on_evidence_id TEXT,
+      status TEXT NOT NULL DEFAULT 'PENDING',
+      attempts INTEGER NOT NULL DEFAULT 0,
+      last_error TEXT,
+      created_at INTEGER NOT NULL,
+      updated_at INTEGER NOT NULL
+    );
   `)
 
   ensurePlanItemColumn(
@@ -482,6 +518,26 @@ export function initDB() {
     ON plan_items(
       skipped_at
     );
+
+    CREATE INDEX IF NOT EXISTS
+      idx_evidence_queue_target
+    ON evidence_queue(
+      plan_item_id,
+      activity_id,
+      task_id
+    );
+
+    CREATE INDEX IF NOT EXISTS
+      idx_evidence_queue_status
+    ON evidence_queue(status, created_at);
+
+    CREATE INDEX IF NOT EXISTS
+      idx_execution_outbox_status
+    ON execution_outbox(status, created_at);
+
+    CREATE INDEX IF NOT EXISTS
+      idx_execution_outbox_item
+    ON execution_outbox(plan_item_id, created_at);
   `)
 
   removeDevelopmentSeedOnce()

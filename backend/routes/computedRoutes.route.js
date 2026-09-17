@@ -1,7 +1,16 @@
 import { Router } from 'express'
 import { createComputedRoute, getComputedRoute } from '../controllers/computedRoutes.controller.js'
+import {
+  requireAreas,
+} from '../middleware/operationalAccess.js'
 
 const r = Router()
+
+r.use(
+  requireAreas(
+    'OPERACIONES',
+  ),
+)
 
 // Ping
 r.get('/__ping', (req,res)=>res.json({ok:true}))

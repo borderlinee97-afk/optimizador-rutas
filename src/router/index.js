@@ -32,7 +32,7 @@ const router =
         path: '/farmacias/ruta-territorial',
         name: 'farmacias-ruta-territorial',
         component: SupervisorTerritorialView,
-        meta: { area: 'FARMACIAS', roles: ['GERENTE', 'COORDINADOR', 'SUPERVISOR'] },
+        meta: { area: 'FARMACIAS', roles: ['DIRECTOR', 'GERENTE', 'COORDINADOR', 'SUPERVISOR'] },
       },
       {
         path:
@@ -61,6 +61,7 @@ const router =
             'FARMACIAS',
 
           roles: [
+            'DIRECTOR',
             'GERENTE',
             'COORDINADOR',
             'SUPERVISOR',
@@ -87,6 +88,7 @@ const router =
             'FARMACIAS',
 
           roles: [
+            'DIRECTOR',
             'GERENTE',
             'COORDINADOR',
             'SUPERVISOR',
@@ -109,6 +111,7 @@ const router =
             'FARMACIAS',
 
           roles: [
+            'DIRECTOR',
             'GERENTE',
             'COORDINADOR',
             'SUPERVISOR',
@@ -135,6 +138,7 @@ const router =
             'FARMACIAS',
 
           roles: [
+            'DIRECTOR',
             'GERENTE',
             'COORDINADOR',
           ],
@@ -160,6 +164,7 @@ const router =
             'FARMACIAS',
 
           roles: [
+            'DIRECTOR',
             'GERENTE',
             'COORDINADOR',
           ],
@@ -185,6 +190,7 @@ const router =
             'FARMACIAS',
 
           roles: [
+            'DIRECTOR',
             'GERENTE',
             'COORDINADOR',
           ],

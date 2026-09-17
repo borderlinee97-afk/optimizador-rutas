@@ -178,12 +178,16 @@ async function loadManagerProfile(
     }
 
     if (
-      String(
-        profile.rol,
+      ![
+        'DIRECTOR',
+        'GERENTE',
+      ].includes(
+        String(
+          profile.rol,
+        )
+          .trim()
+          .toUpperCase(),
       )
-        .trim()
-        .toUpperCase() !==
-      'GERENTE'
     ) {
       return res
         .status(403)

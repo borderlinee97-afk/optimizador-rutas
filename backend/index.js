@@ -1,10 +1,30 @@
 import express from 'express'
 import cors from 'cors'
 import helmet from 'helmet'
+import {
+  pathToFileURL,
+} from 'node:url'
 
 import {
   pool,
 } from './db/pool.js'
+
+import {
+  requireAuth,
+} from './middleware/requireAuth.js'
+
+import {
+  requireOperationalProfile,
+  requireRoles,
+} from './middleware/operationalAccess.js'
+
+import {
+  createRateLimit,
+} from './middleware/rateLimit.js'
+
+import {
+  requestContext,
+} from './middleware/requestContext.js'
 
 import {
   computeRoutes,
@@ -105,6 +125,14 @@ app.disable(
   'x-powered-by',
 )
 
+app.set(
+  'trust proxy',
+  Number(
+    process.env.TRUST_PROXY_HOPS ||
+    1,
+  ),
+)
+
 // ============================================================
 // CORS
 // ============================================================
@@ -121,20 +149,64 @@ function parseOrigins(
   )
     .split(',')
     .map(
-      origin =>
-        origin.trim(),
+      origin => {
+        const normalized =
+          origin.trim()
+
+        if (!normalized) {
+          return null
+        }
+
+        let parsed
+
+        try {
+          parsed =
+            new URL(
+              normalized,
+            )
+        } catch {
+          throw new Error(
+            `Invalid CORS origin: ${normalized}`,
+          )
+        }
+
+        if (
+          ![
+            'http:',
+            'https:',
+          ].includes(
+            parsed.protocol,
+          )
+        ) {
+          throw new Error(
+            `Invalid CORS origin protocol: ${normalized}`,
+          )
+        }
+
+        return parsed.origin
+      },
     )
     .filter(
       Boolean,
     )
 }
 
+const isProduction =
+  process.env.NODE_ENV ===
+  'production'
+
+const developmentOrigins =
+  isProduction
+    ? []
+    : [
+        'http://localhost:5173',
+        'http://localhost:5174',
+      ]
+
 const allowedOrigins =
   Array.from(
     new Set([
-      'http://localhost:5173',
-      'http://localhost:5174',
-      'https://optimizador-rutas-theta.vercel.app',
+      ...developmentOrigins,
 
       ...parseOrigins(
         process.env.FRONTEND_URL,
@@ -146,9 +218,23 @@ const allowedOrigins =
     ]),
   )
 
+if (
+  isProduction &&
+  allowedOrigins.length ===
+    0
+) {
+  throw new Error(
+    'Missing FRONTEND_URL or CORS_ORIGIN in production',
+  )
+}
+
 // ============================================================
 // MIDDLEWARES
 // ============================================================
+
+app.use(
+  requestContext,
+)
 
 app.use(
   helmet({
@@ -226,7 +312,22 @@ app.use(
 app.use(
   express.json({
     limit:
-      '10mb',
+      process.env.JSON_BODY_LIMIT ||
+      '1mb',
+  }),
+)
+
+app.use(
+  '/api',
+  createRateLimit({
+    windowMs:
+      process.env.RATE_LIMIT_WINDOW_MS,
+
+    max:
+      process.env.RATE_LIMIT_MAX,
+
+    maxKeys:
+      process.env.RATE_LIMIT_MAX_KEYS,
   }),
 )
 
@@ -246,10 +347,6 @@ app.get(
 
       service:
         'optimizador-rutas-api',
-
-      env:
-        process.env.NODE_ENV ||
-        'development',
     })
   },
 )
@@ -265,8 +362,7 @@ app.get(
         await pool.query(
           `
           SELECT
-            1 AS ok,
-            NOW() AS now
+            1 AS ok
           `,
         )
 
@@ -277,10 +373,6 @@ app.get(
         db:
           result.rows[0]?.ok ===
           1,
-
-        now:
-          result.rows[0]?.now ??
-          null,
       })
     } catch (
       error
@@ -291,7 +383,7 @@ app.get(
       )
 
       return res
-        .status(500)
+        .status(503)
         .json({
           ok:
             false,
@@ -304,6 +396,9 @@ app.get(
 
           code:
             'DATABASE_CONNECTION_FAILED',
+
+          requestId:
+            req.requestId,
         })
     }
   },
@@ -316,6 +411,17 @@ app.get(
 app.use(
   '/api/auth',
   authRouter,
+)
+
+/*
+ * Toda ruta de negocio exige una sesión válida y un perfil
+ * operativo activo. Los routers más nuevos conservan sus
+ * validaciones específicas de jerarquía y territorio.
+ */
+app.use(
+  '/api',
+  requireAuth,
+  requireOperationalProfile,
 )
 
 // ============================================================
@@ -474,11 +580,23 @@ app.use(
 
 app.post(
   '/api/routes/compute',
+  requireRoles(
+    'DIRECTOR',
+    'GERENTE',
+    'COORDINADOR',
+    'JEFE_TRAFICO',
+  ),
   computeRoutes,
 )
 
 app.post(
   '/api/routes/static-map',
+  requireRoles(
+    'DIRECTOR',
+    'GERENTE',
+    'COORDINADOR',
+    'JEFE_TRAFICO',
+  ),
   getStaticRouteMap,
 )
 
@@ -547,6 +665,9 @@ app.use(
 
         path:
           req.originalUrl,
+
+        requestId:
+          req.requestId,
       })
   },
 )
@@ -578,7 +699,12 @@ app.use(
           err?.code,
 
         stack:
-          err?.stack,
+          isProduction
+            ? undefined
+            : err?.stack,
+
+        requestId:
+          req.requestId,
       },
     )
 
@@ -608,16 +734,25 @@ app.use(
         ? statusCandidate
         : 500
 
+    const publicMessage =
+      status >=
+      500
+        ? 'Internal Server Error'
+        : err?.message ||
+          'Request failed'
+
     return res
       .status(status)
       .json({
         error:
-          err?.message ||
-          'Internal Server Error',
+          publicMessage,
 
         code:
           err?.code ||
           'INTERNAL_SERVER_ERROR',
+
+        requestId:
+          req.requestId,
       })
   },
 )
@@ -626,48 +761,86 @@ app.use(
 // SERVER
 // ============================================================
 
-const port =
+const defaultPort =
   Number(
     process.env.PORT ||
     4000,
   )
 
-const server =
-  app.listen(
-    port,
-    async () => {
-      console.log(
-        `✅ API listening on port ${port}`,
-      )
+let server =
+  null
 
-      console.log(
-        '✅ Allowed origins:',
-        allowedOrigins,
-      )
+export function startServer({
+  port = defaultPort,
+} = {}) {
+  if (server) {
+    return server
+  }
 
-      try {
-        const result =
+  server =
+    app.listen(
+      port,
+      '0.0.0.0',
+      async () => {
+        const address =
+          server.address()
+
+        const listeningPort =
+          typeof address ===
+            'object' &&
+          address
+            ? address.port
+            : port
+
+        console.log(
+          `API listening on port ${listeningPort}`,
+        )
+
+        console.log(
+          'Allowed origins:',
+          allowedOrigins,
+        )
+
+        try {
           await pool.query(
             `
             SELECT
-              NOW() AS now
+              1 AS ok
             `,
           )
 
-        console.log(
-          `✅ DB connected at ${result.rows[0].now}`,
-        )
-      } catch (
-        error
-      ) {
-        console.error(
-          '❌ DB connection failed:',
-          error?.message ||
-          error,
-        )
-      }
-    },
-  )
+          console.log(
+            'Database connection ready',
+          )
+        } catch (
+          error
+        ) {
+          console.error(
+            'Database connection failed:',
+            error?.message ||
+            error,
+          )
+        }
+      },
+    )
+
+  return server
+}
+
+const isDirectExecution =
+  Boolean(
+    process.argv[1],
+  ) &&
+  pathToFileURL(
+    process.argv[1],
+  ).href ===
+    import.meta.url
+
+if (
+  isDirectExecution
+) {
+  startServer()
+}
 
 // ============================================================
 // SHUTDOWN
@@ -689,14 +862,18 @@ async function shutdown(
     true
 
   console.log(
-    `🛑 ${signal} received. Closing API...`,
+    `${signal} received. Closing API...`,
   )
+
+  if (!server) {
+    return
+  }
 
   server.close(
     async error => {
       if (error) {
         console.error(
-          '❌ Error closing HTTP server:',
+          'Error closing HTTP server:',
           error,
         )
 
@@ -710,13 +887,13 @@ async function shutdown(
         await pool.end()
 
         console.log(
-          '✅ Database pool closed',
+          'Database pool closed',
         )
       } catch (
         poolError
       ) {
         console.error(
-          '❌ Error closing database pool:',
+          'Error closing database pool:',
           poolError,
         )
 
@@ -727,24 +904,30 @@ async function shutdown(
   )
 }
 
-process.once(
-  'SIGINT',
-  () => {
-    shutdown(
-      'SIGINT',
-    )
-  },
-)
+if (
+  isDirectExecution
+) {
+  process.once(
+    'SIGINT',
+    () => {
+      shutdown(
+        'SIGINT',
+      )
+    },
+  )
 
-process.once(
-  'SIGTERM',
-  () => {
-    shutdown(
-      'SIGTERM',
-    )
-  },
-)
+  process.once(
+    'SIGTERM',
+    () => {
+      shutdown(
+        'SIGTERM',
+      )
+    },
+  )
+}
 
 export {
   app,
+  allowedOrigins,
+  shutdown,
 }

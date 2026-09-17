@@ -28,6 +28,11 @@ const TAB_ICONS: Record<
     inactive: 'checkmark-done-circle-outline',
   },
 
+  tasks: {
+    active: 'list-circle',
+    inactive: 'list-circle-outline',
+  },
+
   map: {
     active: 'map',
     inactive: 'map-outline',
@@ -54,7 +59,9 @@ export default function TabLayout() {
 
   const isManager =
     profile?.rol ===
-    'GERENTE'
+      'GERENTE' ||
+    profile?.rol ===
+      'DIRECTOR'
 
   return (
     <Tabs
@@ -157,6 +164,14 @@ export default function TabLayout() {
             isSupervisor
               ? undefined
               : null,
+        }}
+      />
+
+      <Tabs.Screen
+        name="tasks"
+        options={{
+          title:
+            'Agenda',
         }}
       />
 

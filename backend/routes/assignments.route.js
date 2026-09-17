@@ -2,8 +2,17 @@ import { Router } from 'express'
 import {
   listAssignments, createAssignment, updateAssignment
 } from '../controllers/assignments.controller.js'
+import {
+  requireAreas,
+} from '../middleware/operationalAccess.js'
 
 const r = Router()
+
+r.use(
+  requireAreas(
+    'OPERACIONES',
+  ),
+)
 
 // Ping
 r.get('/__ping', (req,res)=>res.json({ok:true}))

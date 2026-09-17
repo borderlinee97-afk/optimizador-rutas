@@ -52,6 +52,9 @@ import {
   CancelExtraStopModal,
 } from '../../src/components/CancelExtraStopModal'
 import {
+  EvidenceCapture,
+} from '../../src/components/EvidenceCapture'
+import {
   getCancellationRequestReasonLabel,
   getRescheduleReasonLabel,
   VisitResolutionModal,
@@ -78,6 +81,9 @@ import type {
 import {
   replaceCachedVisitActivities,
 } from '../../src/services/planSync'
+import {
+  listLocalEvidence,
+} from '../../src/services/evidenceSync'
 import {
   db,
   initDB,
@@ -851,6 +857,13 @@ export default function UnitDetailScreen() {
       item.status !==
         'PENDING'
     ) {
+      Alert.alert(
+        'Acción no disponible',
+        `Esta ${activitySingular} ya no se encuentra pendiente.`,
+      )
+
+      return
+    }
 
     if (
       type === 'IN' &&
@@ -860,13 +873,6 @@ export default function UnitDetailScreen() {
       Alert.alert(
         'Solicitud pendiente',
         'Esta visita tiene una solicitud de cancelación pendiente de revisión.',
-      )
-
-      return
-    }
-      Alert.alert(
-        'Acción no disponible',
-        `Esta ${activitySingular} ya no se encuentra pendiente.`,
       )
 
       return
@@ -1474,6 +1480,27 @@ export default function UnitDetailScreen() {
       return
     }
 
+    const hasReadyEvidence =
+      listLocalEvidence({
+        planItemId:
+          item.id,
+        activityId:
+          selectedActivityId,
+      }).some(
+        evidence =>
+          evidence.status ===
+          'READY',
+      )
+
+    if (!hasReadyEvidence) {
+      Alert.alert(
+        'Evidencia requerida',
+        'Toma una fotografía y espera a que aparezca como sincronizada antes de cerrar la actividad.',
+      )
+
+      return
+    }
+
     const executionNote =
       activityExecutionNote.trim()
 
@@ -1579,6 +1606,29 @@ export default function UnitDetailScreen() {
       Alert.alert(
         'Actividades pendientes',
         `Aún quedan ${pendingActivityCount} actividades por resolver. Marca cada una como realizada o no realizada antes del check-out.`,
+      )
+
+      return
+    }
+
+    if (
+      item &&
+      activities.length ===
+        0 &&
+      !listLocalEvidence({
+        planItemId:
+          item.id,
+        activityId:
+          null,
+      }).some(
+        evidence =>
+          evidence.status ===
+          'READY',
+      )
+    ) {
+      Alert.alert(
+        'Evidencia requerida',
+        'Toma una fotografía de la visita y espera a que quede sincronizada antes del check-out.',
       )
 
       return
@@ -2133,6 +2183,24 @@ export default function UnitDetailScreen() {
                               </View>
                             ) : null}
 
+                            {session?.access_token ? (
+                              <EvidenceCapture
+                                planItemId={item.id}
+                                activityId={activity.id}
+                                accessToken={session.access_token}
+                                disabled={
+                                  item.status !==
+                                    'IN_PROGRESS' ||
+                                  activity.status !==
+                                    'PENDING' ||
+                                  Boolean(
+                                    processing,
+                                  )
+                                }
+                                onSynced={loadVisit}
+                              />
+                            ) : null}
+
                             {item.status ===
                               'IN_PROGRESS' &&
                             activity.status ===
@@ -2217,6 +2285,24 @@ export default function UnitDetailScreen() {
               )}
             </View>
           </>
+        ) : null}
+
+        {session?.access_token &&
+        item.status ===
+          'IN_PROGRESS' &&
+        activities.length ===
+          0 ? (
+          <View className="mt-7">
+            <EvidenceCapture
+              planItemId={item.id}
+              activityId={null}
+              accessToken={session.access_token}
+              disabled={Boolean(
+                processing,
+              )}
+              onSynced={loadVisit}
+            />
+          </View>
         ) : null}
 
         <Text className="mb-3 mt-7 text-lg font-bold text-slate-900">

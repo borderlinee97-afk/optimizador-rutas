@@ -1810,8 +1810,12 @@ function requireManager(
   next,
 ) {
   if (
-    req.profile?.rol !==
-    'GERENTE'
+    ![
+      'DIRECTOR',
+      'GERENTE',
+    ].includes(
+      req.profile?.rol,
+    )
   ) {
     return res.status(403).json({
       error:

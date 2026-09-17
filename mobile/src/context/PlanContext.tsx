@@ -20,6 +20,9 @@ import {
   syncTodayPlan,
   updateCachedExecution,
 } from '../services/planSync'
+import {
+  syncPendingEvidence,
+} from '../services/evidenceSync'
 import type {
   MobilePlanItem,
   MobileWorkPlan,
@@ -120,6 +123,10 @@ export function PlanProvider({
       try {
         setSyncing(true)
         setError(null)
+
+        await syncPendingEvidence(
+          accessToken,
+        )
 
         await syncTodayPlan(
           accessToken,

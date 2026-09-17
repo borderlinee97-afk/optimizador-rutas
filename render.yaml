@@ -1,0 +1,40 @@
+services:
+  - type: web
+    name: app-de-rutas-api
+    runtime: node
+    rootDir: backend
+    plan: starter
+    region: oregon
+    buildCommand: npm ci --omit=dev
+    startCommand: npm start
+    healthCheckPath: /api/health
+    autoDeployTrigger: commit
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DB_SSL
+        value: "true"
+      - key: TRUST_PROXY_HOPS
+        value: "1"
+      - key: EVIDENCE_REQUIRED_FOR_ACTIVITY
+        value: "true"
+      - key: EVIDENCE_REQUIRED_FOR_VISIT_WITHOUT_ACTIVITIES
+        value: "true"
+      - key: DATABASE_URL
+        sync: false
+      - key: FRONTEND_URL
+        sync: false
+      - key: CORS_ORIGIN
+        sync: false
+      - key: GMAPS_API_KEY
+        sync: false
+      - key: GOOGLE_CLOUD_PROJECT_ID
+        sync: false
+      - key: GOOGLE_APPLICATION_CREDENTIALS
+        value: /etc/secrets/google-application-credentials.json
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_PUBLISHABLE_KEY
+        sync: false
+      - key: SUPABASE_SECRET_KEY
+        sync: false

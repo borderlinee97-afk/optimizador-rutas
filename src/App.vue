@@ -588,7 +588,7 @@ const farmaciasMenuDefinition = [
     key: 'territorial',
     label: 'Ruta territorial',
     to: '/farmacias/ruta-territorial',
-    roles: ['GERENTE', 'COORDINADOR', 'SUPERVISOR'],
+    roles: ['DIRECTOR', 'GERENTE', 'COORDINADOR', 'SUPERVISOR'],
   },
   {
     key:
@@ -601,6 +601,7 @@ const farmaciasMenuDefinition = [
       '/farmacias/mapa',
 
     roles: [
+      'DIRECTOR',
       'GERENTE',
       'COORDINADOR',
       'SUPERVISOR',
@@ -618,6 +619,7 @@ const farmaciasMenuDefinition = [
       '/farmacias/planes',
 
     roles: [
+      'DIRECTOR',
       'GERENTE',
       'COORDINADOR',
       'SUPERVISOR',
@@ -635,6 +637,7 @@ const farmaciasMenuDefinition = [
       '/farmacias/aprobaciones',
 
     roles: [
+      'DIRECTOR',
       'GERENTE',
       'COORDINADOR',
     ],
@@ -651,6 +654,7 @@ const farmaciasMenuDefinition = [
       '/farmacias/asignaciones',
 
     roles: [
+      'DIRECTOR',
       'GERENTE',
       'COORDINADOR',
     ],
@@ -667,6 +671,7 @@ const farmaciasMenuDefinition = [
       '/farmacias/personas',
 
     roles: [
+      'DIRECTOR',
       'GERENTE',
       'COORDINADOR',
     ],

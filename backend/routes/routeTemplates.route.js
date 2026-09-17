@@ -3,8 +3,17 @@ import {
   listTemplates, getTemplateById, getTemplateVersion,
   createTemplate, updateTemplateHeader, createNewVersion, duplicateTemplate
 } from '../controllers/routeTemplates.controller.js'
+import {
+  requireAreas,
+} from '../middleware/operationalAccess.js'
 
 const r = Router()
+
+r.use(
+  requireAreas(
+    'OPERACIONES',
+  ),
+)
 
 // Ping de humo (útil para validar despliegue)
 r.get('/__ping', (req,res)=>res.json({ok:true}))

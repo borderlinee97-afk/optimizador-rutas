@@ -1,11 +1,11 @@
 {
   "expo": {
-    "name": "mobile",
-    "slug": "mobile",
+    "name": "APP DE RUTAS",
+    "slug": "app-de-rutas",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "mobile",
+    "scheme": "appderutas",
     "userInterfaceStyle": "automatic",
     "platforms": [
       "android"
@@ -19,6 +19,13 @@
       "**/*"
     ],
     "android": {
+      "package": "mx.appderutas.supervision",
+      "versionCode": 1,
+      "permissions": [
+        "CAMERA",
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_COARSE_LOCATION"
+      ],
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
@@ -31,7 +38,15 @@
       "expo-router",
       "expo-font",
       "expo-web-browser",
-      "expo-secure-store"
+      "expo-secure-store",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "APP DE RUTAS necesita acceso a tus fotos para adjuntar evidencia de la visita.",
+          "cameraPermission": "APP DE RUTAS necesita usar la cámara para registrar evidencia de la visita.",
+          "microphonePermission": false
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true

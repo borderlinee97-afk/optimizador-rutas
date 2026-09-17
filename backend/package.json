@@ -5,7 +5,10 @@
   "main": "index.js",
   "scripts": {
     "start": "node index.js",
-    "dev": "nodemon index.js"
+    "dev": "nodemon index.js",
+    "test:pilot:e2e": "node scripts/test-pilot-e2e.mjs",
+    "pilot:users:preview": "node scripts/provision-pilot-supervisors.mjs",
+    "pilot:users:apply": "node scripts/provision-pilot-supervisors.mjs --apply"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.110.7",

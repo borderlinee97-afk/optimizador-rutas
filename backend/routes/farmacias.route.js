@@ -1,5 +1,9 @@
 import { Router } from 'express'
 import { pool } from '../db/pool.js'
+import {
+  requireAreas,
+  requireRoles,
+} from '../middleware/operationalAccess.js'
 
 import operationsRouter
   from './operations.route.js'
@@ -39,6 +43,9 @@ function normalizeProject(
 
 router.use(
   '/operations',
+  requireAreas(
+    'OPERACIONES',
+  ),
   operationsRouter,
 )
 
@@ -270,6 +277,11 @@ router.get(
 
 router.post(
   '/farmacias/dificil-acceso/bulk',
+  requireRoles(
+    'DIRECTOR',
+    'GERENTE',
+    'JEFE_TRAFICO',
+  ),
   async (
     req,
     res,

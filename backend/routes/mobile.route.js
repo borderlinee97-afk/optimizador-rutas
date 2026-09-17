@@ -32,6 +32,12 @@ import mobileWorkPlanCancellationActionsRouter
 import mobileWorkPlanApprovalsRouter
   from './mobile.workPlanApprovals.route.js'
 
+import mobileEvidenceRouter
+  from './mobile.evidence.route.js'
+
+import mobileTasksRouter
+  from './mobile.tasks.route.js'
+
 const router =
   Router()
 
@@ -49,6 +55,16 @@ router.get(
         'mobile-api',
     })
   },
+)
+
+router.use(
+  '/evidence',
+  mobileEvidenceRouter,
+)
+
+router.use(
+  '/tasks',
+  mobileTasksRouter,
 )
 
 router.use(

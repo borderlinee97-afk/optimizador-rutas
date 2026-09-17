@@ -6,6 +6,7 @@ import type {
 export const ROLE_LABELS: Record<AppRole, string> = {
   JEFE_TRAFICO: 'Jefe de Tráfico',
   OPERADOR: 'Operador',
+  DIRECTOR: 'Director',
   GERENTE: 'Gerente',
   COORDINADOR: 'Coordinador',
   SUPERVISOR: 'Supervisor',
@@ -21,6 +22,8 @@ export const ROLE_DESCRIPTIONS: Record<AppRole, string> = {
     'Administra operadores, asignaciones y cumplimiento de rutas.',
   OPERADOR:
     'Consulta y ejecuta las rutas y actividades asignadas.',
+  DIRECTOR:
+    'Consulta la operación de Farmacias y da seguimiento a su jerarquía.',
   GERENTE:
     'Revisa indicadores y autoriza los planes de trabajo.',
   COORDINADOR:

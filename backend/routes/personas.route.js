@@ -10,17 +10,23 @@ import {
   requireAuth,
 } from '../middleware/requireAuth.js'
 
+import {
+  requireRoles,
+} from '../middleware/operationalAccess.js'
+
 const router =
   Router()
 
 const ALLOWED_DIRECTORY_ROLES =
   new Set([
+    'DIRECTOR',
     'GERENTE',
     'COORDINADOR',
   ])
 
 const ALLOWED_PERSON_ROLES =
   new Set([
+    'DIRECTOR',
     'GERENTE',
     'COORDINADOR',
     'SUPERVISOR',
@@ -246,6 +252,39 @@ router.get(
                 'FARMACIAS'
 
               AND (
+                (
+                  $2::text =
+                    'DIRECTOR'
+
+                  AND (
+                    person.id =
+                      $1::uuid
+
+                    OR person.superior_id =
+                      $1::uuid
+
+                    OR EXISTS (
+                      WITH RECURSIVE reports AS (
+                        SELECT child.id
+                        FROM public.personas child
+                        WHERE child.superior_id = $1::uuid
+
+                        UNION ALL
+
+                        SELECT child.id
+                        FROM public.personas child
+                        INNER JOIN reports parent
+                          ON child.superior_id = parent.id
+                      )
+                      SELECT 1
+                      FROM reports
+                      WHERE reports.id = person.id
+                    )
+                  )
+                )
+
+                OR
+
                 (
                   $2::text =
                     'GERENTE'
@@ -663,6 +702,12 @@ router.get(
 
 router.get(
   '/',
+  requireRoles(
+    'DIRECTOR',
+    'GERENTE',
+    'COORDINADOR',
+    'JEFE_TRAFICO',
+  ),
   async (
     req,
     res,
