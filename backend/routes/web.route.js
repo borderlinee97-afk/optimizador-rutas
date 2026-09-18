@@ -2,6 +2,7 @@ import { Router } from 'express'
 import { pool } from '../db/pool.js'
 import { requireAuth } from '../middleware/requireAuth.js'
 import supervisorTerritorialRouter from './web.supervisorTerritorialRoutes.route.js'
+import operationalTasksRouter from './mobile.tasks.route.js'
 
 const router = Router()
 
@@ -15,6 +16,12 @@ const WEB_AREAS = [
 
 router.use(requireAuth)
 router.use(loadOperationalProfile)
+router.use('/tasks', (req, res, next) => {
+  if (req.profile.area !== 'FARMACIAS' || !['DIRECTOR', 'GERENTE', 'COORDINADOR'].includes(req.profile.rol)) {
+    return res.status(403).json({ error: 'El perfil no tiene acceso a Agenda', code: 'TASK_ACCESS_DENIED' })
+  }
+  return next()
+}, operationalTasksRouter)
 router.use('/supervisor-territorial-routes', supervisorTerritorialRouter)
 
 /**

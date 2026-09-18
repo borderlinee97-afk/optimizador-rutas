@@ -178,6 +178,27 @@ export function initDB() {
       created_at INTEGER NOT NULL,
       updated_at INTEGER NOT NULL
     );
+
+    CREATE TABLE IF NOT EXISTS operational_task_cache (
+      cache_key TEXT PRIMARY KEY NOT NULL,
+      payload_json TEXT NOT NULL,
+      synced_at INTEGER NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS operational_task_outbox (
+      idempotency_key TEXT PRIMARY KEY NOT NULL,
+      task_id TEXT NOT NULL,
+      action_type TEXT NOT NULL,
+      payload_json TEXT NOT NULL,
+      status TEXT NOT NULL DEFAULT 'PENDING',
+      attempts INTEGER NOT NULL DEFAULT 0,
+      last_error TEXT,
+      created_at INTEGER NOT NULL,
+      updated_at INTEGER NOT NULL
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_operational_task_outbox_status
+    ON operational_task_outbox(status, created_at);
   `)
 
   ensurePlanItemColumn(

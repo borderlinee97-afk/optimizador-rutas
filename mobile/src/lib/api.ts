@@ -18,6 +18,7 @@ import type {
 import type {
   OperationalTask,
   OperationalTaskListResponse,
+  OperationalTaskDetailResponse,
   OperationalTaskStatus,
 } from '../types/task'
 
@@ -475,11 +476,13 @@ export function listVisitEvidence(
 export function listOperationalTasks(
   accessToken: string,
   mode: 'agenda' | 'assigned' = 'agenda',
+  filters: { status?: string; priority?: string } = {},
 ): Promise<OperationalTaskListResponse> {
+  const params = new URLSearchParams({ mode })
+  if (filters.status && filters.status !== 'ALL') params.set('status', filters.status)
+  if (filters.priority && filters.priority !== 'ALL') params.set('priority', filters.priority)
   return apiRequest<OperationalTaskListResponse>(
-    `/api/mobile/tasks?mode=${encodeURIComponent(
-      mode,
-    )}`,
+    `/api/mobile/tasks?${params.toString()}`,
     {
       method:
         'GET',
@@ -520,6 +523,7 @@ export function updateOperationalTaskStatus(
   taskId: string,
   status: OperationalTaskStatus,
   accessToken: string,
+  idempotencyKey?: string,
 ): Promise<{
   ok: boolean
   task: OperationalTask
@@ -534,6 +538,7 @@ export function updateOperationalTaskStatus(
       body:
         JSON.stringify({
           status,
+          idempotencyKey,
         }),
     },
     accessToken,
@@ -544,6 +549,7 @@ export function addOperationalTaskComment(
   taskId: string,
   body: string,
   accessToken: string,
+  idempotencyKey?: string,
 ): Promise<{
   ok: boolean
 }> {
@@ -557,8 +563,20 @@ export function addOperationalTaskComment(
       body:
         JSON.stringify({
           body,
+          idempotencyKey,
         }),
     },
+    accessToken,
+  )
+}
+
+export function getOperationalTaskDetail(
+  taskId: string,
+  accessToken: string,
+): Promise<OperationalTaskDetailResponse> {
+  return apiRequest(
+    `/api/mobile/tasks/${encodeURIComponent(taskId)}`,
+    { method: 'GET' },
     accessToken,
   )
 }

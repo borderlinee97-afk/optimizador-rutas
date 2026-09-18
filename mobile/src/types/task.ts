@@ -29,9 +29,49 @@ export type OperationalTask = {
   evidenceCount: number
   createdAt: string
   updatedAt: string
+  permissions: {
+    edit: boolean
+    cancel: boolean
+    start: boolean
+    complete: boolean
+    comment: boolean
+    evidence: boolean
+  }
 }
 
 export type OperationalTaskListResponse = {
   mode: 'agenda' | 'assigned'
   tasks: OperationalTask[]
+}
+
+export type OperationalTaskComment = {
+  id: string
+  task_id: string
+  author_id: string
+  author_name?: string | null
+  body: string
+  created_at: string
+}
+
+export type OperationalTaskEvent = {
+  id: string
+  event_type: string
+  actor_name?: string | null
+  previous_status?: OperationalTaskStatus | null
+  new_status?: OperationalTaskStatus | null
+  created_at: string
+}
+
+export type OperationalTaskEvidence = {
+  id: string
+  status: string
+  captured_at: string
+  uploaded_at?: string | null
+}
+
+export type OperationalTaskDetailResponse = {
+  task: OperationalTask
+  comments: OperationalTaskComment[]
+  events: OperationalTaskEvent[]
+  evidence: OperationalTaskEvidence[]
 }

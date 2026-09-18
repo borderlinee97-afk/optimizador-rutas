@@ -1,13 +1,47 @@
 # APP DE RUTAS — estado del proyecto
 
-Actualizado: 2026-09-17
+## Agenda Operativa (2026-09-18)
+
+Se completó el bloque funcional de Agenda reutilizando `operational_task`,
+`operational_task_comment`, `operational_task_event` y `visit_evidence`.
+
+- El backend comparte una sola política para web y móvil, valida jerarquía en
+  listados y mutaciones, filtra por estado, prioridad, responsable y rango de
+  vencimiento, y expone creación, edición, cancelación, transiciones, detalle,
+  comentarios, historial y evidencias.
+- La auditoría de creación, edición y estado continúa a cargo del trigger
+  existente. Los comentarios agregan su evento explícito.
+- La web de Farmacias incorpora `/farmacias/agenda` para DIRECTOR, GERENTE y
+  COORDINADOR, con agrupación temporal, filtros, asignación, edición y detalle.
+- La app móvil completa Agenda con agrupación, filtros, tarea personal, detalle,
+  comentarios, historial, evidencia y acciones autorizadas.
+- SQLite conserva la última respuesta sincronizada y una cola de estados y
+  comentarios. Cada elemento usa un UUID de idempotencia; el backend lo registra
+  en el evento de estado o lo usa como identificador del comentario. La misma
+  clave acompaña el primer intento y cualquier reintento, evitando duplicados si
+  el servidor guardó una acción pero el móvil perdió la respuesta.
+
+El esquema vigente cubre este bloque y no fue necesario crear ni modificar
+migraciones. La creación de tareas sin conexión queda fuera de este bloque; se
+requiere conexión porque no se solicitó una política de conciliación para tareas
+nuevas y sus identificadores temporales.
+
+Validación local: 11/11 pruebas del servicio de Agenda aprobadas, build web
+de producción con Vite aprobado, TypeScript móvil aprobado y revisión de diff
+sin errores. No se ejecutaron Supabase, SQL, migraciones, Expo, EAS, Gradle,
+push ni deploy.
+
+Actualizado: 2026-09-18
 
 ## Repositorio activo
 
 - Ruta Windows: `C:\\Proyectos-program\\optimizador-rutas\\optimizador-rutas`
-- Rama: `feature/visit-activities`
-- HEAD: `21d9f87ad18cd9cf68ed138257d8cf42f75abcbf`
-- Remoto: `origin/feature/visit-activities` apunta al mismo commit.
+- Rama base: `main`.
+- HEAD base: `4112578add2ad1327980c36af4760455f3b5c017`.
+- Remoto: `origin/main` apunta al mismo commit.
+- Agenda fue implementada y validada en un worktree aislado antes de su
+  integración al checkout principal. La prueba manual con roles reales y el
+  despliegue permanecen pendientes.
 
 ## Último bloque funcional confirmado
 

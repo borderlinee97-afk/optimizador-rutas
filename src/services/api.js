@@ -560,6 +560,42 @@ export async function getWebWorkPlanDetail(
   )
 }
 
+export async function getWebTasks(params = {}) {
+  return fetchJSON(`${BASE_API}/web/tasks${buildWebQS(params)}`, { method: 'GET' })
+}
+
+export async function getWebTaskAssignees() {
+  return fetchJSON(`${BASE_API}/web/tasks/assignees${buildWebQS()}`, { method: 'GET' })
+}
+
+export async function getWebTaskDetail(taskId) {
+  return fetchJSON(`${BASE_API}/web/tasks/${encodeURIComponent(taskId)}${buildWebQS()}`, { method: 'GET' })
+}
+
+export async function createWebTask(payload) {
+  return fetchJSON(`${BASE_API}/web/tasks${buildWebQS()}`, {
+    method: 'POST', body: JSON.stringify(payload),
+  })
+}
+
+export async function updateWebTask(taskId, payload) {
+  return fetchJSON(`${BASE_API}/web/tasks/${encodeURIComponent(taskId)}${buildWebQS()}`, {
+    method: 'PATCH', body: JSON.stringify(payload),
+  })
+}
+
+export async function updateWebTaskStatus(taskId, status) {
+  return fetchJSON(`${BASE_API}/web/tasks/${encodeURIComponent(taskId)}/status${buildWebQS()}`, {
+    method: 'PATCH', body: JSON.stringify({ status }),
+  })
+}
+
+export async function addWebTaskComment(taskId, body) {
+  return fetchJSON(`${BASE_API}/web/tasks/${encodeURIComponent(taskId)}/comments${buildWebQS()}`, {
+    method: 'POST', body: JSON.stringify({ body }),
+  })
+}
+
 export async function approveWebWorkPlan(
   planId
 ) {

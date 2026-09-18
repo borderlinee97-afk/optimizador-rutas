@@ -585,6 +585,12 @@ const showAreaSwitcher =
 
 const farmaciasMenuDefinition = [
   {
+    key: 'agenda',
+    label: 'Agenda',
+    to: '/farmacias/agenda',
+    roles: ['DIRECTOR', 'GERENTE', 'COORDINADOR'],
+  },
+  {
     key: 'territorial',
     label: 'Ruta territorial',
     to: '/farmacias/ruta-territorial',
