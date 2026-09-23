@@ -1,3 +1,139 @@
+import {
+  getSupabaseAdmin,
+} from '../lib/supabaseAdmin.js'
+
+const EVIDENCE_READ_URL_TTL_SECONDS = 300
+
+export async function addSignedEvidenceReadUrl(
+  row,
+  getAdmin = getSupabaseAdmin,
+) {
+  const {
+    storage_bucket: storageBucket,
+    storage_path: storagePath,
+    ...safeEvidence
+  } = row
+
+  if (
+    row.status !== 'READY' ||
+    !storagePath
+  ) {
+    return {
+      ...safeEvidence,
+      signedUrl: null,
+      signedUrlExpiresIn: null,
+    }
+  }
+
+  const admin = getAdmin()
+  const { data, error } =
+    await admin.storage
+      .from(
+        storageBucket || 'visit-evidence',
+      )
+      .createSignedUrl(
+        storagePath,
+        EVIDENCE_READ_URL_TTL_SECONDS,
+      )
+
+  if (error || !data?.signedUrl) {
+    const storageError =
+      new Error(
+        'No fue posible preparar la visualización de la evidencia',
+      )
+
+    storageError.code =
+      'EVIDENCE_READ_URL_FAILED'
+
+    storageError.status =
+      502
+
+    throw storageError
+  }
+
+  return {
+    ...safeEvidence,
+    signedUrl: data.signedUrl,
+    signedUrlExpiresIn:
+      EVIDENCE_READ_URL_TTL_SECONDS,
+  }
+}
+
+export async function attachEvidenceToPlanItems(
+  db,
+  items,
+  signEvidence = addSignedEvidenceReadUrl,
+) {
+  const normalized =
+    Array.isArray(items)
+      ? items
+      : []
+
+  if (!normalized.length) {
+    return normalized
+  }
+
+  const itemIds =
+    normalized.map(item => item.id)
+
+  const result =
+    await db.query(
+      `
+      SELECT
+        id,
+        plan_item_id,
+        activity_id,
+        supervisor_id,
+        status,
+        captured_at,
+        uploaded_at,
+        latitude,
+        longitude,
+        accuracy_m,
+        mocked,
+        mime_type,
+        byte_size,
+        rejection_reason,
+        storage_bucket,
+        storage_path
+      FROM public.visit_evidence
+      WHERE plan_item_id = ANY($1::uuid[])
+        AND status = 'READY'
+      ORDER BY captured_at ASC, created_at ASC, id ASC
+      `,
+      [itemIds],
+    )
+
+  const signedEvidence =
+    await Promise.all(
+      result.rows.map(
+        row => signEvidence(row),
+      ),
+    )
+
+  const grouped =
+    new Map()
+
+  for (const evidence of signedEvidence) {
+    const key =
+      String(evidence.plan_item_id)
+
+    const current =
+      grouped.get(key) ?? []
+
+    current.push(evidence)
+    grouped.set(key, current)
+  }
+
+  return normalized.map(
+    item => ({
+      ...item,
+      evidence:
+        grouped.get(String(item.id)) ?? [],
+    }),
+  )
+}
+
 export function getEvidencePolicy() {
   const productionDefault =
     process.env.NODE_ENV ===

@@ -54,3 +54,14 @@ backend/data/
 *.xlsx
 *.xls
 *.bak
+
+# Local recovery material with operational data (never commit).
+backend/operational-snapshot-local.json
+backend/scripts/export-operational-snapshot.mjs
+backend/scripts/validate-operational-restore.mjs
+backend/scripts/validate-operational-restore-v2.mjs
+backend/scripts/validate-personas-sync.mjs
+backend/sql/local-agenda-schema.sql
+backend/sql/personas-pgadmin-a-supabase-v3.sql
+backend/sql/restore-operational-supabase-v1.sql
+backend/sql/restore-operational-supabase-v2.sql

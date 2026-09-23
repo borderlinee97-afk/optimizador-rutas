@@ -1,10 +1,27 @@
 import { Router } from 'express'
 import { pool } from '../db/pool.js'
 import { canAccessPersona } from '../services/hierarchyAccess.service.js'
-import { createOperationalTasksService } from '../services/operationalTasks.service.js'
+import {
+  canUseOperationalTasks,
+  createOperationalTasksService,
+} from '../services/operationalTasks.service.js'
 
 const router = Router()
 const tasks = createOperationalTasksService({ pool, canAccessPersona })
+
+export function requireMobileTaskAccess(req, res, next) {
+  const actor = req.identityProfile ?? req.profile
+
+  if (!canUseOperationalTasks(actor)) {
+    return res.status(403).json({
+      error: 'El perfil no tiene acceso a Agenda',
+      code: 'TASK_ACCESS_DENIED',
+    })
+  }
+
+  return next()
+}
+
 const handle = (action, code = 200) => async (req, res, next) => {
   try {
     const actor = req.identityProfile ?? req.profile
@@ -17,6 +34,7 @@ const handle = (action, code = 200) => async (req, res, next) => {
     return next(error)
   }
 }
+router.use(requireMobileTaskAccess)
 router.get('/', handle((actor, req) => tasks.list(actor, req.query)))
 router.get('/assignees', handle(actor => tasks.assignees(actor)))
 router.post('/', handle((actor, req) => tasks.create(actor, req.body ?? {}), 201))

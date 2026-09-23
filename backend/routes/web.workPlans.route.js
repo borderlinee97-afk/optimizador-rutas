@@ -14,6 +14,14 @@ import {
   attachActivitiesToItems,
 } from '../services/pharmacyActivity.service.js'
 
+import {
+  attachEvidenceToPlanItems,
+} from '../services/evidencePolicy.service.js'
+
+import {
+  canAccessPersona,
+} from '../services/hierarchyAccess.service.js'
+
 const router =
   Router()
 
@@ -53,6 +61,9 @@ router.use(
  * state=Jalisco
  * periodStart=2026-07-27
  * periodEnd=2026-08-02
+ *
+ * DIRECTOR:
+ * - supervisores dentro de toda su jerarquía activa.
  *
  * GERENTE:
  * - supervisores directos;
@@ -276,6 +287,54 @@ router.get(
 
               AND (
                 (
+                  $1::text =
+                    'DIRECTOR'
+
+                  AND EXISTS (
+                    WITH RECURSIVE reporting_tree AS (
+                      SELECT
+                        person.id
+
+                      FROM public.personas
+                        person
+
+                      WHERE person.id =
+                          $3::uuid
+
+                        AND person.activo =
+                          TRUE
+
+                      UNION
+
+                      SELECT
+                        child.id
+
+                      FROM public.personas
+                        child
+
+                      INNER JOIN reporting_tree
+                        parent
+
+                        ON child.superior_id =
+                          parent.id
+
+                      WHERE child.activo =
+                          TRUE
+
+                        AND child.area::text =
+                          'FARMACIAS'
+                    )
+
+                    SELECT 1
+
+                    FROM reporting_tree
+
+                    WHERE id =
+                      supervisor.id
+                  )
+                )
+
+                OR (
                   $1::text =
                     'GERENTE'
 
@@ -631,49 +690,23 @@ router.get(
             AND supervisor.rol::text =
               'SUPERVISOR'
 
-            AND (
-              (
-                $2::text =
-                  'GERENTE'
-
-                AND (
-                  supervisor.superior_id =
-                    $3::uuid
-
-                  OR coordinator.superior_id =
-                    $3::uuid
-                )
-              )
-
-              OR (
-                $2::text =
-                  'COORDINADOR'
-
-                AND supervisor.superior_id =
-                  $3::uuid
-              )
-
-              OR (
-                $2::text =
-                  'SUPERVISOR'
-
-                AND supervisor.id =
-                  $3::uuid
-              )
-            )
-
           LIMIT 1
           `,
           [
             planId,
-            req.profile.rol,
-            req.profile.id,
           ],
         )
 
+      const row =
+        planResult.rows[0]
+
       if (
-        planResult.rowCount ===
-        0
+        !row ||
+        !await canAccessPersona(
+          req.profile,
+          row.supervisor_id,
+          pool,
+        )
       ) {
         return res
           .status(404)
@@ -685,9 +718,6 @@ router.get(
               'WEB_WORK_PLAN_NOT_FOUND',
           })
       }
-
-      const row =
-        planResult.rows[0]
 
       const [
         itemsResult,
@@ -889,6 +919,20 @@ router.get(
           ),
         ])
 
+      const itemsWithActivities =
+        await attachActivitiesToItems(
+          pool,
+          itemsResult.rows.map(
+            mapPlanItem,
+          ),
+        )
+
+      const itemsWithEvidence =
+        await attachEvidenceToPlanItems(
+          pool,
+          itemsWithActivities,
+        )
+
       return res.json({
         plan:
           mapPlan(
@@ -939,12 +983,7 @@ router.get(
         },
 
         items:
-          await attachActivitiesToItems(
-            pool,
-            itemsResult.rows.map(
-              mapPlanItem,
-            ),
-          ),
+          itemsWithEvidence,
 
         revisions:
           revisionsResult.rows.map(

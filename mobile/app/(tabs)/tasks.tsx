@@ -9,10 +9,13 @@ import { useAuth } from '../../src/context/AuthContext'
 import { addOperationalTaskComment, createOperationalTask, getOperationalTaskDetail, updateOperationalTaskStatus } from '../../src/lib/api'
 import {
   createTaskMutationKey,
+  discardFailedTaskMutations,
   enqueueTaskComment,
   enqueueTaskStatus,
+  getTaskOutboxSummary,
   isRetryableTaskMutationError,
   readCachedAgenda,
+  retryFailedTaskMutations,
   syncAgenda,
 } from '../../src/services/taskSync'
 import type { OperationalTask, OperationalTaskDetailResponse, OperationalTaskPriority, OperationalTaskStatus } from '../../src/types/task'
@@ -65,6 +68,7 @@ export default function TasksScreen() {
   const [description, setDescription] = useState('')
   const [newPriority, setNewPriority] = useState<OperationalTaskPriority>('MEDIUM')
   const [requiresEvidence, setRequiresEvidence] = useState(false)
+  const [failedMutations, setFailedMutations] = useState(0)
 
   const canAssign = useMemo(
     () => ['DIRECTOR', 'GERENTE', 'COORDINADOR'].includes(profile?.rol ?? ''),
@@ -83,8 +87,10 @@ export default function TasksScreen() {
       const result = await syncAgenda(token, mode, status, priority)
       setTasks(result.response.tasks)
       setSyncedAt(result.syncedAt)
+      setFailedMutations(result.outbox.failed)
       setOffline(false)
     } catch (error) {
+      setFailedMutations(getTaskOutboxSummary().failed)
       const cached = readCachedAgenda(mode, status, priority)
 
       if (cached) {
@@ -101,6 +107,29 @@ export default function TasksScreen() {
       setLoading(false)
     }
   }, [mode, priority, session?.access_token, status])
+
+  async function retryFailedMutations() {
+    retryFailedTaskMutations()
+    await load()
+  }
+
+  function confirmDiscardFailedMutations() {
+    Alert.alert(
+      'Descartar cambios no enviados',
+      'Los cambios rechazados se eliminarán de este dispositivo.',
+      [
+        { text: 'Conservar', style: 'cancel' },
+        {
+          text: 'Descartar',
+          style: 'destructive',
+          onPress: () => {
+            discardFailedTaskMutations()
+            setFailedMutations(0)
+          },
+        },
+      ],
+    )
+  }
 
   useFocusEffect(
     useCallback(() => {
@@ -283,6 +312,38 @@ export default function TasksScreen() {
                 : ''}
               .
             </Text>
+          </View>
+        ) : null}
+
+        {failedMutations > 0 ? (
+          <View className="mt-4 rounded-2xl bg-rose-100 p-3">
+            <Text className="text-xs font-semibold text-rose-800">
+              {failedMutations === 1
+                ? 'Hay un cambio que el servidor rechazó.'
+                : `Hay ${failedMutations} cambios que el servidor rechazó.`}
+            </Text>
+
+            <View className="mt-2 flex-row gap-2">
+              <Pressable
+                className="rounded-lg bg-white px-3 py-2"
+                onPress={() => void retryFailedMutations()}
+                disabled={Boolean(busyId)}
+              >
+                <Text className="text-xs font-bold text-rose-800">
+                  Reintentar
+                </Text>
+              </Pressable>
+
+              <Pressable
+                className="rounded-lg px-3 py-2"
+                onPress={confirmDiscardFailedMutations}
+                disabled={Boolean(busyId)}
+              >
+                <Text className="text-xs font-bold text-rose-800">
+                  Descartar
+                </Text>
+              </Pressable>
+            </View>
           </View>
         ) : null}
 

@@ -67,6 +67,10 @@ export type OperationalTaskEvidence = {
   status: string
   captured_at: string
   uploaded_at?: string | null
+  mime_type?: string | null
+  byte_size?: number | null
+  signedUrl?: string | null
+  signedUrlExpiresIn?: number | null
 }
 
 export type OperationalTaskDetailResponse = {

@@ -11,22 +11,29 @@ Se completó el bloque funcional de Agenda reutilizando `operational_task`,
   comentarios, historial y evidencias.
 - La auditoría de creación, edición y estado continúa a cargo del trigger
   existente. Los comentarios agregan su evento explícito.
-- La web de Farmacias incorpora `/farmacias/agenda` para DIRECTOR, GERENTE y
-  COORDINADOR, con agrupación temporal, filtros, asignación, edición y detalle.
+- La web de Farmacias incorpora `/farmacias/agenda` para DIRECTOR, GERENTE,
+  COORDINADOR y SUPERVISOR. Los perfiles con estructura pueden asignar tareas;
+  SUPERVISOR crea tareas personales y conserva únicamente sus permisos válidos.
 - La app móvil completa Agenda con agrupación, filtros, tarea personal, detalle,
   comentarios, historial, evidencia y acciones autorizadas.
+- La web de Farmacias visualiza evidencias `READY` tanto en tareas de Agenda
+  como en visitas del detalle del plan. El backend valida primero la jerarquía,
+  mantiene el bucket privado y entrega URLs firmadas con vigencia de cinco
+  minutos sin exponer `storage_bucket` ni `storage_path`.
 - SQLite conserva la última respuesta sincronizada y una cola de estados y
   comentarios. Cada elemento usa un UUID de idempotencia; el backend lo registra
   en el evento de estado o lo usa como identificador del comentario. La misma
   clave acompaña el primer intento y cualquier reintento, evitando duplicados si
-  el servidor guardó una acción pero el móvil perdió la respuesta.
+  el servidor guardó una acción pero el móvil perdió la respuesta. La pantalla
+  muestra operaciones rechazadas y permite reintentarlas o descartarlas con
+  confirmación.
 
 El esquema vigente cubre este bloque y no fue necesario crear ni modificar
 migraciones. La creación de tareas sin conexión queda fuera de este bloque; se
 requiere conexión porque no se solicitó una política de conciliación para tareas
 nuevas y sus identificadores temporales.
 
-Validación local: 11/11 pruebas del servicio de Agenda aprobadas, build web
+Validación local: 16/16 pruebas de Agenda y evidencias aprobadas, build web
 de producción con Vite aprobado, TypeScript móvil aprobado y revisión de diff
 sin errores. No se ejecutaron Supabase, SQL, migraciones, Expo, EAS, Gradle,
 push ni deploy.

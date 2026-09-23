@@ -20,6 +20,11 @@ type OutboxRow = {
   payload_json: string
 }
 
+export type TaskOutboxSummary = {
+  pending: number
+  failed: number
+}
+
 export function isRetryableTaskMutationError(error: unknown) {
   if (!(error instanceof ApiError)) {
     return true
@@ -61,7 +66,7 @@ export async function syncAgenda(
   priority = 'ALL',
 ) {
   initDB()
-  await flushTaskOutbox(accessToken)
+  const outbox = await flushTaskOutbox(accessToken)
   const response = await listOperationalTasks(accessToken, mode, { status, priority })
   const syncedAt = Date.now()
   db.runSync(
@@ -76,11 +81,47 @@ export async function syncAgenda(
       [`${mode}:latest`, JSON.stringify(response), syncedAt],
     )
   }
-  return { response, syncedAt }
+  return { response, syncedAt, outbox }
 }
 
 export function createTaskMutationKey() {
   return Crypto.randomUUID()
+}
+
+export function getTaskOutboxSummary(): TaskOutboxSummary {
+  initDB()
+
+  const rows = db.getAllSync(
+    `SELECT status, COUNT(*) AS total
+     FROM operational_task_outbox
+     GROUP BY status`,
+  ) as { status: string; total: number }[]
+
+  return rows.reduce<TaskOutboxSummary>(
+    (summary, row) => {
+      if (row.status === 'PENDING') summary.pending = Number(row.total)
+      if (row.status === 'FAILED') summary.failed = Number(row.total)
+      return summary
+    },
+    { pending: 0, failed: 0 },
+  )
+}
+
+export function retryFailedTaskMutations() {
+  initDB()
+  db.runSync(
+    `UPDATE operational_task_outbox
+     SET status = 'PENDING', last_error = NULL, updated_at = ?
+     WHERE status = 'FAILED'`,
+    [Date.now()],
+  )
+}
+
+export function discardFailedTaskMutations() {
+  initDB()
+  db.runSync(
+    `DELETE FROM operational_task_outbox WHERE status = 'FAILED'`,
+  )
 }
 
 function enqueue(
@@ -141,4 +182,6 @@ export async function flushTaskOutbox(accessToken: string) {
       if (!permanent) break
     }
   }
+
+  return getTaskOutboxSummary()
 }

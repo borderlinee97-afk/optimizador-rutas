@@ -442,6 +442,45 @@
                     </div>
 
                     <div
+                      v-if="item.evidence?.length"
+                      class="visit-evidence"
+                    >
+                      <div class="visit-evidence-heading">
+                        <strong>
+                          Evidencias fotográficas
+                        </strong>
+
+                        <span>
+                          {{ item.evidence.length }}
+                        </span>
+                      </div>
+
+                      <div class="visit-evidence-grid">
+                        <a
+                          v-for="evidence in item.evidence"
+                          :key="evidence.id"
+                          :href="evidence.signedUrl"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          referrerpolicy="no-referrer"
+                          class="visit-evidence-card"
+                          title="Abrir evidencia"
+                        >
+                          <img
+                            :src="evidence.signedUrl"
+                            alt="Evidencia fotográfica de la visita"
+                            loading="lazy"
+                            referrerpolicy="no-referrer"
+                          >
+
+                          <span>
+                            {{ formatDateTime(evidence.captured_at) }}
+                          </span>
+                        </a>
+                      </div>
+                    </div>
+
+                    <div
                       v-if="
                         item.cancellationRequestStatus
                       "
@@ -2695,6 +2734,67 @@ function formatNumber(
   opacity: .55;
 }
 
+.visit-evidence {
+  margin-top: 12px;
+  padding: 12px;
+  border: 1px solid #dbeafe;
+  border-radius: 14px;
+  background: #f8fbff;
+}
+
+.visit-evidence-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.visit-evidence-heading strong {
+  color: #334155;
+  font-size: 11px;
+}
+
+.visit-evidence-heading span {
+  min-width: 22px;
+  padding: 3px 7px;
+  border-radius: 999px;
+  background: #dbeafe;
+  color: #1d4ed8;
+  font-size: 9px;
+  font-weight: 900;
+  text-align: center;
+}
+
+.visit-evidence-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 9px;
+}
+
+.visit-evidence-card {
+  overflow: hidden;
+  border: 1px solid #dbe3ec;
+  border-radius: 10px;
+  background: #fff;
+  color: inherit;
+  text-decoration: none;
+}
+
+.visit-evidence-card img {
+  display: block;
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+}
+
+.visit-evidence-card span {
+  display: block;
+  padding: 7px;
+  color: #64748b;
+  font-size: 8px;
+}
+
 @media (
   max-width: 620px
 ) {
@@ -2715,6 +2815,11 @@ function formatNumber(
   .modal-summary {
     grid-template-columns:
       1fr;
+  }
+
+  .visit-evidence-grid {
+    grid-template-columns:
+      repeat(2, minmax(0, 1fr));
   }
 }
 }

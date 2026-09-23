@@ -33,7 +33,7 @@ const router =
         path: '/farmacias/agenda',
         name: 'farmacias-agenda',
         component: AgendaView,
-        meta: { area: 'FARMACIAS', roles: ['DIRECTOR', 'GERENTE', 'COORDINADOR'] },
+        meta: { area: 'FARMACIAS', roles: ['DIRECTOR', 'GERENTE', 'COORDINADOR','SUPERVISOR'] },
       },
       {
         path: '/farmacias/ruta-territorial',

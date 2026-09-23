@@ -16,12 +16,36 @@ const WEB_AREAS = [
 
 router.use(requireAuth)
 router.use(loadOperationalProfile)
-router.use('/tasks', (req, res, next) => {
-  if (req.profile.area !== 'FARMACIAS' || !['DIRECTOR', 'GERENTE', 'COORDINADOR'].includes(req.profile.rol)) {
-    return res.status(403).json({ error: 'El perfil no tiene acceso a Agenda', code: 'TASK_ACCESS_DENIED' })
-  }
-  return next()
-}, operationalTasksRouter)
+router.use(
+  '/tasks',
+  (req, res, next) => {
+    const allowedRoles = [
+      'DIRECTOR',
+      'GERENTE',
+      'COORDINADOR',
+      'SUPERVISOR',
+    ]
+
+    if (
+      req.profile.area !== 'FARMACIAS' ||
+      !allowedRoles.includes(
+        req.profile.rol,
+      )
+    ) {
+      return res
+        .status(403)
+        .json({
+          error:
+            'El perfil no tiene acceso a Agenda',
+          code:
+            'TASK_ACCESS_DENIED',
+        })
+    }
+
+    return next()
+  },
+  operationalTasksRouter,
+)
 router.use('/supervisor-territorial-routes', supervisorTerritorialRouter)
 
 /**

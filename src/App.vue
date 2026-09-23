@@ -588,7 +588,7 @@ const farmaciasMenuDefinition = [
     key: 'agenda',
     label: 'Agenda',
     to: '/farmacias/agenda',
-    roles: ['DIRECTOR', 'GERENTE', 'COORDINADOR'],
+    roles: ['DIRECTOR', 'GERENTE', 'COORDINADOR','SUPERVISOR'],
   },
   {
     key: 'territorial',
