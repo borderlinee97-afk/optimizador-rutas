@@ -2308,212 +2308,240 @@ watch(
 <style>
 html,
 body,
-#app,
-#map-wrapper {
+#app {
   margin: 0;
   padding: 0;
+  width: 100%;
+  min-width: 0;
+  min-height: 100%;
+}
+
+#map-wrapper {
+  position: relative;
   width: 100vw;
   height: 100vh;
+  min-width: 0;
+  overflow: hidden;
+  background: #e2e8f0;
+  color: var(--color-text);
 }
 
 .map {
   width: 100%;
   height: 100%;
+  min-width: 0;
+  min-height: 0;
 }
 
-/*
- * ============================================================
- * FARMACIAS MAP TOOLS
- * ============================================================
- */
+/* ============================================================
+   CONTROLES PROPIOS · FARMACIAS
+   ============================================================ */
 
 .farmacias-map-tools {
   position: absolute;
-  top: 18px;
-  right: 18px;
   z-index: 9999;
+
+  top: 16px;
+  right: 16px;
+
   display: flex;
   align-items: center;
   gap: 4px;
-  padding: 5px;
+
+  padding: 4px;
+
   border:
     1px solid
-    rgba(
-      203,
-      213,
-      225,
-      .95
-    );
-  border-radius:
-    13px;
+    rgba(203, 213, 225, .96);
+
+  border-radius: var(--radius-lg);
+
   background:
-    rgba(
-      255,
-      255,
-      255,
-      .96
-    );
+    rgba(255, 255, 255, .96);
+
   box-shadow:
-    0 8px 24px
-      rgba(
-        15,
-        23,
-        42,
-        .14
-      );
-  backdrop-filter:
-    blur(
-      12px
-    );
+    0 6px 20px
+    rgba(15, 23, 42, .12);
+
+  backdrop-filter: blur(10px);
 }
 
 .map-tool-button {
   position: relative;
+
   display: grid;
+
   width: 38px;
   height: 38px;
+
   place-items: center;
+
   padding: 0;
+
   border:
-    1px solid
-    transparent;
+    1px solid transparent;
+
   border-radius:
-    9px;
-  background:
-    transparent;
+    var(--radius-md);
+
+  background: transparent;
+
   color:
-    #64748b;
+    var(--color-text-secondary);
+
   cursor: pointer;
+
   transition:
-    background .15s ease,
-    border-color .15s ease,
-    color .15s ease,
-    transform .15s ease;
+    background 150ms ease,
+    border-color 150ms ease,
+    color 150ms ease,
+    transform 150ms ease;
 }
 
 .map-tool-button:hover {
-  border-color:
-    #dbeafe;
+  border-color: #bfdbfe;
+
   background:
-    #f8fbfe;
+    var(--color-primary-soft);
+
   color:
-    #0f64ad;
+    var(--color-primary-dark);
 }
 
 .map-tool-button:active {
-  transform:
-    scale(
-      .96
-    );
+  transform: scale(.96);
 }
 
 .map-tool-button.active {
+  border-color: #bfdbfe;
+
   background:
-    #eff8ff;
+    var(--color-primary-soft);
+
   color:
-    #0f64ad;
+    var(--color-primary-dark);
 }
 
 .map-tool-button svg {
-  width: 20px;
-  height: 20px;
+  width: 19px;
+  height: 19px;
+
   fill: none;
-  stroke:
-    currentColor;
-  stroke-width:
-    1.8;
-  stroke-linecap:
-    round;
-  stroke-linejoin:
-    round;
+
+  stroke: currentColor;
+
+  stroke-width: 1.8;
+
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
 
 .map-tool-tooltip {
   position: absolute;
+
   top:
-    calc(
-      100% + 8px
-    );
+    calc(100% + 8px);
+
   right: 0;
+
   z-index: 10000;
-  width:
-    max-content;
-  max-width:
-    180px;
-  padding:
-    6px 8px;
+
+  width: max-content;
+  max-width: 190px;
+
+  padding: 6px 8px;
+
   border-radius:
-    7px;
+    var(--radius-sm);
+
   background:
-    #0f172a;
-  color:
-    #ffffff !important;
-  font-size:
-    12px;
-  font-weight:
-    700;
-  line-height:
-    1.2;
+    var(--color-text);
+
+  color: #ffffff !important;
+
+  font-size: 12px;
+  font-weight: 650;
+
+  line-height: 1.25;
+
   opacity: 0;
-  pointer-events:
-    none;
+
+  pointer-events: none;
+
   transform:
-    translateY(
-      -3px
-    );
+    translateY(-3px);
+
   transition:
-    opacity .14s ease,
-    transform .14s ease;
+    opacity 140ms ease,
+    transform 140ms ease;
 }
 
 .map-tool-button:hover
 .map-tool-tooltip {
   opacity: 1;
+
   transform:
-    translateY(
-      0
-    );
+    translateY(0);
 }
 
-/*
- * No usar:
- *
- * #map-wrapper * {
- *   color: #111827;
- * }
- *
- * porque pisa texto blanco de botones internos.
- */
+/* ============================================================
+   GOOGLE MAPS
+   ============================================================ */
 
 #map-wrapper {
-  color:
-    #111827;
+  color: #111827;
 }
 
 #map-wrapper a {
-  color:
-    inherit;
+  color: inherit;
 }
 
+/*
+ * Dejamos los controles nativos de Google intactos.
+ * App.vue ya reserva el espacio lateral correcto para los
+ * controles propios de Farmacias.
+ */
+
+#map-wrapper
+.gm-style {
+  font-family:
+    var(--font-sans);
+}
+
+/* ============================================================
+   RESPONSIVE
+   ============================================================ */
+
 @media (
-  max-width:
-    640px
+  max-width: 900px
 ) {
   .farmacias-map-tools {
-    top: 12px;
-    right: 12px;
     gap: 3px;
-    padding: 4px;
+    padding: 3px;
   }
 
   .map-tool-button {
     width: 36px;
     height: 36px;
   }
+}
+
+@media (
+  max-width: 640px
+) {
+  .farmacias-map-tools {
+    top: 12px;
+    right: 12px;
+  }
+
+  .map-tool-button {
+    width: 35px;
+    height: 35px;
+  }
 
   .map-tool-button svg {
-    width: 19px;
-    height: 19px;
+    width: 18px;
+    height: 18px;
   }
 }
 </style>
