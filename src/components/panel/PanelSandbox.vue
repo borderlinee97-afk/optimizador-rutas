@@ -2,8 +2,8 @@
   <div class="panel" :class="{ collapsed }">
     <div class="panel-header">
       <div class="panel-title-wrap">
-        <div class="panel-eyebrow">Herramienta auxiliar</div>
-        <h4>Calculador de Ruta</h4>
+        <div class="panel-eyebrow">Planeación operativa</div>
+        <h4>Resultados de operación</h4>
       </div>
 
       <button class="btn-mini" @click="$emit('toggle-collapsed')">
@@ -34,9 +34,9 @@ defineEmits(['toggle-collapsed'])
   background: #ffffff;
   border: 1px solid #dbe2ea;
   border-radius: 14px;
-  width: clamp(335px, 29vw, 450px);
+  width: clamp(360px, 30vw, 460px);
   max-width: calc(100vw - 40px);
-  max-height: calc(100vh - 300px);
+  max-height: min(68vh, calc(100vh - 120px));
   box-shadow: 0 10px 28px rgba(15, 23, 42, 0.14);
   font: 12.5px/1.38 system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   overflow: hidden;
@@ -75,7 +75,7 @@ defineEmits(['toggle-collapsed'])
 }
 
 .panel-body {
-  max-height: calc(100vh - 355px);
+  max-height: calc(min(68vh, 100vh - 120px) - 58px);
   overflow: auto;
   padding: 10px 12px 12px;
   background: #fcfcfd;
@@ -200,11 +200,11 @@ defineEmits(['toggle-collapsed'])
 @media (max-width: 1440px) {
   .panel {
     width: clamp(320px, 30vw, 430px);
-    max-height: calc(100vh - 280px);
+    max-height: min(68vh, calc(100vh - 120px));
   }
 
   .panel-body {
-    max-height: calc(100vh - 335px);
+    max-height: calc(min(68vh, 100vh - 120px) - 58px);
   }
 }
 
@@ -214,7 +214,7 @@ defineEmits(['toggle-collapsed'])
     bottom: 16px;
     width: clamp(300px, 34vw, 390px);
     max-width: calc(100vw - 32px);
-    max-height: calc(100vh - 240px);
+    max-height: min(68vh, calc(100vh - 120px));
   }
 
   .panel-header {
@@ -223,7 +223,7 @@ defineEmits(['toggle-collapsed'])
 
   .panel-body {
     padding: 10px 12px 12px;
-    max-height: calc(100vh - 292px);
+    max-height: calc(min(68vh, 100vh - 120px) - 58px);
   }
 
   .panel-header h4 {
@@ -234,16 +234,16 @@ defineEmits(['toggle-collapsed'])
 @media (max-width: 820px) {
   .panel {
     right: 12px;
-    left: 12px;
+    left: auto;
     bottom: 12px;
-    width: auto;
-    max-width: none;
-    max-height: min(54vh, calc(100vh - 140px));
+    width: min(390px, calc(100vw - 330px));
+    max-width: calc(100vw - 330px);
+    max-height: min(68vh, calc(100vh - 120px));
     border-radius: 12px;
   }
 
   .panel-body {
-    max-height: calc(54vh - 52px);
+    max-height: calc(min(68vh, 100vh - 120px) - 58px);
   }
 }
 
@@ -254,7 +254,7 @@ defineEmits(['toggle-collapsed'])
     bottom: 10px;
     width: auto;
     max-width: none;
-    max-height: min(58vh, calc(100vh - 120px));
+    max-height: min(48vh, calc(100vh - 120px));
     border-radius: 12px;
   }
 
@@ -264,7 +264,7 @@ defineEmits(['toggle-collapsed'])
 
   .panel-body {
     padding: 9px 11px 11px;
-    max-height: calc(58vh - 50px);
+    max-height: calc(48vh - 50px);
   }
 
   .panel-header h4 {
@@ -272,8 +272,8 @@ defineEmits(['toggle-collapsed'])
   }
 
   .btn-mini {
-    padding: 6px 8px;
-    font-size: 10.5px;
+    padding: 8px 10px;
+    font-size: 12px;
   }
 }
 </style>

@@ -260,6 +260,8 @@ function formatProject(
 .legend {
   position: absolute;
 
+  box-sizing: border-box;
+
   z-index: 9998;
 
   bottom: 16px;
@@ -267,7 +269,7 @@ function formatProject(
 
   width:
     min(
-      280px,
+      290px,
       calc(100vw - 32px)
     );
 
@@ -279,7 +281,7 @@ function formatProject(
 
   overflow: auto;
 
-  padding: 14px;
+  padding: 16px;
 
   border:
     1px solid
@@ -295,8 +297,8 @@ function formatProject(
     var(--color-text);
 
   box-shadow:
-    0 8px 24px
-    rgba(15, 23, 42, .13);
+    0 12px 32px
+    rgba(15, 23, 42, .16);
 
   backdrop-filter:
     blur(10px);
@@ -595,6 +597,11 @@ function formatProject(
     var(--color-primary-dark);
 }
 
+.legend button:focus-visible {
+  outline: 3px solid #2563eb;
+  outline-offset: 2px;
+}
+
 .legend-item .label {
   display: block;
 
@@ -731,15 +738,15 @@ function formatProject(
 ) {
   .legend {
     right: 12px;
-    bottom: 12px;
+    bottom: calc(48vh + 22px);
     left: 12px;
 
-    width: auto;
+    width: min(290px, calc(100vw - 24px));
 
     max-height:
       min(
-        54vh,
-        470px
+        27vh,
+        260px
       );
 
     padding: 11px;
