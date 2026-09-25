@@ -1663,16 +1663,24 @@ function emptyTotals() {
 
 <style scoped>
 .plans-page {
-  min-height: 100vh;
-  padding: 104px 28px 48px;
-  background: linear-gradient(145deg, #f8fafc, #eef6fb);
-  font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  width: 100%;
+  min-height: 100%;
+  padding: 28px 28px 48px;
+  background: var(--color-background);
+  color: var(--color-text);
 }
 
 .plans-container {
-  width: min(1180px, 100%);
+  width: min(
+    var(--content-max-width),
+    100%
+  );
   margin: 0 auto;
 }
+
+/* ============================================================
+   CABECERA
+   ============================================================ */
 
 .plans-header {
   display: flex;
@@ -1681,112 +1689,167 @@ function emptyTotals() {
   gap: 24px;
 }
 
+.plans-header > div:first-child {
+  min-width: 0;
+}
+
 .plans-kicker {
-  color: #0f64ad;
-  font-size: 13px;
-  font-weight: 900;
-  letter-spacing: .09em;
+  display: block;
+  color: var(--color-primary-dark);
+  font-size: 12px;
+  font-weight: 750;
+  letter-spacing: .06em;
   text-transform: uppercase;
 }
 
 .plans-header h1 {
-  margin: 6px 0 7px;
-  color: #0f172a;
-  font-size: 30px;
+  margin: 5px 0 5px;
+  color: var(--color-text);
+  font-size: var(--font-size-page-title);
+  font-weight: 750;
+  line-height: 1.2;
+  letter-spacing: -.02em;
 }
 
 .plans-header p {
+  max-width: 720px;
   margin: 0;
-  color: #64748b;
-  font-size: 15px;
+  color: var(--color-text-secondary);
+  font-size: 14px;
+  line-height: 1.5;
 }
 
 .state-selector {
   display: flex;
-  min-width: 190px;
+  min-width: 210px;
+  flex: 0 0 auto;
   flex-direction: column;
-  gap: 5px;
+  gap: 6px;
 }
 
 .state-selector label {
-  color: #64748b;
-  font-size: 11px;
-  font-weight: 900;
-  text-transform: uppercase;
+  color: var(--color-text-secondary);
+  font-size: 12px;
+  font-weight: 650;
 }
 
 .state-selector select,
 .filters-card select {
-  height: 42px;
-  padding: 0 11px;
-  border: 1px solid #dbe3ec;
-  border-radius: 11px;
-  background: #fff;
-  color: #334155;
+  min-height: 42px;
+  padding: 0 36px 0 12px;
   outline: 0;
+  border: 1px solid #cbd5e1;
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font-size: 14px;
+  transition:
+    border-color 150ms ease,
+    box-shadow 150ms ease;
 }
+
+.state-selector select:focus,
+.filters-card select:focus {
+  border-color: var(--color-primary);
+  box-shadow:
+    0 0 0 3px
+    rgba(37, 99, 235, .10);
+}
+
+/* ============================================================
+   TABS
+   ============================================================ */
 
 .plan-tabs {
   display: inline-flex;
   gap: 4px;
   margin-top: 22px;
   padding: 4px;
-  border: 1px solid #dbe3ec;
-  border-radius: 14px;
-  background: #fff;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-sm);
 }
 
 .plan-tabs button {
   display: flex;
-  min-width: 150px;
+  min-width: 180px;
+  min-height: 52px;
   flex-direction: column;
   align-items: flex-start;
-  padding: 9px 13px;
-  border: 0;
-  border-radius: 10px;
+  justify-content: center;
+  padding: 7px 13px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-md);
   background: transparent;
-  color: #64748b;
+  color: var(--color-text-secondary);
   cursor: pointer;
+  transition:
+    background 150ms ease,
+    border-color 150ms ease,
+    color 150ms ease;
+}
+
+.plan-tabs button:hover {
+  background: var(--color-surface-muted);
+  color: var(--color-text);
 }
 
 .plan-tabs button.active {
-  background: #eff8ff;
-  color: #0f64ad;
+  border-color: #bfdbfe;
+  background: var(--color-primary-soft);
+  color: var(--color-primary-dark);
 }
 
 .plan-tabs span {
-  font-size: 12px;
-  font-weight: 900;
+  font-size: 14px;
+  font-weight: 700;
 }
 
 .plan-tabs small {
   margin-top: 2px;
-  font-size: 10px;
-  opacity: .7;
+  font-size: 12px;
+  opacity: .8;
 }
+
+/* ============================================================
+   PERIODO
+   ============================================================ */
 
 .period-toolbar {
   display: flex;
   align-items: center;
   gap: 8px;
-  margin-top: 12px;
+  margin-top: 14px;
   padding: 8px;
-  border: 1px solid #e2e8f0;
-  border-radius: 15px;
-  background: rgba(255,255,255,.94);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-sm);
 }
 
 .period-arrow {
   display: grid;
-  width: 38px;
-  height: 38px;
+  width: 40px;
+  height: 40px;
+  flex: 0 0 40px;
   place-items: center;
-  border: 1px solid #e2e8f0;
-  border-radius: 10px;
-  background: #fff;
+  padding: 0;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
   color: #475569;
   cursor: pointer;
-  font-size: 23px;
+  font-size: 22px;
+  line-height: 1;
+  transition:
+    background 150ms ease,
+    border-color 150ms ease;
+}
+
+.period-arrow:hover {
+  border-color: #cbd5e1;
+  background: var(--color-surface-muted);
 }
 
 .period-copy {
@@ -1797,89 +1860,109 @@ function emptyTotals() {
 }
 
 .period-copy span {
-  color: #94a3b8;
-  font-size: 10px;
-  font-weight: 900;
-  text-transform: uppercase;
+  color: var(--color-text-secondary);
+  font-size: 12px;
+  font-weight: 650;
+  line-height: 1.2;
 }
 
 .period-copy strong {
   margin-top: 2px;
-  color: #0f172a;
-  font-size: 14px;
+  color: var(--color-text);
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1.3;
   text-transform: capitalize;
 }
 
 .current-period-button {
-  min-height: 38px;
-  padding: 0 13px;
+  min-height: 40px;
+  padding: 0 14px;
   border: 1px solid #bfdbfe;
-  border-radius: 10px;
-  background: #eff8ff;
-  color: #0f64ad;
+  border-radius: var(--radius-md);
+  background: var(--color-primary-soft);
+  color: var(--color-primary-dark);
   cursor: pointer;
-  font-size: 11px;
-  font-weight: 900;
+  font-size: 13px;
+  font-weight: 650;
+}
+
+.current-period-button:hover:not(:disabled) {
+  border-color: #93c5fd;
+  background: #dbeafe;
 }
 
 .current-period-button:disabled {
-  opacity: .45;
   cursor: default;
+  opacity: .5;
 }
+
+/* ============================================================
+   MÉTRICAS
+   ============================================================ */
 
 .metrics-grid {
   display: grid;
-  gap: 8px;
-  margin-top: 13px;
+  gap: 10px;
+  margin-top: 14px;
 }
 
 .metrics-grid.six {
-  grid-template-columns: repeat(6, minmax(0, 1fr));
+  grid-template-columns:
+    repeat(
+      6,
+      minmax(0, 1fr)
+    );
 }
 
 .metric-card {
   display: flex;
-  min-height: 100px;
+  min-width: 0;
+  min-height: 96px;
   flex-direction: column;
   justify-content: center;
-  padding: 13px;
-  border: 1px solid #e2e8f0;
-  border-radius: 14px;
-  background: #fff;
+  padding: 14px 15px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-sm);
 }
 
 .metric-card span {
-  color: #64748b;
-  font-size: 10px;
-  font-weight: 900;
-  text-transform: uppercase;
+  color: var(--color-text-secondary);
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.2;
 }
 
 .metric-card strong {
-  margin-top: 4px;
-  color: #0f172a;
-  font-size: 23px;
+  margin-top: 5px;
+  color: var(--color-text);
+  font-size: 24px;
+  font-weight: 750;
+  line-height: 1;
 }
 
 .metric-card small {
-  margin-top: 3px;
-  color: #94a3b8;
-  font-size: 10px;
+  margin-top: 6px;
+  color: var(--color-text-secondary);
+  font-size: 12px;
+  line-height: 1.3;
 }
 
 .metric-card.primary {
   border-color: #bfdbfe;
-  background: #eff8ff;
+  background: var(--color-primary-soft);
 }
 
 .metric-card.warning {
   border-color: #fde68a;
-  background: #fffbeb;
+  background: var(--color-warning-soft);
 }
 
 .metric-card.danger {
   border-color: #fecaca;
-  background: #fef2f2;
+  background: var(--color-error-soft);
 }
 
 .metric-card.orange {
@@ -1888,69 +1971,111 @@ function emptyTotals() {
 }
 
 .metric-card.violet {
-  border-color: #c7d2fe;
-  background: #eef2ff;
+  border-color: #ddd6fe;
+  background: #f5f3ff;
 }
+
+/* ============================================================
+   FILTROS
+   ============================================================ */
 
 .filters-card {
   display: flex;
+  align-items: center;
   gap: 8px;
-  margin-top: 13px;
+  margin-top: 14px;
   padding: 8px;
-  border: 1px solid #e2e8f0;
-  border-radius: 14px;
-  background: #fff;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-sm);
 }
 
 .search-field {
   display: flex;
-  min-width: 220px;
+  min-width: 260px;
   flex: 1;
   align-items: center;
   gap: 8px;
-  padding: 0 11px;
-  border: 1px solid #dbe3ec;
-  border-radius: 11px;
+  padding: 0 12px;
+  border: 1px solid #cbd5e1;
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  transition:
+    border-color 150ms ease,
+    box-shadow 150ms ease;
+}
+
+.search-field:focus-within {
+  border-color: var(--color-primary);
+  box-shadow:
+    0 0 0 3px
+    rgba(37, 99, 235, .10);
 }
 
 .search-field span {
   color: #94a3b8;
+  font-size: 16px;
 }
 
 .search-field input {
   width: 100%;
+  min-width: 0;
   height: 40px;
-  border: 0;
+  padding: 0;
   outline: 0;
+  border: 0;
   background: transparent;
+  color: var(--color-text);
+  font-size: 14px;
+}
+
+.search-field input::placeholder {
+  color: #94a3b8;
+}
+
+.filters-card select {
+  min-width: 190px;
 }
 
 .clear-button {
-  padding: 0 12px;
-  border: 1px solid #e2e8f0;
-  border-radius: 10px;
-  background: #fff;
-  color: #64748b;
+  min-height: 42px;
+  padding: 0 13px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  color: #475569;
   cursor: pointer;
-  font-size: 11px;
-  font-weight: 850;
+  font-size: 13px;
+  font-weight: 650;
 }
+
+.clear-button:hover {
+  background: var(--color-surface-muted);
+  color: var(--color-text);
+}
+
+/* ============================================================
+   LISTADO
+   ============================================================ */
 
 .plans-card {
   overflow: hidden;
-  margin-top: 12px;
-  border: 1px solid #e2e8f0;
-  border-radius: 17px;
-  background: #fff;
-  box-shadow: 0 12px 32px rgba(15,23,42,.05);
+  margin-top: 14px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-sm);
 }
 
 .table-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 14px 16px;
-  border-bottom: 1px solid #eef2f7;
+  gap: 18px;
+  padding: 15px 17px;
+  border-bottom: 1px solid var(--color-border);
+  background: #fcfdff;
 }
 
 .table-header > div {
@@ -1960,41 +2085,52 @@ function emptyTotals() {
 
 .table-header span,
 .table-header small {
-  color: #64748b;
-  font-size: 10px;
-  font-weight: 900;
+  color: var(--color-text-secondary);
+  font-size: 12px;
+  font-weight: 650;
+}
+
+.table-header span {
+  letter-spacing: .025em;
   text-transform: uppercase;
 }
 
 .table-header strong {
-  margin-top: 2px;
-  color: #0f172a;
-  font-size: 14px;
+  margin-top: 3px;
+  color: var(--color-text);
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.plan-list {
+  display: block;
 }
 
 .plan-row {
   display: grid;
   grid-template-columns:
-    minmax(230px, 1.8fr)
-    minmax(130px, 1fr)
-    90px
-    80px
-    24px;
+    minmax(260px, 2fr)
+    minmax(145px, 1fr)
+    minmax(90px, .55fr)
+    minmax(90px, .55fr)
+    28px;
   align-items: center;
-  gap: 10px;
-  min-height: 67px;
-  padding: 9px 14px;
-  border-bottom: 1px solid #f1f5f9;
+  gap: 14px;
+  min-height: 76px;
+  padding: 11px 16px;
+  border-bottom: 1px solid #eef2f7;
+  transition:
+    background 140ms ease;
 }
 
 .plan-row:has(.period-cell) {
   grid-template-columns:
-    minmax(210px, 1.6fr)
-    minmax(135px, 1fr)
-    minmax(120px, .9fr)
-    80px
-    70px
-    24px;
+    minmax(240px, 1.7fr)
+    minmax(145px, 1fr)
+    minmax(145px, .9fr)
+    minmax(90px, .5fr)
+    minmax(80px, .45fr)
+    28px;
 }
 
 .plan-row:last-child {
@@ -2006,27 +2142,31 @@ function emptyTotals() {
 }
 
 .plan-row.clickable:hover {
-  background: #f8fbfe;
+  background: #f8fbff;
 }
+
+/* ============================================================
+   PERSONA
+   ============================================================ */
 
 .person-cell {
   display: flex;
   min-width: 0;
   align-items: center;
-  gap: 9px;
+  gap: 11px;
 }
 
 .avatar {
   display: grid;
-  width: 35px;
-  height: 35px;
-  flex: 0 0 35px;
+  width: 38px;
+  height: 38px;
+  flex: 0 0 38px;
   place-items: center;
-  border-radius: 10px;
-  background: #eaf4fc;
-  color: #0f64ad;
-  font-size: 11px;
-  font-weight: 900;
+  border-radius: var(--radius-md);
+  background: var(--color-primary-soft);
+  color: var(--color-primary-dark);
+  font-size: 12px;
+  font-weight: 800;
 }
 
 .person-cell > div:last-child,
@@ -2043,8 +2183,10 @@ function emptyTotals() {
 .number-cell strong,
 .revision-cell strong {
   overflow: hidden;
-  color: #0f172a;
-  font-size: 12px;
+  color: var(--color-text);
+  font-size: 13px;
+  font-weight: 650;
+  line-height: 1.35;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -2053,11 +2195,18 @@ function emptyTotals() {
 .period-cell span,
 .number-cell span,
 .revision-cell span {
-  margin-top: 2px;
-  color: #94a3b8;
-  font-size: 7.5px;
-  text-transform: uppercase;
+  margin-top: 3px;
+  overflow: hidden;
+  color: var(--color-text-secondary);
+  font-size: 12px;
+  line-height: 1.3;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
+
+/* ============================================================
+   ESTADO
+   ============================================================ */
 
 .status-cell {
   display: flex;
@@ -2067,11 +2216,14 @@ function emptyTotals() {
 }
 
 .status-badge {
-  padding: 5px 8px;
+  display: inline-flex;
+  min-height: 26px;
+  align-items: center;
+  padding: 0 9px;
   border-radius: 999px;
-  font-size: 7.5px;
-  font-weight: 900;
-  text-transform: uppercase;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1;
 }
 
 .status-badge.approved {
@@ -2100,63 +2252,73 @@ function emptyTotals() {
 }
 
 .status-cell small {
-  max-width: 180px;
-  margin-top: 3px;
+  max-width: 210px;
+  margin-top: 5px;
   overflow: hidden;
-  color: #b91c1c;
-  font-size: 10px;
+  color: var(--color-error);
+  font-size: 12px;
+  line-height: 1.3;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .arrow-cell {
   color: #94a3b8;
-  font-size: 23px;
+  font-size: 22px;
+  line-height: 1;
+  text-align: right;
 }
+
+/* ============================================================
+   VACÍO / CARGA / ERROR
+   ============================================================ */
 
 .empty-state {
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 38px 20px;
+  padding: 48px 24px;
   text-align: center;
 }
 
 .empty-state > div {
   display: grid;
-  width: 43px;
-  height: 43px;
+  width: 44px;
+  height: 44px;
   place-items: center;
-  border-radius: 13px;
-  background: #f1f5f9;
-  color: #64748b;
-  font-weight: 900;
+  border-radius: var(--radius-lg);
+  background: var(--color-surface-muted);
+  color: var(--color-text-secondary);
+  font-size: 15px;
+  font-weight: 750;
 }
 
 .empty-state strong {
-  margin-top: 9px;
-  color: #475569;
-  font-size: 12px;
+  margin-top: 11px;
+  color: #334155;
+  font-size: 15px;
+  font-weight: 700;
 }
 
 .empty-state span {
-  margin-top: 3px;
-  color: #94a3b8;
-  font-size: 8.5px;
+  margin-top: 4px;
+  color: var(--color-text-secondary);
+  font-size: 13px;
 }
 
 .message-box {
   margin-top: 18px;
-  padding: 22px;
-  border-radius: 15px;
-  background: #fff;
+  padding: 20px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-sm);
 }
 
 .message-box.loading {
   display: flex;
   align-items: center;
-  gap: 10px;
-  border: 1px solid #e2e8f0;
+  gap: 12px;
 }
 
 .message-box.loading > div:last-child,
@@ -2167,35 +2329,46 @@ function emptyTotals() {
 
 .message-box strong {
   color: #334155;
-  font-size: 12px;
+  font-size: 14px;
+  font-weight: 700;
 }
 
 .message-box span {
   margin-top: 3px;
-  color: #64748b;
-  font-size: 8.5px;
+  color: var(--color-text-secondary);
+  font-size: 13px;
 }
 
 .message-box.error {
-  border: 1px solid #fecaca;
-  background: #fef2f2;
+  border-color: #fecaca;
+  background: var(--color-error-soft);
 }
 
 .message-box.error strong,
 .message-box.error span {
-  color: #b91c1c;
+  color: var(--color-error);
 }
 
 .message-box button {
   width: fit-content;
-  margin-top: 8px;
+  min-height: 36px;
+  margin-top: 10px;
+  padding: 0 12px;
+  border: 1px solid #fecaca;
+  border-radius: var(--radius-md);
+  background: #fff;
+  color: var(--color-error);
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 650;
 }
 
 .spinner {
   width: 22px;
   height: 22px;
+  flex: 0 0 22px;
   border: 3px solid #dbeafe;
-  border-top-color: #0f64ad;
+  border-top-color: var(--color-primary);
   border-radius: 999px;
   animation: spin .7s linear infinite;
 }
@@ -2206,8 +2379,12 @@ function emptyTotals() {
   }
 }
 
+/* ============================================================
+   TABLET
+   ============================================================ */
+
 @media (
-  max-width: 980px
+  max-width: 1200px
 ) {
   .metrics-grid.six {
     grid-template-columns:
@@ -2220,32 +2397,69 @@ function emptyTotals() {
   .plan-row,
   .plan-row:has(.period-cell) {
     grid-template-columns:
-      minmax(200px, 1.5fr)
-      minmax(120px, 1fr)
-      75px
-      22px;
+      minmax(0, 1fr)
+      auto
+      auto;
+
+    grid-template-areas:
+      "person status arrow"
+      "period number revision";
+  }
+
+  .person-cell {
+    grid-area: person;
+  }
+
+  .period-cell {
+    grid-area: period;
+  }
+
+  .status-cell {
+    grid-area: status;
+  }
+
+  .number-cell {
+    grid-area: number;
+  }
+
+  .revision-cell {
+    grid-area: revision;
+  }
+
+  .arrow-cell {
+    grid-area: arrow;
   }
 
   .period-cell,
+  .number-cell,
   .revision-cell {
-    display: none;
+    padding-top: 4px;
   }
 }
 
+/* ============================================================
+   TABLET PEQUEÑA
+   ============================================================ */
+
 @media (
-  max-width: 700px
+  max-width: 850px
 ) {
   .plans-page {
     padding:
-      94px
-      14px
-      30px;
+      22px
+      18px
+      36px;
   }
 
-  .plans-header,
-  .filters-card {
-    flex-direction: column;
+  .plans-header {
     align-items: stretch;
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  .state-selector {
+    width: 100%;
+    min-width: 0;
   }
 
   .plan-tabs {
@@ -2253,10 +2467,63 @@ function emptyTotals() {
     grid-template-columns:
       1fr
       1fr;
+    width: 100%;
   }
 
   .plan-tabs button {
     min-width: 0;
+  }
+
+  .filters-card {
+    display: grid;
+    grid-template-columns:
+      minmax(0, 1fr)
+      minmax(170px, .55fr)
+      minmax(170px, .55fr)
+      auto;
+  }
+
+  .search-field {
+    min-width: 0;
+  }
+
+  .filters-card select {
+    min-width: 0;
+    width: 100%;
+  }
+}
+
+/* ============================================================
+   MÓVIL
+   ============================================================ */
+
+@media (
+  max-width: 650px
+) {
+  .plans-page {
+    padding:
+      18px
+      14px
+      30px;
+  }
+
+  .plans-header h1 {
+    font-size: 24px;
+  }
+
+  .period-toolbar {
+    flex-wrap: wrap;
+  }
+
+  .period-copy {
+    min-width:
+      calc(
+        100% - 96px
+      );
+  }
+
+  .current-period-button {
+    width: 100%;
   }
 
   .metrics-grid.six {
@@ -2267,22 +2534,76 @@ function emptyTotals() {
       );
   }
 
-  .search-field {
-    min-width: 0;
+  .metric-card {
+    min-height: 90px;
+  }
+
+  .filters-card {
+    display: flex;
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .clear-button {
+    width: 100%;
+  }
+
+  .table-header {
+    padding:
+      13px
+      14px;
   }
 
   .plan-row,
   .plan-row:has(.period-cell) {
     grid-template-columns:
       minmax(0, 1fr)
-      auto
-      20px;
+      26px;
+
+    grid-template-areas:
+      "person arrow"
+      "status status"
+      "period period"
+      "number revision";
+
+    gap:
+      8px
+      10px;
+
+    padding:
+      13px
+      14px;
+  }
+
+  .status-cell {
+    margin-top: 2px;
+  }
+
+  .period-cell,
+  .number-cell,
+  .revision-cell {
+    padding-top: 0;
   }
 
   .number-cell,
-  .revision-cell,
-  .period-cell {
-    display: none;
+  .revision-cell {
+    padding:
+      8px
+      10px;
+
+    border:
+      1px solid
+      var(--color-border);
+
+    border-radius:
+      var(--radius-md);
+
+    background:
+      var(--color-surface-muted);
+  }
+
+  .arrow-cell {
+    align-self: center;
   }
 }
 </style>

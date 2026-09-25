@@ -1,8 +1,8 @@
 <template>
   <div class="app-root">
-    <!-- =====================================================
+    <!-- =========================================================
          CARGANDO AUTENTICACIÓN
-    ====================================================== -->
+    ========================================================== -->
     <div
       v-if="loading"
       class="auth-loading"
@@ -24,9 +24,9 @@
       </div>
     </div>
 
-    <!-- =====================================================
+    <!-- =========================================================
          LOGIN
-    ====================================================== -->
+    ========================================================== -->
     <div
       v-else-if="!authenticated"
       class="login-page"
@@ -53,8 +53,7 @@
 
             <p>
               Accede al mapa, planes de trabajo
-              y estructura operativa según tu
-              perfil.
+              y estructura operativa según tu perfil.
             </p>
           </div>
         </section>
@@ -130,28 +129,428 @@
       </main>
     </div>
 
-    <!-- =====================================================
+    <!-- =========================================================
          APLICACIÓN
-    ====================================================== -->
+    ========================================================== -->
     <div
       v-else
       class="application-shell"
       :class="{
-        'farmacias-shell':
-          isFarmacias,
-
-        'operations-shell':
-          isOperations,
+        'farmacias-shell': isFarmacias,
+        'operations-shell': isOperations,
       }"
     >
-      <!-- ===================================================
-           CABECERA FARMACIAS
-      ==================================================== -->
-      <header
+      <!-- =======================================================
+           FARMACIAS
+      ======================================================== -->
+      <div
         v-if="isFarmacias"
-        class="farmacias-topbar"
+        class="farmacias-layout"
+        :class="{
+          'sidebar-collapsed': sidebarCollapsed,
+        }"
       >
-        <div class="topbar-identity">
+        <!-- =====================================================
+             SIDEBAR
+        ====================================================== -->
+        <aside class="app-sidebar">
+          <div class="sidebar-header">
+            <div class="sidebar-brand">
+              <div class="sidebar-brand-mark">
+                R
+              </div>
+
+              <div class="sidebar-brand-copy">
+                <strong>
+                  Control de Rutas
+                </strong>
+
+                <span>
+                  Farmacias
+                </span>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              class="sidebar-toggle"
+              :title="
+                sidebarCollapsed
+                  ? 'Expandir menú'
+                  : 'Contraer menú'
+              "
+              :aria-label="
+                sidebarCollapsed
+                  ? 'Expandir menú'
+                  : 'Contraer menú'
+              "
+              @click="
+                sidebarCollapsed =
+                  !sidebarCollapsed
+              "
+            >
+              <svg
+                viewBox="0 0 24 24"
+                aria-hidden="true"
+              >
+                <path
+                  v-if="sidebarCollapsed"
+                  d="m9 6 6 6-6 6"
+                />
+
+                <path
+                  v-else
+                  d="m15 6-6 6 6 6"
+                />
+              </svg>
+            </button>
+          </div>
+
+          <nav
+            class="sidebar-navigation"
+            aria-label="Navegación Farmacias"
+          >
+            <section
+              v-if="operationMenu.length"
+              class="sidebar-section"
+            >
+              <div class="sidebar-section-label">
+                Operación
+              </div>
+
+              <RouterLink
+                v-for="item in operationMenu"
+                :key="item.to"
+                :to="item.to"
+                class="sidebar-nav-item"
+                :title="
+                  sidebarCollapsed
+                    ? item.label
+                    : undefined
+                "
+              >
+                <span class="sidebar-nav-icon">
+                  <!-- Agenda -->
+                  <svg
+                    v-if="item.key === 'agenda'"
+                    viewBox="0 0 24 24"
+                    aria-hidden="true"
+                  >
+                    <rect
+                      x="3"
+                      y="5"
+                      width="18"
+                      height="16"
+                      rx="2"
+                    />
+
+                    <path
+                      d="M8 3v4M16 3v4M3 10h18"
+                    />
+
+                    <path
+                      d="M8 14h3M8 17h6"
+                    />
+                  </svg>
+
+                  <!-- Ruta territorial -->
+                  <svg
+                    v-else-if="
+                      item.key === 'territorial'
+                    "
+                    viewBox="0 0 24 24"
+                    aria-hidden="true"
+                  >
+                    <circle
+                      cx="6"
+                      cy="18"
+                      r="2"
+                    />
+
+                    <circle
+                      cx="18"
+                      cy="6"
+                      r="2"
+                    />
+
+                    <path
+                      d="M8 18h2a4 4 0 0 0 4-4v-4a4 4 0 0 1 4-4"
+                    />
+                  </svg>
+
+                  <!-- Mapa -->
+                  <svg
+                    v-else-if="item.key === 'map'"
+                    viewBox="0 0 24 24"
+                    aria-hidden="true"
+                  >
+                    <path
+                      d="m9 18-6 3V6l6-3 6 3 6-3v15l-6 3-6-3Z"
+                    />
+
+                    <path
+                      d="M9 3v15M15 6v15"
+                    />
+                  </svg>
+
+                  <!-- Planes -->
+                  <svg
+                    v-else-if="item.key === 'plans'"
+                    viewBox="0 0 24 24"
+                    aria-hidden="true"
+                  >
+                    <rect
+                      x="4"
+                      y="5"
+                      width="16"
+                      height="16"
+                      rx="2"
+                    />
+
+                    <path
+                      d="M8 3v4M16 3v4M4 10h16M8 14h3M8 17h5"
+                    />
+                  </svg>
+                </span>
+
+                <span class="sidebar-nav-label">
+                  {{ item.label }}
+                </span>
+              </RouterLink>
+            </section>
+
+            <section
+              v-if="managementMenu.length"
+              class="sidebar-section"
+            >
+              <div class="sidebar-section-label">
+                Gestión
+              </div>
+
+              <RouterLink
+                v-for="item in managementMenu"
+                :key="item.to"
+                :to="item.to"
+                class="sidebar-nav-item"
+                :title="
+                  sidebarCollapsed
+                    ? item.label
+                    : undefined
+                "
+              >
+                <span class="sidebar-nav-icon">
+                  <!-- Aprobaciones -->
+                  <svg
+                    v-if="item.key === 'approvals'"
+                    viewBox="0 0 24 24"
+                    aria-hidden="true"
+                  >
+                    <path
+                      d="M9 11l2 2 4-4"
+                    />
+
+                    <path
+                      d="M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20Z"
+                    />
+                  </svg>
+
+                  <!-- Asignaciones -->
+                  <svg
+                    v-else-if="
+                      item.key === 'assignments'
+                    "
+                    viewBox="0 0 24 24"
+                    aria-hidden="true"
+                  >
+                    <circle
+                      cx="7"
+                      cy="7"
+                      r="3"
+                    />
+
+                    <circle
+                      cx="17"
+                      cy="17"
+                      r="3"
+                    />
+
+                    <path
+                      d="M10 7h4a3 3 0 0 1 3 3v4M14 17h-4a3 3 0 0 1-3-3v-4"
+                    />
+                  </svg>
+
+                  <!-- Personas -->
+                  <svg
+                    v-else
+                    viewBox="0 0 24 24"
+                    aria-hidden="true"
+                  >
+                    <circle
+                      cx="9"
+                      cy="8"
+                      r="4"
+                    />
+
+                    <path
+                      d="M2 21a7 7 0 0 1 14 0M17 11a4 4 0 0 1 0-7M18 14a6 6 0 0 1 4 6"
+                    />
+                  </svg>
+                </span>
+
+                <span class="sidebar-nav-label">
+                  {{ item.label }}
+                </span>
+              </RouterLink>
+            </section>
+          </nav>
+
+          <div class="sidebar-footer">
+            <div class="sidebar-footer-badge">
+              <span class="sidebar-footer-dot"></span>
+
+              <span class="sidebar-footer-text">
+                Sistema operativo
+              </span>
+            </div>
+          </div>
+        </aside>
+
+        <!-- =====================================================
+             TOPBAR
+        ====================================================== -->
+        <header class="app-topbar">
+          <div class="topbar-context">
+            <div class="breadcrumbs">
+              <span>
+                Farmacias
+              </span>
+
+              <svg
+                viewBox="0 0 24 24"
+                aria-hidden="true"
+              >
+                <path
+                  d="m9 6 6 6-6 6"
+                />
+              </svg>
+
+              <strong>
+                {{ activePageTitle }}
+              </strong>
+            </div>
+
+            <div class="topbar-page-title">
+              {{ activePageTitle }}
+            </div>
+          </div>
+
+          <div class="topbar-actions">
+            <!-- ===============================================
+                 SELECTOR DE ÁREA PARA ADMIN
+            ================================================ -->
+            <div
+              v-if="showAreaSwitcher"
+              class="area-switcher"
+              aria-label="Cambiar módulo"
+            >
+              <button
+                v-for="availableArea in allowedAreas"
+                :key="availableArea"
+                type="button"
+                class="area-switch-button"
+                :class="{
+                  active:
+                    normalizedArea ===
+                    availableArea,
+                }"
+                :disabled="switchingArea"
+                @click="
+                  handleAreaSwitch(
+                    availableArea
+                  )
+                "
+              >
+                <strong>
+                  {{
+                    availableArea ===
+                    'FARMACIAS'
+                      ? 'Farmacias'
+                      : 'Operaciones'
+                  }}
+                </strong>
+
+                <span>
+                  {{
+                    availableArea ===
+                    'FARMACIAS'
+                      ? 'Supervisión'
+                      : 'Rutas'
+                  }}
+                </span>
+              </button>
+            </div>
+
+            <div class="topbar-user">
+              <div class="session-avatar">
+                {{ userInitial }}
+              </div>
+
+              <div class="session-info">
+                <strong>
+                  {{ displayName }}
+                </strong>
+
+                <span>
+                  {{ profileLabel }}
+                </span>
+              </div>
+            </div>
+
+            <button
+              class="topbar-logout"
+              type="button"
+              title="Cerrar sesión"
+              @click="handleLogout"
+            >
+              <svg
+                viewBox="0 0 24 24"
+                aria-hidden="true"
+              >
+                <path
+                  d="M10 17l5-5-5-5"
+                />
+
+                <path
+                  d="M15 12H3"
+                />
+
+                <path
+                  d="M13 3h5a3 3 0 0 1 3 3v12a3 3 0 0 1-3 3h-5"
+                />
+              </svg>
+
+              <span>
+                Salir
+              </span>
+            </button>
+          </div>
+        </header>
+
+        <!-- =====================================================
+             CONTENIDO
+        ====================================================== -->
+        <main class="farmacias-main">
+          <RouterView />
+        </main>
+      </div>
+
+      <!-- =======================================================
+           OPERACIONES
+      ======================================================== -->
+      <template v-else-if="isOperations">
+        <RouterView />
+
+        <div class="session-card">
           <div class="session-avatar">
             {{ userInitial }}
           </div>
@@ -165,251 +564,50 @@
               {{ profileLabel }}
             </span>
           </div>
-        </div>
 
-        <!-- =================================================
-             SELECTOR DE ÁREA PARA ADMIN
-        ================================================== -->
-        <div
-          v-if="showAreaSwitcher"
-          class="area-switcher"
-          aria-label="Cambiar módulo"
-        >
-          <button
-            v-for="availableArea in allowedAreas"
-            :key="availableArea"
-            type="button"
-            class="area-switch-button"
-            :class="{
-              active:
-                normalizedArea ===
-                availableArea,
-            }"
-            :disabled="switchingArea"
-            @click="
-              handleAreaSwitch(
-                availableArea
-              )
-            "
+          <div
+            v-if="showAreaSwitcher"
+            class="area-switcher area-switcher-compact"
+            aria-label="Cambiar módulo"
           >
-            <strong>
-              {{
-                availableArea ===
+            <button
+              v-for="availableArea in allowedAreas"
+              :key="availableArea"
+              type="button"
+              class="area-switch-button"
+              :class="{
+                active:
+                  normalizedArea ===
+                  availableArea,
+              }"
+              :disabled="switchingArea"
+              @click="
+                handleAreaSwitch(
+                  availableArea
+                )
+              "
+            >
+              <strong>
+                {{
+                  availableArea ===
                   'FARMACIAS'
-                  ? 'Farmacias'
-                  : 'Operaciones'
-              }}
-            </strong>
+                    ? 'Farmacias'
+                    : 'Operaciones'
+                }}
+              </strong>
+            </button>
+          </div>
 
-            <span>
-              {{
-                availableArea ===
-                  'FARMACIAS'
-                  ? 'Supervisión'
-                  : 'Rutas'
-              }}
-            </span>
+          <button
+            class="logout-button"
+            type="button"
+            title="Cerrar sesión"
+            @click="handleLogout"
+          >
+            Salir
           </button>
         </div>
-
-        <!-- =================================================
-             NAVEGACIÓN FARMACIAS
-        ================================================== -->
-        <nav
-          class="farmacias-navigation"
-          aria-label="Navegación Farmacias"
-        >
-          <RouterLink
-            v-for="item in farmaciasMenu"
-            :key="item.to"
-            :to="item.to"
-            class="farmacias-nav-item"
-          >
-            <span class="nav-icon">
-              <svg
-                v-if="
-                  item.key ===
-                  'map'
-                "
-                viewBox="0 0 24 24"
-                aria-hidden="true"
-              >
-                <path
-                  d="m9 18-6 3V6l6-3 6 3 6-3v15l-6 3-6-3Z"
-                />
-
-                <path
-                  d="M9 3v15M15 6v15"
-                />
-              </svg>
-
-              <svg
-                v-else-if="
-                  item.key ===
-                  'plans'
-                "
-                viewBox="0 0 24 24"
-                aria-hidden="true"
-              >
-                <rect
-                  x="4"
-                  y="5"
-                  width="16"
-                  height="16"
-                  rx="2"
-                />
-
-                <path
-                  d="M8 3v4M16 3v4M4 10h16M8 14h3M8 17h5"
-                />
-              </svg>
-
-              <svg
-                v-else-if="
-                  item.key ===
-                  'approvals'
-                "
-                viewBox="0 0 24 24"
-                aria-hidden="true"
-              >
-                <path
-                  d="M9 11l2 2 4-4"
-                />
-
-                <path
-                  d="M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20Z"
-                />
-              </svg>
-
-              <svg
-                v-else-if="
-                  item.key ===
-                  'assignments'
-                "
-                viewBox="0 0 24 24"
-                aria-hidden="true"
-              >
-                <circle
-                  cx="7"
-                  cy="7"
-                  r="3"
-                />
-
-                <circle
-                  cx="17"
-                  cy="17"
-                  r="3"
-                />
-
-                <path
-                  d="M10 7h4a3 3 0 0 1 3 3v4M14 17h-4a3 3 0 0 1-3-3v-4"
-                />
-              </svg>
-
-              <svg
-                v-else
-                viewBox="0 0 24 24"
-                aria-hidden="true"
-              >
-                <circle
-                  cx="9"
-                  cy="8"
-                  r="4"
-                />
-
-                <path
-                  d="M2 21a7 7 0 0 1 14 0M17 11a4 4 0 0 1 0-7M18 14a6 6 0 0 1 4 6"
-                />
-              </svg>
-            </span>
-
-            <span>
-              {{ item.label }}
-            </span>
-          </RouterLink>
-        </nav>
-
-        <button
-          class="topbar-logout"
-          type="button"
-          title="Cerrar sesión"
-          @click="handleLogout"
-        >
-          Salir
-        </button>
-      </header>
-
-      <!-- ===================================================
-           CONTENIDO ENRUTADO
-      ==================================================== -->
-      <RouterView />
-
-      <!-- ===================================================
-           SESIÓN OPERACIONES
-      ==================================================== -->
-      <div
-        v-if="isOperations"
-        class="session-card"
-      >
-        <div class="session-avatar">
-          {{ userInitial }}
-        </div>
-
-        <div class="session-info">
-          <strong>
-            {{ displayName }}
-          </strong>
-
-          <span>
-            {{ profileLabel }}
-          </span>
-        </div>
-
-        <!-- =================================================
-             SELECTOR DE ÁREA ADMIN
-        ================================================== -->
-        <div
-          v-if="showAreaSwitcher"
-          class="area-switcher area-switcher-compact"
-          aria-label="Cambiar módulo"
-        >
-          <button
-            v-for="availableArea in allowedAreas"
-            :key="availableArea"
-            type="button"
-            class="area-switch-button"
-            :class="{
-              active:
-                normalizedArea ===
-                availableArea,
-            }"
-            :disabled="switchingArea"
-            @click="
-              handleAreaSwitch(
-                availableArea
-              )
-            "
-          >
-            <strong>
-              {{
-                availableArea ===
-                  'FARMACIAS'
-                  ? 'Farmacias'
-                  : 'Operaciones'
-              }}
-            </strong>
-          </button>
-        </div>
-
-        <button
-          class="logout-button"
-          type="button"
-          title="Cerrar sesión"
-          @click="handleLogout"
-        >
-          Salir
-        </button>
-      </div>
+      </template>
     </div>
   </div>
 </template>
@@ -470,6 +668,9 @@ const submitting =
 const loginError =
   ref(null)
 
+const sidebarCollapsed =
+  ref(false)
+
 /*
  * ============================================================
  * PERFIL
@@ -523,9 +724,7 @@ const userInitial =
 
       return (
         value
-          .charAt(
-            0,
-          )
+          .charAt(0)
           .toUpperCase() ||
         '?'
       )
@@ -588,24 +787,17 @@ const farmaciasMenuDefinition = [
     key: 'agenda',
     label: 'Agenda',
     to: '/farmacias/agenda',
-    roles: ['DIRECTOR', 'GERENTE', 'COORDINADOR','SUPERVISOR'],
+    roles: [
+      'DIRECTOR',
+      'GERENTE',
+      'COORDINADOR',
+      'SUPERVISOR',
+    ],
   },
   {
     key: 'territorial',
     label: 'Ruta territorial',
     to: '/farmacias/ruta-territorial',
-    roles: ['DIRECTOR', 'GERENTE', 'COORDINADOR', 'SUPERVISOR'],
-  },
-  {
-    key:
-      'map',
-
-    label:
-      'Mapa',
-
-    to:
-      '/farmacias/mapa',
-
     roles: [
       'DIRECTOR',
       'GERENTE',
@@ -613,17 +805,10 @@ const farmaciasMenuDefinition = [
       'SUPERVISOR',
     ],
   },
-
   {
-    key:
-      'plans',
-
-    label:
-      'Planes',
-
-    to:
-      '/farmacias/planes',
-
+    key: 'map',
+    label: 'Mapa',
+    to: '/farmacias/mapa',
     roles: [
       'DIRECTOR',
       'GERENTE',
@@ -631,51 +816,41 @@ const farmaciasMenuDefinition = [
       'SUPERVISOR',
     ],
   },
-
   {
-    key:
-      'approvals',
-
-    label:
-      'Aprobaciones',
-
-    to:
-      '/farmacias/aprobaciones',
-
+    key: 'plans',
+    label: 'Planes',
+    to: '/farmacias/planes',
+    roles: [
+      'DIRECTOR',
+      'GERENTE',
+      'COORDINADOR',
+      'SUPERVISOR',
+    ],
+  },
+  {
+    key: 'approvals',
+    label: 'Aprobaciones',
+    to: '/farmacias/aprobaciones',
     roles: [
       'DIRECTOR',
       'GERENTE',
       'COORDINADOR',
     ],
   },
-
   {
-    key:
-      'assignments',
-
-    label:
-      'Asignaciones',
-
-    to:
-      '/farmacias/asignaciones',
-
+    key: 'assignments',
+    label: 'Asignaciones',
+    to: '/farmacias/asignaciones',
     roles: [
       'DIRECTOR',
       'GERENTE',
       'COORDINADOR',
     ],
   },
-
   {
-    key:
-      'people',
-
-    label:
-      'Personas',
-
-    to:
-      '/farmacias/personas',
-
+    key: 'people',
+    label: 'Personas',
+    to: '/farmacias/personas',
     roles: [
       'DIRECTOR',
       'GERENTE',
@@ -694,6 +869,71 @@ const farmaciasMenu =
               normalizedRole.value,
             )
         )
+  )
+
+const operationMenu =
+  computed(
+    () =>
+      farmaciasMenu.value.filter(
+        item =>
+          [
+            'agenda',
+            'territorial',
+            'map',
+            'plans',
+          ].includes(
+            item.key
+          )
+      )
+  )
+
+const managementMenu =
+  computed(
+    () =>
+      farmaciasMenu.value.filter(
+        item =>
+          [
+            'approvals',
+            'assignments',
+            'people',
+          ].includes(
+            item.key
+          )
+      )
+  )
+
+const activeMenuItem =
+  computed(
+    () => {
+      const matches =
+        farmaciasMenu.value
+          .filter(
+            item =>
+              route.path ===
+                item.to ||
+              route.path.startsWith(
+                `${item.to}/`
+              )
+          )
+          .sort(
+            (a, b) =>
+              b.to.length -
+              a.to.length
+          )
+
+      return (
+        matches[0] ||
+        null
+      )
+    }
+  )
+
+const activePageTitle =
+  computed(
+    () =>
+      activeMenuItem.value
+        ?.label ||
+      'Farmacias'
   )
 
 /*
@@ -755,10 +995,6 @@ watch(
       return
     }
 
-    /*
-     * Si acabamos de entrar y estamos en "/",
-     * enviamos al módulo inicial adecuado.
-     */
     if (
       route.path ===
       '/'
@@ -1010,9 +1246,8 @@ body,
 .app-root {
   margin: 0;
   padding: 0;
-
   width: 100%;
-  height: 100%;
+  min-height: 100%;
 }
 
 * {
@@ -1020,63 +1255,497 @@ body,
 }
 
 button,
-input {
+input,
+select,
+textarea {
   font: inherit;
+}
+
+button {
+  color: inherit;
 }
 
 .application-shell {
   position: relative;
-
   width: 100%;
-  height: 100%;
+  min-height: 100vh;
 }
 
 /*
  * ============================================================
- * FARMACIAS: CABECERA GLOBAL
+ * FARMACIAS · SHELL
  * ============================================================
  */
 
-.farmacias-topbar {
+.farmacias-layout {
+  --shell-sidebar-width:
+    var(--sidebar-width);
+
+  width: 100%;
+  min-height: 100vh;
+
+  background:
+    var(--color-background);
+}
+
+.farmacias-layout.sidebar-collapsed {
+  --shell-sidebar-width:
+    var(--sidebar-collapsed-width);
+}
+
+/*
+ * ============================================================
+ * SIDEBAR
+ * ============================================================
+ */
+
+.app-sidebar {
   position: fixed;
 
-  top: 12px;
-  left: 50%;
+  z-index: 12000;
 
-  z-index: 11000;
+  top: 0;
+  bottom: 0;
+  left: 0;
 
   display: flex;
 
-  width: min(
-    1040px,
-    calc(100vw - 32px)
-  );
+  width:
+    var(--shell-sidebar-width);
 
-  min-height: 62px;
+  flex-direction: column;
+
+  border-right:
+    1px solid
+    var(--color-border);
+
+  background:
+    var(--color-surface);
+
+  transition:
+    width 180ms ease;
+}
+
+.sidebar-header {
+  display: flex;
+
+  min-height:
+    var(--topbar-height);
 
   align-items: center;
 
-  gap: 18px;
+  justify-content:
+    space-between;
 
-  transform:
-    translateX(-50%);
+  gap: 10px;
 
   padding:
-    7px
-    8px
-    7px
-    9px;
+    0
+    14px;
+
+  border-bottom:
+    1px solid
+    var(--color-border);
+}
+
+.sidebar-brand {
+  display: flex;
+
+  min-width: 0;
+
+  align-items: center;
+
+  gap: 10px;
+}
+
+.sidebar-brand-mark {
+  display: grid;
+
+  width: 36px;
+  height: 36px;
+
+  flex:
+    0
+    0
+    36px;
+
+  place-items: center;
+
+  border-radius:
+    var(--radius-md);
+
+  background:
+    var(--color-primary);
+
+  color: #ffffff;
+
+  font-size: 17px;
+  font-weight: 800;
+
+  box-shadow:
+    var(--shadow-sm);
+}
+
+.sidebar-brand-copy {
+  display: flex;
+
+  min-width: 0;
+
+  flex-direction: column;
+}
+
+.sidebar-brand-copy strong {
+  overflow: hidden;
+
+  color:
+    var(--color-text);
+
+  font-size: 14px;
+  font-weight: 750;
+
+  line-height: 1.2;
+
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sidebar-brand-copy span {
+  margin-top: 2px;
+
+  color:
+    var(--color-text-secondary);
+
+  font-size: 12px;
+
+  line-height: 1.2;
+}
+
+.sidebar-toggle {
+  display: grid;
+
+  width: 32px;
+  height: 32px;
+
+  flex:
+    0
+    0
+    32px;
+
+  place-items: center;
+
+  padding: 0;
 
   border:
     1px solid
-    rgba(
-      203,
-      213,
-      225,
-      .92
-    );
+    var(--color-border);
 
-  border-radius: 19px;
+  border-radius:
+    var(--radius-md);
+
+  background:
+    var(--color-surface);
+
+  color:
+    var(--color-text-secondary);
+
+  cursor: pointer;
+
+  transition:
+    background 150ms ease,
+    border-color 150ms ease,
+    color 150ms ease;
+}
+
+.sidebar-toggle:hover {
+  border-color: #cbd5e1;
+
+  background:
+    var(--color-surface-muted);
+
+  color:
+    var(--color-text);
+}
+
+.sidebar-toggle svg {
+  width: 17px;
+  height: 17px;
+
+  fill: none;
+
+  stroke: currentColor;
+
+  stroke-width: 2;
+
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.sidebar-navigation {
+  min-height: 0;
+
+  flex: 1;
+
+  overflow-y: auto;
+
+  padding:
+    16px
+    10px;
+}
+
+.sidebar-section +
+.sidebar-section {
+  margin-top: 22px;
+}
+
+.sidebar-section-label {
+  margin:
+    0
+    10px
+    7px;
+
+  color:
+    var(--color-text-secondary);
+
+  font-size: 12px;
+  font-weight: 700;
+
+  letter-spacing: .04em;
+
+  text-transform: uppercase;
+}
+
+.sidebar-nav-item {
+  display: flex;
+
+  min-height: 42px;
+
+  align-items: center;
+
+  gap: 11px;
+
+  margin-bottom: 3px;
+
+  padding:
+    0
+    11px;
+
+  border:
+    1px solid transparent;
+
+  border-radius:
+    var(--radius-md);
+
+  color:
+    #475569;
+
+  text-decoration: none;
+
+  font-size: 14px;
+  font-weight: 600;
+
+  transition:
+    background 150ms ease,
+    border-color 150ms ease,
+    color 150ms ease;
+}
+
+.sidebar-nav-item:hover {
+  background:
+    var(--color-surface-muted);
+
+  color:
+    var(--color-text);
+}
+
+.sidebar-nav-item.router-link-active {
+  border-color:
+    #bfdbfe;
+
+  background:
+    var(--color-primary-soft);
+
+  color:
+    var(--color-primary-dark);
+}
+
+.sidebar-nav-icon {
+  display: grid;
+
+  width: 20px;
+  height: 20px;
+
+  flex:
+    0
+    0
+    20px;
+
+  place-items: center;
+}
+
+.sidebar-nav-icon svg {
+  width: 20px;
+  height: 20px;
+
+  fill: none;
+
+  stroke: currentColor;
+
+  stroke-width: 1.8;
+
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.sidebar-nav-label {
+  overflow: hidden;
+
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sidebar-footer {
+  padding:
+    12px
+    14px;
+
+  border-top:
+    1px solid
+    var(--color-border);
+}
+
+.sidebar-footer-badge {
+  display: flex;
+
+  align-items: center;
+
+  gap: 8px;
+
+  min-height: 34px;
+
+  color:
+    var(--color-text-secondary);
+
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.sidebar-footer-dot {
+  width: 8px;
+  height: 8px;
+
+  flex:
+    0
+    0
+    8px;
+
+  border-radius: 999px;
+
+  background:
+    var(--color-success);
+}
+
+/*
+ * SIDEBAR CONTRAÍDO
+ */
+
+.sidebar-collapsed
+.sidebar-brand-copy,
+.sidebar-collapsed
+.sidebar-section-label,
+.sidebar-collapsed
+.sidebar-nav-label,
+.sidebar-collapsed
+.sidebar-footer-text {
+  display: none;
+}
+
+.sidebar-collapsed
+.sidebar-header {
+  flex-direction: column;
+
+  justify-content:
+    center;
+
+  gap: 6px;
+
+  min-height: 112px;
+
+  padding:
+    10px
+    8px;
+}
+
+.sidebar-collapsed
+.sidebar-brand {
+  justify-content: center;
+}
+
+.sidebar-collapsed
+.sidebar-navigation {
+  padding:
+    14px
+    8px;
+}
+
+.sidebar-collapsed
+.sidebar-section +
+.sidebar-section {
+  margin-top: 14px;
+}
+
+.sidebar-collapsed
+.sidebar-nav-item {
+  justify-content: center;
+
+  padding: 0;
+}
+
+.sidebar-collapsed
+.sidebar-footer {
+  display: flex;
+
+  justify-content: center;
+
+  padding:
+    12px
+    8px;
+}
+
+/*
+ * ============================================================
+ * TOPBAR
+ * ============================================================
+ */
+
+.app-topbar {
+  position: fixed;
+
+  z-index: 11500;
+
+  top: 0;
+  right: 0;
+  left:
+    var(--shell-sidebar-width);
+
+  display: flex;
+
+  min-height:
+    var(--topbar-height);
+
+  align-items: center;
+
+  justify-content:
+    space-between;
+
+  gap: 20px;
+
+  padding:
+    0
+    20px;
+
+  border-bottom:
+    1px solid
+    var(--color-border);
 
   background:
     rgba(
@@ -1086,107 +1755,215 @@ input {
       .96
     );
 
-  box-shadow:
-    0 10px 34px
-      rgba(
-        15,
-        23,
-        42,
-        .14
-      );
-
   backdrop-filter:
-    blur(14px);
+    blur(10px);
 
-  font-family:
-    Inter,
-    system-ui,
-    -apple-system,
-    BlinkMacSystemFont,
-    "Segoe UI",
-    sans-serif;
+  transition:
+    left 180ms ease;
 }
 
-.topbar-identity {
+.topbar-context {
+  min-width: 0;
+}
+
+.breadcrumbs {
   display: flex;
 
-  min-width: 210px;
+  align-items: center;
+
+  gap: 5px;
+
+  color:
+    var(--color-text-secondary);
+
+  font-size: 12px;
+
+  line-height: 1.2;
+}
+
+.breadcrumbs strong {
+  overflow: hidden;
+
+  color:
+    #475569;
+
+  font-weight: 650;
+
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.breadcrumbs svg {
+  width: 13px;
+  height: 13px;
+
+  flex:
+    0
+    0
+    13px;
+
+  fill: none;
+
+  stroke: currentColor;
+
+  stroke-width: 2;
+
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.topbar-page-title {
+  margin-top: 3px;
+
+  overflow: hidden;
+
+  color:
+    var(--color-text);
+
+  font-size: 16px;
+  font-weight: 700;
+
+  line-height: 1.2;
+
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.topbar-actions {
+  display: flex;
+
+  min-width: 0;
+
+  align-items: center;
+
+  justify-content: flex-end;
+
+  gap: 10px;
+}
+
+.topbar-user {
+  display: flex;
+
+  min-width: 0;
 
   align-items: center;
 
   gap: 9px;
 }
 
-.farmacias-navigation {
+.session-avatar {
+  display: grid;
+
+  width: 36px;
+  height: 36px;
+
+  flex:
+    0
+    0
+    36px;
+
+  place-items: center;
+
+  border-radius:
+    var(--radius-md);
+
+  background:
+    var(--color-primary-soft);
+
+  color:
+    var(--color-primary-dark);
+
+  font-size: 15px;
+  font-weight: 800;
+}
+
+.session-info {
   display: flex;
 
   min-width: 0;
 
-  flex: 1;
-
-  align-items: center;
-  justify-content: center;
-
-  gap: 3px;
+  flex-direction: column;
 }
 
-.farmacias-nav-item {
+.session-info strong {
+  overflow: hidden;
+
+  max-width: 180px;
+
+  color:
+    var(--color-text);
+
+  font-size: 13px;
+  font-weight: 700;
+
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.session-info span {
+  margin-top: 1px;
+
+  overflow: hidden;
+
+  max-width: 180px;
+
+  color:
+    var(--color-text-secondary);
+
+  font-size: 12px;
+
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.topbar-logout {
   display: flex;
 
-  min-height: 40px;
+  min-height: 36px;
 
   align-items: center;
 
-  gap: 6px;
+  gap: 7px;
 
   padding:
     0
-    10px;
+    11px;
 
   border:
-    1px solid transparent;
+    1px solid
+    var(--color-border);
 
-  border-radius: 11px;
+  border-radius:
+    var(--radius-md);
 
-  color: #64748b;
+  background:
+    var(--color-surface);
 
-  text-decoration: none !important;
+  color:
+    #475569;
 
-  font-size: 12px;
-  font-weight: 800;
+  cursor: pointer;
+
+  font-size: 13px;
+  font-weight: 650;
 
   transition:
-    background .15s ease,
-    border-color .15s ease,
-    color .15s ease;
+    background 150ms ease,
+    border-color 150ms ease,
+    color 150ms ease;
 }
 
-.farmacias-nav-item:hover {
-  border-color: #e2e8f0;
+.topbar-logout:hover {
+  border-color: #cbd5e1;
 
-  background: #f8fafc;
+  background:
+    var(--color-surface-muted);
 
-  color: #0f64ad;
+  color:
+    var(--color-text);
 }
 
-.farmacias-nav-item.router-link-active {
-  border-color: #bfdbfe;
-
-  background: #eff8ff;
-
-  color: #0f64ad;
-}
-
-.nav-icon {
-  display: grid;
-
-  width: 17px;
-  height: 17px;
-
-  place-items: center;
-}
-
-.nav-icon svg {
+.topbar-logout svg {
   width: 17px;
   height: 17px;
 
@@ -1200,41 +1977,159 @@ input {
   stroke-linejoin: round;
 }
 
-.topbar-logout {
-  min-height: 38px;
+/*
+ * ============================================================
+ * ÁREA ADMIN
+ * ============================================================
+ */
 
-  padding:
+.area-switcher {
+  display: flex;
+
+  flex:
     0
-    13px;
+    0
+    auto;
+
+  gap: 3px;
+
+  padding: 3px;
 
   border:
-    1px solid #e2e8f0;
+    1px solid
+    var(--color-border);
 
-  border-radius: 11px;
+  border-radius:
+    var(--radius-md);
 
-  background: #fff;
+  background:
+    var(--color-surface-muted);
+}
 
-  color: #475569;
+.area-switch-button {
+  display: flex;
+
+  min-width: 88px;
+  min-height: 36px;
+
+  flex-direction: column;
+
+  align-items: flex-start;
+  justify-content: center;
+
+  gap: 1px;
+
+  padding:
+    4px
+    9px;
+
+  border:
+    1px solid transparent;
+
+  border-radius:
+    var(--radius-sm);
+
+  background: transparent;
+
+  color:
+    var(--color-text-secondary);
 
   cursor: pointer;
 
-  font-size: 12px;
-  font-weight: 850;
+  line-height: 1.05;
 }
 
-.topbar-logout:hover {
-  background: #f8fafc;
+.area-switch-button strong {
+  color: inherit;
+
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.area-switch-button span {
+  color: inherit;
+
+  font-size: 12px;
+
+  opacity: .82;
+}
+
+.area-switch-button:hover:not(:disabled) {
+  background:
+    var(--color-surface);
+
+  color:
+    var(--color-primary-dark);
+}
+
+.area-switch-button.active {
+  border-color:
+    #bfdbfe;
+
+  background:
+    var(--color-surface);
+
+  color:
+    var(--color-primary-dark);
+
+  box-shadow:
+    var(--shadow-sm);
+}
+
+.area-switch-button:disabled {
+  cursor: wait;
+
+  opacity: .55;
 }
 
 /*
- * Los controles compactos de Farmacias
- * dejan espacio para la navegación global.
+ * ============================================================
+ * CONTENIDO FARMACIAS
+ * ============================================================
+ */
+
+.farmacias-main {
+  position: fixed;
+
+  top:
+    var(--topbar-height);
+
+  right: 0;
+  bottom: 0;
+
+  left:
+    var(--shell-sidebar-width);
+
+  overflow: auto;
+
+  background:
+    var(--color-background);
+
+  transition:
+    left 180ms ease;
+}
+
+/*
+ * MapPage conserva internamente #map-wrapper como viewport.
+ * Dentro del shell de Farmacias debe ocupar solamente el área
+ * disponible entre sidebar y topbar.
  */
 
 .farmacias-shell
-.farmacias-map-tools {
-  top: 88px;
+#map-wrapper {
+  width: 100%;
+  height: 100%;
+
+  min-width: 0;
+  min-height: 100%;
 }
+
+.farmacias-shell
+.farmacias-map-tools {
+  top: 16px;
+  right: 68px;
+}
+
 
 /*
  * ============================================================
@@ -1244,7 +2139,7 @@ input {
 
 .auth-loading,
 .login-page {
-  min-height: 100%;
+  min-height: 100vh;
 }
 
 .auth-loading {
@@ -1253,20 +2148,17 @@ input {
   place-items: center;
 
   background:
-    linear-gradient(
-      145deg,
-      #f8fafc,
-      #eef6fb
-    );
+    var(--color-background);
 }
 
 .loading-card {
   display: flex;
 
-  width: min(
-    360px,
-    calc(100vw - 40px)
-  );
+  width:
+    min(
+      360px,
+      calc(100vw - 40px)
+    );
 
   flex-direction: column;
 
@@ -1277,26 +2169,17 @@ input {
   padding: 34px;
 
   border:
-    1px solid #e2e8f0;
+    1px solid
+    var(--color-border);
 
-  border-radius: 28px;
+  border-radius:
+    var(--radius-xl);
 
   background:
-    rgba(
-      255,
-      255,
-      255,
-      .94
-    );
+    var(--color-surface);
 
   box-shadow:
-    0 20px 60px
-      rgba(
-        15,
-        23,
-        42,
-        .10
-      );
+    var(--shadow-lg);
 }
 
 .loading-logo,
@@ -1305,25 +2188,12 @@ input {
 
   place-items: center;
 
-  color: #fff;
+  color: #ffffff;
 
   background:
-    linear-gradient(
-      145deg,
-      #0f64ad,
-      #1886c8
-    );
+    var(--color-primary);
 
   font-weight: 800;
-
-  box-shadow:
-    0 10px 24px
-      rgba(
-        15,
-        100,
-        173,
-        .25
-      );
 }
 
 .loading-logo {
@@ -1332,21 +2202,24 @@ input {
 
   margin-bottom: 5px;
 
-  border-radius: 18px;
+  border-radius:
+    var(--radius-xl);
 
   font-size: 26px;
 }
 
 .loading-card strong {
-  color: #0f172a;
+  color:
+    var(--color-text);
 
   font-size: 17px;
 }
 
 .loading-card > span {
-  color: #64748b;
+  color:
+    var(--color-text-secondary);
 
-  font-size: 16px;
+  font-size: 14px;
 }
 
 .loading-spinner,
@@ -1373,7 +2246,7 @@ input {
   border-color: #dbeafe;
 
   border-top-color:
-    #0f64ad;
+    var(--color-primary);
 }
 
 .login-page {
@@ -1389,7 +2262,8 @@ input {
     32px
     20px;
 
-  background: #f7fafc;
+  background:
+    var(--color-background);
 }
 
 .login-background {
@@ -1410,7 +2284,7 @@ input {
   filter:
     blur(10px);
 
-  opacity: .22;
+  opacity: .18;
 }
 
 .login-glow-a {
@@ -1420,7 +2294,7 @@ input {
   top: -250px;
   left: -180px;
 
-  background: #38bdf8;
+  background: #60a5fa;
 }
 
 .login-glow-b {
@@ -1430,7 +2304,8 @@ input {
   right: -210px;
   bottom: -260px;
 
-  background: #0f64ad;
+  background:
+    var(--color-primary);
 }
 
 .login-card {
@@ -1438,34 +2313,26 @@ input {
 
   z-index: 1;
 
-  width: min(
-    470px,
-    100%
-  );
+  width:
+    min(
+      470px,
+      100%
+    );
 
   overflow: hidden;
 
   border:
-    1px solid #e2e8f0;
+    1px solid
+    var(--color-border);
 
-  border-radius: 30px;
+  border-radius:
+    20px;
 
   background:
-    rgba(
-      255,
-      255,
-      255,
-      .97
-    );
+    var(--color-surface);
 
   box-shadow:
-    0 30px 90px
-      rgba(
-        15,
-        23,
-        42,
-        .13
-      );
+    var(--shadow-lg);
 }
 
 .login-brand {
@@ -1479,7 +2346,8 @@ input {
     26px;
 
   border-bottom:
-    1px solid #eef2f7;
+    1px solid
+    var(--color-border);
 }
 
 .brand-icon {
@@ -1491,7 +2359,8 @@ input {
     0
     58px;
 
-  border-radius: 18px;
+  border-radius:
+    var(--radius-xl);
 
   font-size: 25px;
 }
@@ -1499,12 +2368,13 @@ input {
 .brand-kicker {
   margin-top: 1px;
 
-  color: #0f64ad;
+  color:
+    var(--color-primary-dark);
 
-  font-size: 14px;
-  font-weight: 800;
+  font-size: 12px;
+  font-weight: 750;
 
-  letter-spacing: .08em;
+  letter-spacing: .06em;
 
   text-transform: uppercase;
 }
@@ -1515,9 +2385,11 @@ input {
     0
     7px;
 
-  color: #0f172a;
+  color:
+    var(--color-text);
 
   font-size: 26px;
+  font-weight: 750;
 
   line-height: 1.15;
 }
@@ -1525,9 +2397,10 @@ input {
 .login-brand p {
   margin: 0;
 
-  color: #64748b;
+  color:
+    var(--color-text-secondary);
 
-  font-size: 16px;
+  font-size: 14px;
 
   line-height: 1.5;
 }
@@ -1550,14 +2423,14 @@ input {
 
   color: #334155;
 
-  font-size: 15px;
-  font-weight: 700;
+  font-size: 14px;
+  font-weight: 650;
 }
 
 .login-form input {
   width: 100%;
 
-  min-height: 50px;
+  min-height: 48px;
 
   padding:
     0
@@ -1566,36 +2439,42 @@ input {
   outline: 0;
 
   border:
-    1px solid #cbd5e1;
+    1px solid
+    #cbd5e1;
 
-  border-radius: 14px;
+  border-radius:
+    var(--radius-lg);
 
-  background: #fff;
+  background:
+    var(--color-surface);
 
-  color: #0f172a;
+  color:
+    var(--color-text);
 
   transition:
-    border-color .16s ease,
-    box-shadow .16s ease;
+    border-color 150ms ease,
+    box-shadow 150ms ease;
 }
 
 .login-form input:focus {
-  border-color: #0f64ad;
+  border-color:
+    var(--color-primary);
 
   box-shadow:
     0 0 0 3px
-      rgba(
-        15,
-        100,
-        173,
-        .12
-      );
+    rgba(
+      37,
+      99,
+      235,
+      .12
+    );
 }
 
 .login-form input:disabled {
   cursor: not-allowed;
 
-  background: #f8fafc;
+  background:
+    var(--color-surface-muted);
 }
 
 .login-error {
@@ -1610,15 +2489,19 @@ input {
     14px;
 
   border:
-    1px solid #fecdd3;
+    1px solid
+    #fecaca;
 
-  border-radius: 14px;
+  border-radius:
+    var(--radius-lg);
 
-  background: #fff1f2;
+  background:
+    var(--color-error-soft);
 
-  color: #be123c;
+  color:
+    var(--color-error);
 
-  font-size: 15px;
+  font-size: 14px;
 
   line-height: 1.45;
 }
@@ -1638,24 +2521,20 @@ input {
 
   border-radius: 999px;
 
-  background: #be123c;
+  background:
+    var(--color-error);
 
-  color: #fff;
+  color: #ffffff;
 
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 800;
 }
 
 .login-button {
-  position: relative;
-
   display: flex;
 
   width: 100%;
-
-  min-height: 56px;
-
-  overflow: hidden;
+  min-height: 50px;
 
   align-items: center;
   justify-content: center;
@@ -1664,155 +2543,43 @@ input {
 
   border:
     1px solid
-    rgba(
-      15,
-      100,
-      173,
-      .25
-    );
+    var(--color-primary-dark);
 
-  border-radius: 16px;
+  border-radius:
+    var(--radius-lg);
 
   background:
-    linear-gradient(
-      135deg,
-      #0f64ad 0%,
-      #1978c7 48%,
-      #2596d1 100%
-    );
+    var(--color-primary);
 
-  color: #fff;
+  color: #ffffff;
 
   cursor: pointer;
 
-  font-size: 17px;
-  font-weight: 800;
-
-  letter-spacing: .01em;
+  font-size: 15px;
+  font-weight: 700;
 
   box-shadow:
-    0 10px 20px
-      rgba(
-        15,
-        100,
-        173,
-        .18
-      ),
-
-    0 4px 8px
-      rgba(
-        15,
-        23,
-        42,
-        .08
-      ),
-
-    inset 0 1px 0
-      rgba(
-        255,
-        255,
-        255,
-        .28
-      );
+    var(--shadow-sm);
 
   transition:
-    transform 160ms ease,
-    box-shadow 160ms ease,
-    filter 160ms ease;
-}
-
-.login-button span {
-  position: relative;
-
-  z-index: 2;
-
-  color: #fff;
-}
-
-.login-button::before {
-  content: '';
-
-  position: absolute;
-
-  inset: 0;
-
-  background:
-    linear-gradient(
-      115deg,
-      transparent 20%,
-
-      rgba(
-        255,
-        255,
-        255,
-        .18
-      ) 45%,
-
-      transparent 70%
-    );
-
-  transform:
-    translateX(-120%);
-
-  transition:
-    transform 420ms ease;
+    background 150ms ease,
+    transform 150ms ease,
+    box-shadow 150ms ease;
 }
 
 .login-button:hover:not(:disabled) {
-  transform:
-    translateY(-2px);
+  background:
+    var(--color-primary-dark);
 
   box-shadow:
-    0 14px 28px
-      rgba(
-        15,
-        100,
-        173,
-        .25
-      ),
+    var(--shadow-md);
 
-    0 6px 12px
-      rgba(
-        15,
-        23,
-        42,
-        .10
-      ),
-
-    inset 0 1px 0
-      rgba(
-        255,
-        255,
-        255,
-        .35
-      );
-}
-
-.login-button:hover:not(:disabled)::before {
   transform:
-    translateX(120%);
+    translateY(-1px);
 }
 
 .login-button:active:not(:disabled) {
-  transform:
-    translateY(0);
-
-  box-shadow:
-    0 7px 14px
-      rgba(
-        15,
-        100,
-        173,
-        .20
-      ),
-
-    inset 0 2px 4px
-      rgba(
-        0,
-        0,
-        0,
-        .08
-      );
+  transform: none;
 }
 
 .login-button:focus-visible {
@@ -1820,44 +2587,20 @@ input {
 
   box-shadow:
     0 0 0 4px
-      rgba(
-        37,
-        150,
-        209,
-        .18
-      ),
-
-    0 12px 24px
-      rgba(
-        15,
-        100,
-        173,
-        .24
-      );
+    rgba(
+      37,
+      99,
+      235,
+      .16
+    );
 }
 
 .login-button:disabled {
   cursor: wait;
 
+  opacity: .65;
+
   transform: none;
-
-  background:
-    linear-gradient(
-      135deg,
-      #7ba9cf,
-      #91bad8
-    );
-
-  box-shadow:
-    0 6px 14px
-      rgba(
-        15,
-        23,
-        42,
-        .08
-      );
-
-  opacity: .78;
 }
 
 .button-spinner {
@@ -1875,12 +2618,12 @@ input {
     );
 
   border-top-color:
-    #fff;
+    #ffffff;
 }
 
 /*
  * ============================================================
- * COMPONENTES DE SESIÓN
+ * OPERACIONES · SESIÓN EXISTENTE
  * ============================================================
  */
 
@@ -1922,80 +2665,22 @@ input {
       .9
     );
 
-  border-radius: 18px;
+  border-radius:
+    var(--radius-xl);
 
   background:
     rgba(
       255,
       255,
       255,
-      .94
+      .96
     );
 
   box-shadow:
-    0 8px 28px
-      rgba(
-        15,
-        23,
-        42,
-        .15
-      );
+    var(--shadow-md);
 
   backdrop-filter:
     blur(10px);
-}
-
-.session-avatar {
-  display: grid;
-
-  width: 36px;
-  height: 36px;
-
-  flex:
-    0
-    0
-    36px;
-
-  place-items: center;
-
-  border-radius: 12px;
-
-  background: #eaf4fc;
-
-  color: #0f64ad;
-
-  font-size: 16px;
-  font-weight: 900;
-}
-
-.session-info {
-  display: flex;
-
-  min-width: 0;
-
-  flex: 1;
-
-  flex-direction: column;
-}
-
-.session-info strong {
-  overflow: hidden;
-
-  color: #0f172a;
-
-  font-size: 13px;
-
-  text-overflow: ellipsis;
-
-  white-space: nowrap;
-}
-
-.session-info span {
-  margin-top: 2px;
-
-  color: #64748b;
-
-  font-size: 11px;
 }
 
 .logout-button {
@@ -2006,138 +2691,27 @@ input {
     12px;
 
   border:
-    1px solid #e2e8f0;
+    1px solid
+    var(--color-border);
 
-  border-radius: 11px;
+  border-radius:
+    var(--radius-md);
 
-  background: #fff;
+  background:
+    var(--color-surface);
 
-  color: #475569;
+  color:
+    #475569;
 
   cursor: pointer;
 
   font-size: 13px;
-  font-weight: 800;
+  font-weight: 700;
 }
 
 .logout-button:hover {
-  background: #f8fafc;
-}
-
-/*
- * ============================================================
- * ADMIN · SELECTOR DE ÁREA
- * ============================================================
- */
-
-.area-switcher {
-  display: flex;
-
-  flex:
-    0
-    0
-    auto;
-
-  align-items: stretch;
-
-  gap: 4px;
-
-  padding: 4px;
-
-  border:
-    1px solid #dbe4ee;
-
-  border-radius: 13px;
-
-  background: #f8fafc;
-}
-
-.area-switch-button {
-  display: flex;
-
-  min-width: 94px;
-  min-height: 40px;
-
-  flex-direction: column;
-
-  align-items: flex-start;
-  justify-content: center;
-
-  gap: 1px;
-
-  padding:
-    6px
-    10px;
-
-  border:
-    1px solid transparent;
-
-  border-radius: 9px;
-
-  background: transparent;
-
-  color: #64748b;
-
-  cursor: pointer;
-
-  line-height: 1.1;
-
-  transition:
-    background .15s ease,
-    border-color .15s ease,
-    color .15s ease,
-    box-shadow .15s ease;
-}
-
-.area-switch-button strong {
-  color: inherit;
-
-  font-size: 12px;
-  font-weight: 850;
-
-  text-transform: uppercase;
-
-  letter-spacing: .025em;
-}
-
-.area-switch-button span {
-  color: inherit;
-
-  font-size: 10px;
-  font-weight: 650;
-
-  opacity: .78;
-}
-
-.area-switch-button:hover:not(:disabled) {
-  border-color: #cbd5e1;
-
-  background: #ffffff;
-
-  color: #0f64ad;
-}
-
-.area-switch-button.active {
-  border-color: #bfdbfe;
-
-  background: #ffffff;
-
-  color: #0f64ad;
-
-  box-shadow:
-    0 2px 8px
-      rgba(
-        15,
-        100,
-        173,
-        .12
-      );
-}
-
-.area-switch-button:disabled {
-  cursor: wait;
-
-  opacity: .58;
+  background:
+    var(--color-surface-muted);
 }
 
 .area-switcher-compact {
@@ -2168,29 +2742,98 @@ input {
  */
 
 @media (
+  max-width: 1100px
+) {
+  .session-info {
+    display: none;
+  }
+
+  .topbar-actions {
+    gap: 7px;
+  }
+
+  .area-switch-button {
+    min-width: 78px;
+  }
+}
+
+@media (
   max-width: 900px
 ) {
-  .area-switcher:not(
-    .area-switcher-compact
-  ) {
-    position: fixed;
+  .farmacias-layout {
+    --shell-sidebar-width:
+      var(--sidebar-collapsed-width);
+  }
 
-    top: 82px;
-    left: 50%;
+  .app-sidebar {
+    width:
+      var(--sidebar-collapsed-width);
+  }
 
-    z-index: 10999;
+  .sidebar-brand-copy,
+  .sidebar-section-label,
+  .sidebar-nav-label,
+  .sidebar-footer-text {
+    display: none;
+  }
 
-    transform:
-      translateX(-50%);
+  .sidebar-header {
+    flex-direction: column;
 
-    box-shadow:
-      0 8px 20px
-        rgba(
-          15,
-          23,
-          42,
-          .12
-        );
+    justify-content: center;
+
+    gap: 6px;
+
+    min-height: 112px;
+
+    padding:
+      10px
+      8px;
+  }
+
+  .sidebar-brand {
+    justify-content: center;
+  }
+
+  .sidebar-navigation {
+    padding:
+      14px
+      8px;
+  }
+
+  .sidebar-section +
+  .sidebar-section {
+    margin-top: 14px;
+  }
+
+  .sidebar-nav-item {
+    justify-content: center;
+
+    padding: 0;
+  }
+
+  .sidebar-footer {
+    display: flex;
+
+    justify-content: center;
+
+    padding:
+      12px
+      8px;
+  }
+
+  .sidebar-toggle {
+    display: none;
+  }
+
+  .app-topbar {
+    padding:
+      0
+      14px;
+  }
+
+  .topbar-page-title {
+    font-size: 15px;
   }
 
   .area-switcher
@@ -2198,35 +2841,35 @@ input {
   span {
     display: none;
   }
-
-  .farmacias-topbar {
-    gap: 8px;
-  }
-
-  .topbar-identity {
-    min-width: 150px;
-  }
-
-  .farmacias-nav-item {
-    padding:
-      0
-      7px;
-  }
-
-  .farmacias-nav-item > span:last-child {
-    display: none;
-  }
-
-  .nav-icon,
-  .nav-icon svg {
-    width: 19px;
-    height: 19px;
-  }
 }
 
 @media (
-  max-width: 560px
+  max-width: 680px
 ) {
+  .breadcrumbs {
+    display: none;
+  }
+
+  .topbar-page-title {
+    margin-top: 0;
+  }
+
+  .area-switcher {
+    display: none;
+  }
+
+  .topbar-logout span {
+    display: none;
+  }
+
+  .topbar-logout {
+    width: 36px;
+
+    justify-content: center;
+
+    padding: 0;
+  }
+
   .login-brand {
     padding:
       24px
@@ -2247,7 +2890,8 @@ input {
 
     flex-basis: 50px;
 
-    border-radius: 15px;
+    border-radius:
+      var(--radius-lg);
   }
 
   .login-brand h1 {
@@ -2261,39 +2905,10 @@ input {
       calc(100vw - 20px);
   }
 
-  .farmacias-topbar {
-    top: 8px;
-
-    width:
-      calc(100vw - 16px);
-
-    min-height: 58px;
-  }
-
-  .topbar-identity {
-    min-width: 0;
-
-    flex: 1;
-  }
-
-  .topbar-identity
-  .session-info {
-    display: none;
-  }
-
-  .farmacias-navigation {
-    justify-content: flex-end;
-  }
-
-  .topbar-logout {
-    padding:
-      0
-      9px;
-  }
-
   .farmacias-shell
   .farmacias-map-tools {
-    top: 78px;
+    top: 12px;
+    right: 60px;
   }
 }
 </style>

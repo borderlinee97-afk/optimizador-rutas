@@ -257,118 +257,92 @@ function formatProject(
 </script>
 
 <style scoped>
-/*
- * ============================================================
- * CONTENEDOR
- * ============================================================
- */
-
 .legend {
   position: absolute;
 
-  bottom: 20px;
-  left: 20px;
+  z-index: 9998;
 
-  z-index: 9999;
+  bottom: 16px;
+  left: 16px;
 
   width:
     min(
-      260px,
-      calc(100vw - 40px)
+      280px,
+      calc(100vw - 32px)
     );
 
   max-height:
     min(
-      430px,
-      calc(100vh - 150px)
+      480px,
+      calc(100vh - 130px)
     );
 
-  overflow:
-    auto;
+  overflow: auto;
 
-  padding:
-    13px;
+  padding: 14px;
 
   border:
-    1px solid #d8e1ea;
+    1px solid
+    rgba(203, 213, 225, .95);
 
   border-radius:
-    14px;
+    var(--radius-lg);
 
   background:
-    rgba(
-      255,
-      255,
-      255,
-      .97
-    );
+    rgba(255, 255, 255, .97);
 
   color:
-    #0f172a !important;
+    var(--color-text);
 
   box-shadow:
-    0 10px 30px
-      rgba(
-        15,
-        23,
-        42,
-        .14
-      );
+    0 8px 24px
+    rgba(15, 23, 42, .13);
 
   backdrop-filter:
-    blur(12px);
+    blur(10px);
 
   font-family:
-    Inter,
-    system-ui,
-    -apple-system,
-    BlinkMacSystemFont,
-    "Segoe UI",
-    sans-serif;
+    var(--font-sans);
 
-  font-size:
-    14px;
+  scrollbar-width: thin;
 
-  line-height:
-    1.3;
+  scrollbar-color:
+    #cbd5e1
+    transparent;
 }
 
-/*
- * Protección contra estilos globales de button.
- */
-.legend button {
-  font:
-    inherit;
+.legend::-webkit-scrollbar {
+  width: 6px;
+}
 
-  color:
-    #1e293b !important;
+.legend::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+
+  background: #cbd5e1;
+}
+
+.legend button {
+  font: inherit;
 
   -webkit-text-fill-color:
     currentColor;
-
-  opacity:
-    1;
 }
 
-/*
- * ============================================================
- * HEADER
- * ============================================================
- */
+/* ============================================================
+   HEADER
+   ============================================================ */
 
 .legend-header {
   display: flex;
 
-  align-items:
-    center;
+  align-items: center;
 
   justify-content:
     space-between;
 
-  gap: 8px;
+  gap: 9px;
 
-  margin-bottom:
-    10px;
+  margin-bottom: 10px;
 }
 
 .legend-heading {
@@ -376,57 +350,45 @@ function formatProject(
 
   min-width: 0;
 
-  flex-direction:
-    column;
-
-  gap: 1px;
+  flex-direction: column;
 }
 
 .legend-heading strong {
+  margin-top: 2px;
+
   color:
-    #0f172a !important;
+    var(--color-text);
 
-  font-size:
-    17px;
-
-  font-weight:
-    850;
+  font-size: 16px;
+  font-weight: 750;
 }
 
 .legend-kicker {
   color:
-    #0f64ad !important;
+    var(--color-primary-dark);
 
-  font-size:
-    10px;
+  font-size: 12px;
+  font-weight: 700;
 
-  font-weight:
-    850;
+  letter-spacing: .04em;
 
-  letter-spacing:
-    .08em;
-
-  text-transform:
-    uppercase;
+  text-transform: uppercase;
 }
 
-/*
- * ============================================================
- * VOLVER
- * ============================================================
- */
+/* ============================================================
+   VOLVER
+   ============================================================ */
 
 .mini-btn {
   display: inline-flex;
 
-  min-height:
-    30px;
+  min-height: 32px;
 
-  align-items:
-    center;
+  flex: 0 0 auto;
 
-  justify-content:
-    center;
+  align-items: center;
+
+  justify-content: center;
 
   gap: 4px;
 
@@ -435,261 +397,202 @@ function formatProject(
     8px;
 
   border:
-    1px solid #cbd5e1;
+    1px solid
+    var(--color-border);
 
   border-radius:
-    7px;
+    var(--radius-md);
 
   background:
-    #ffffff !important;
+    var(--color-surface);
 
   color:
-    #475569 !important;
+    #475569;
 
-  cursor:
-    pointer;
+  cursor: pointer;
 
-  font-size:
-    11px !important;
-
-  font-weight:
-    800;
+  font-size: 12px;
+  font-weight: 650;
 }
 
 .mini-btn:hover {
-  border-color:
-    #93c5fd;
+  border-color: #bfdbfe;
 
   background:
-    #eff8ff !important;
+    var(--color-primary-soft);
 
   color:
-    #0f64ad !important;
+    var(--color-primary-dark);
 }
 
-/*
- * ============================================================
- * LIMPIAR
- * ============================================================
- */
+/* ============================================================
+   LIMPIAR
+   ============================================================ */
 
 .clear-btn {
   display: flex;
 
   width: 100%;
+  min-height: 38px;
 
-  min-height:
-    35px;
+  align-items: center;
 
-  align-items:
-    center;
+  justify-content: center;
 
-  justify-content:
-    center;
+  gap: 7px;
 
-  gap: 6px;
-
-  margin-bottom:
-    9px;
+  margin-bottom: 10px;
 
   padding:
     0
     10px;
 
   border:
-    1px solid #d8e1ea;
+    1px solid
+    var(--color-border);
 
   border-radius:
-    8px;
+    var(--radius-md);
 
   background:
-    #f8fafc !important;
+    var(--color-surface-muted);
 
   color:
-    #475569 !important;
+    #475569;
 
-  cursor:
-    pointer;
+  cursor: pointer;
 
-  font-size:
-    12px !important;
-
-  font-weight:
-    800;
+  font-size: 12px;
+  font-weight: 650;
 }
 
 .clear-btn svg {
-  width:
-    14px;
+  width: 15px;
+  height: 15px;
 
-  height:
-    14px;
-
-  fill:
-    none;
+  fill: none;
 
   stroke:
     currentColor;
 
-  stroke-width:
-    1.8;
+  stroke-width: 1.8;
 
-  stroke-linecap:
-    round;
-
-  stroke-linejoin:
-    round;
-}
-
-.clear-btn span {
-  color:
-    inherit !important;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
 
 .clear-btn:hover {
-  border-color:
-    #bfdbfe;
+  border-color: #bfdbfe;
 
   background:
-    #eff8ff !important;
+    var(--color-primary-soft);
 
   color:
-    #0f64ad !important;
+    var(--color-primary-dark);
 }
 
-/*
- * ============================================================
- * LISTA
- * ============================================================
- */
+/* ============================================================
+   LISTA
+   ============================================================ */
 
 .legend-list {
   display: grid;
 
-  gap: 5px;
+  gap: 4px;
 }
-
-/*
- * ============================================================
- * PROYECTO ACTIVO
- * ============================================================
- */
 
 .selected-project {
   display: flex;
 
-  flex-direction:
-    column;
+  flex-direction: column;
 
   gap: 2px;
 
-  margin-bottom:
-    3px;
+  margin-bottom: 5px;
 
   padding:
-    8px
-    9px;
+    9px
+    10px;
 
   border:
-    1px solid #bfdbfe;
+    1px solid
+    #bfdbfe;
 
   border-radius:
-    8px;
+    var(--radius-md);
 
   background:
-    #eff8ff;
+    var(--color-primary-soft);
 }
 
 .selected-project span {
   color:
-    #64748b !important;
+    var(--color-text-secondary);
 
-  font-size:
-    10px;
-
-  font-weight:
-    700;
-
-  text-transform:
-    uppercase;
+  font-size: 12px;
+  font-weight: 600;
 }
 
 .selected-project strong {
-  overflow:
-    hidden;
+  overflow: hidden;
 
   color:
-    #0f64ad !important;
+    var(--color-primary-dark);
 
-  font-size:
-    13px;
+  font-size: 13px;
+  font-weight: 700;
 
-  font-weight:
-    850;
-
-  text-overflow:
-    ellipsis;
-
-  white-space:
-    nowrap;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-/*
- * ============================================================
- * ITEM
- * ============================================================
- */
+/* ============================================================
+   ITEMS
+   ============================================================ */
 
 .legend-item {
   display: flex;
 
   width: 100%;
+  min-height: 42px;
 
-  min-height:
-    40px;
-
-  align-items:
-    center;
+  align-items: center;
 
   gap: 8px;
 
   padding:
     6px
-    7px;
+    8px;
 
   border:
     1px solid transparent;
 
   border-radius:
-    9px;
+    var(--radius-md);
 
   background:
-    transparent !important;
+    transparent;
 
   color:
-    #1e293b !important;
+    #334155;
 
-  cursor:
-    pointer;
+  cursor: pointer;
 
-  text-align:
-    left;
+  text-align: left;
 
   transition:
-    border-color .14s ease,
-    background .14s ease,
-    color .14s ease;
+    border-color 140ms ease,
+    background 140ms ease;
 }
 
 .legend-item:hover {
-  border-color:
-    #dbeafe;
+  border-color: #bfdbfe;
 
   background:
-    #f8fbff !important;
+    #f8fbff;
 
   color:
-    #0f64ad !important;
+    var(--color-primary-dark);
 }
 
 .legend-item .label {
@@ -697,141 +600,86 @@ function formatProject(
 
   min-width: 0;
 
-  overflow:
-    hidden;
+  overflow: hidden;
 
   flex: 1;
 
-  color:
-    #1e293b !important;
+  color: inherit;
 
-  -webkit-text-fill-color:
-    #1e293b;
+  font-size: 13px;
+  font-weight: 650;
 
-  font-size:
-    13px;
+  line-height: 1.3;
 
-  font-weight:
-    750;
-
-  line-height:
-    1.25;
-
-  text-overflow:
-    ellipsis;
-
-  white-space:
-    nowrap;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.legend-item:hover .label {
-  color:
-    #0f64ad !important;
-
-  -webkit-text-fill-color:
-    #0f64ad;
-}
-
-/*
- * ============================================================
- * ICONO PROYECTO
- *
- * Quitamos los antiguos cuadros negros.
- * ============================================================
- */
+/* ============================================================
+   ICONOS
+   ============================================================ */
 
 .project-icon {
   display: grid;
 
-  width:
-    26px;
-
-  height:
-    26px;
+  width: 28px;
+  height: 28px;
 
   flex:
     0
     0
-    26px;
+    28px;
 
-  place-items:
-    center;
+  place-items: center;
 
   border:
-    1px solid #bfdbfe;
+    1px solid
+    #bfdbfe;
 
   border-radius:
-    8px;
+    var(--radius-md);
 
   background:
-    #eff8ff;
+    var(--color-primary-soft);
 
   color:
-    #0f64ad !important;
+    var(--color-primary-dark);
 }
 
 .project-icon svg {
-  width:
-    15px;
+  width: 15px;
+  height: 15px;
 
-  height:
-    15px;
-
-  fill:
-    none;
+  fill: none;
 
   stroke:
     currentColor;
 
-  stroke-width:
-    1.7;
+  stroke-width: 1.7;
 
-  stroke-linecap:
-    round;
-
-  stroke-linejoin:
-    round;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
 
-/*
- * ============================================================
- * COLOR JURISDICCIÓN
- * ============================================================
- */
-
 .swatch {
-  width:
-    15px;
-
-  height:
-    15px;
+  width: 16px;
+  height: 16px;
 
   flex:
     0
     0
-    15px;
+    16px;
 
   border:
-    2px solid #ffffff;
+    2px solid
+    #ffffff;
 
-  border-radius:
-    5px;
+  border-radius: 5px;
 
   box-shadow:
     0 0 0 1px
-      rgba(
-        15,
-        23,
-        42,
-        .18
-      );
+    rgba(15, 23, 42, .18);
 }
-
-/*
- * ============================================================
- * FLECHA
- * ============================================================
- */
 
 .item-chevron {
   flex:
@@ -840,86 +688,69 @@ function formatProject(
     auto;
 
   color:
-    #94a3b8 !important;
+    #94a3b8;
 
-  font-size:
-    17px;
-
-  font-weight:
-    500;
-
-  line-height:
-    1;
+  font-size: 18px;
 }
 
-/*
- * ============================================================
- * VACÍO
- * ============================================================
- */
+/* ============================================================
+   VACÍO
+   ============================================================ */
 
 .legend-empty {
   padding:
-    12px
-    8px;
+    13px
+    9px;
 
   border:
-    1px dashed #cbd5e1;
+    1px dashed
+    #cbd5e1;
 
   border-radius:
-    8px;
+    var(--radius-md);
 
   background:
-    #f8fafc;
+    var(--color-surface-muted);
 
   color:
-    #64748b !important;
+    var(--color-text-secondary);
 
-  font-size:
-    11px;
+  font-size: 12px;
 
-  line-height:
-    1.4;
+  line-height: 1.4;
 
-  text-align:
-    center;
+  text-align: center;
 }
 
-/*
- * ============================================================
- * RESPONSIVE
- * ============================================================
- */
+/* ============================================================
+   RESPONSIVE
+   ============================================================ */
 
 @media (
-  max-width:
-    640px
+  max-width: 640px
 ) {
   .legend {
-    bottom:
-      12px;
+    right: 12px;
+    bottom: 12px;
+    left: 12px;
 
-    left:
-      12px;
+    width: auto;
 
-    width:
+    max-height:
       min(
-        230px,
-        calc(100vw - 24px)
+        54vh,
+        470px
       );
 
-    padding:
-      10px;
+    padding: 11px;
   }
 
   .legend-heading strong {
-    font-size:
-      16px;
+    font-size: 15px;
   }
 
   .legend-item {
-    min-height:
-      37px;
+    min-height: 40px;
   }
 }
 </style>
