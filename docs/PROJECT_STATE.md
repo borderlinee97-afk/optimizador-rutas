@@ -1,5 +1,19 @@
 # APP DE RUTAS — estado del proyecto
 
+## Pulido visual de Operaciones web (2026-09-25)
+
+La rama local `ui/operations-professional`, creada desde `main` en `1f9da9e`,
+ajusta exclusivamente la presentación del mapa operativo: navegación por
+proyecto y región, controles agrupados, modal de criterios y panel de resultados.
+Se mejoraron distribución en escritorio y tablet, lectura, contraste y foco de
+teclado. Se conservaron las opciones y los eventos de selección, cálculo,
+tráfico, marcadores, rutas y cierre. No se editaron Farmacias, backend, móvil,
+Supabase, rutas, servicios, dependencias ni contratos de datos.
+
+Validación: compilación web de producción y compilación de plantillas Vue
+correctas; `git diff --check` sin errores. La revisión manual con un perfil real
+de Operaciones y datos de planeación sigue pendiente.
+
 ## Agenda Operativa (2026-09-18)
 
 Se completó el bloque funcional de Agenda reutilizando `operational_task`,
