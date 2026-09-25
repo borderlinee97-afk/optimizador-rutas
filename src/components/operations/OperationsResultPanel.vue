@@ -2105,8 +2105,8 @@ function workdayClass(
 
 .result-subtitle {
   margin: 5px 0 0;
-  color: #7b8798;
-  font-size: 12px;
+  color: #526176;
+  font-size: 13px;
   line-height: 1.45;
 }
 
@@ -2170,8 +2170,8 @@ function workdayClass(
 .empty-state p {
   max-width: 310px;
   margin: 6px 0 0;
-  color: #7a8798;
-  font-size: 12px;
+  color: #526176;
+  font-size: 13px;
   line-height: 1.5;
 }
 
@@ -2263,8 +2263,8 @@ function workdayClass(
 
 .section-description {
   margin: -3px 0 12px;
-  color: #7e8a9a;
-  font-size: 12px;
+  color: #526176;
+  font-size: 13px;
   line-height: 1.45;
 }
 
@@ -2380,8 +2380,8 @@ function workdayClass(
 }
 
 .territory-metric span {
-  color: #8190a2;
-  font-size: 11px;
+  color: #526176;
+  font-size: 12px;
 }
 
 .territory-metric strong {
@@ -2456,8 +2456,8 @@ function workdayClass(
 }
 
 .resource-card__label {
-  color: #8290a2;
-  font-size: 11px;
+  color: #526176;
+  font-size: 12px;
   font-weight: 750;
 }
 
@@ -2512,14 +2512,14 @@ function workdayClass(
 
 .summary-row span,
 .estimate-row span {
-  color: #718095;
-  font-size: 12px;
+  color: #526176;
+  font-size: 13px;
 }
 
 .summary-row strong,
 .estimate-row strong {
   color: #29374b;
-  font-size: 12px;
+  font-size: 13px;
   text-align: right;
 }
 
@@ -2699,14 +2699,14 @@ function workdayClass(
 }
 
 .route-card__metrics span {
-  color: #929dab;
-  font-size: 10px;
+  color: #526176;
+  font-size: 12px;
 }
 
 .route-card__metrics strong {
   overflow: hidden;
   color: #344256;
-  font-size: 12px;
+  font-size: 13px;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -2753,15 +2753,15 @@ function workdayClass(
 .route-stops strong {
   overflow: hidden;
   color: #425067;
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 750;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .route-stops small {
-  color: #9aa4b1;
-  font-size: 10px;
+  color: #526176;
+  font-size: 11px;
 }
 
 .route-card__footer {
@@ -2834,7 +2834,7 @@ function workdayClass(
   padding: 0 12px;
   border-radius: 9px;
   font: inherit;
-  font-size: 11px;
+  font-size: 13px;
   font-weight: 850;
   cursor: pointer;
 }
@@ -2857,6 +2857,12 @@ function workdayClass(
 
 .secondary-action:hover {
   background: #f7f9fb;
+}
+
+.operations-result button:focus-visible,
+.route-card:focus-visible {
+  outline: 3px solid #2563eb;
+  outline-offset: 2px;
 }
 
 @media (max-width: 520px) {

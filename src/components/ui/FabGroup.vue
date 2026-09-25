@@ -255,6 +255,11 @@ defineEmits([
     scale(.98);
 }
 
+.fab:focus-visible {
+  outline: 3px solid #2563eb;
+  outline-offset: 2px;
+}
+
 /*
  * ============================================================
  * CALCULAR RUTA

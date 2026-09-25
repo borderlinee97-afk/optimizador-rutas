@@ -1586,7 +1586,7 @@ watch(
 
 .operations-modal {
   display: flex;
-  width: min(780px, 100%);
+  width: min(760px, 100%);
   max-height: calc(100vh - 48px);
   flex-direction: column;
   overflow: hidden;
@@ -1604,7 +1604,7 @@ watch(
   align-items: flex-start;
   justify-content: space-between;
   gap: 20px;
-  padding: 22px 24px 18px;
+  padding: 19px 24px 16px;
   border-bottom: 1px solid #e8edf3;
 }
 
@@ -1629,8 +1629,8 @@ watch(
 .operations-modal__subtitle {
   max-width: 590px;
   margin: 7px 0 0;
-  color: #677489;
-  font-size: 15px;
+  color: #475569;
+  font-size: 14px;
   line-height: 1.45;
 }
 
@@ -1657,12 +1657,12 @@ watch(
 
 .operations-modal__body {
   overflow-y: auto;
-  padding: 20px 24px 24px;
+  padding: 18px 24px 22px;
 }
 
 .form-section + .form-section {
-  margin-top: 24px;
-  padding-top: 24px;
+  margin-top: 20px;
+  padding-top: 20px;
   border-top: 1px solid #edf1f5;
 }
 
@@ -1683,7 +1683,7 @@ watch(
 
 .form-section__header p {
   margin: 4px 0 0;
-  color: #7a8799;
+  color: #56657a;
   font-size: 14px;
   line-height: 1.4;
 }
@@ -1727,7 +1727,7 @@ watch(
 .choice-card {
   position: relative;
   display: flex;
-  min-height: 82px;
+  min-height: 78px;
   align-items: flex-start;
   gap: 10px;
   padding: 14px;
@@ -1749,6 +1749,11 @@ watch(
   border-color: #78add7;
   background: #f5faff;
   box-shadow: 0 0 0 2px rgba(15, 100, 173, 0.07);
+}
+
+.choice-card:focus-within {
+  outline: 3px solid #2563eb;
+  outline-offset: 2px;
 }
 
 .choice-card input {
@@ -1792,7 +1797,7 @@ watch(
 }
 
 .choice-card__content small {
-  color: #768397;
+  color: #526176;
   font-size: 13px;
   line-height: 1.4;
 }
@@ -1839,8 +1844,8 @@ watch(
 }
 
 .field-help {
-  color: #8a96a8;
-  font-size: 12px;
+  color: #526176;
+  font-size: 13px;
   line-height: 1.4;
 }
 
@@ -1982,8 +1987,8 @@ watch(
 }
 
 .toggle-row small {
-  color: #8490a0;
-  font-size: 12px;
+  color: #526176;
+  font-size: 13px;
   line-height: 1.35;
 }
 
@@ -2097,8 +2102,8 @@ watch(
 
 .footer-note {
   max-width: 390px;
-  color: #8490a0;
-  font-size: 12px;
+  color: #526176;
+  font-size: 13px;
   line-height: 1.4;
 }
 
@@ -2129,6 +2134,12 @@ watch(
 
 .primary-button:hover:not(:disabled) {
   background: #0b5798;
+}
+
+.operations-modal button:focus-visible,
+.coordinates-details summary:focus-visible {
+  outline: 3px solid #2563eb;
+  outline-offset: 2px;
 }
 
 button:disabled,
