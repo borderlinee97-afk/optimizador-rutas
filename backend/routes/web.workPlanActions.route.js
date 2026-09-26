@@ -179,6 +179,7 @@ async function loadManagerProfile(
       ![
         'DIRECTOR',
         'GERENTE',
+        COORDINADOR,
       ].includes(
         String(
           profile.rol,
@@ -189,10 +190,10 @@ async function loadManagerProfile(
         .status(403)
         .json({
           error:
-            'Esta operación está disponible únicamente para gerentes',
+            'Esta operación está disponible únicamente para roles de aprobación',
 
           code:
-            'MANAGER_ROLE_REQUIRED',
+            'APPROVAL_ROLE_REQUIRED',
         })
     }
 
