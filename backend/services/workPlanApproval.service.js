@@ -13,6 +13,13 @@ import {
 const UUID_PATTERN =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
+const APPROVAL_ROLES =
+  new Set([
+    'DIRECTOR',
+    'GERENTE',
+    'COORDINADOR',
+  ])
+
 export class WorkPlanApprovalError
   extends Error {
   constructor(
@@ -52,9 +59,10 @@ export async function approveWorkPlan({
     planId,
   )
 
-  validateManagerActor(
-    actor,
-  )
+  const actorRole =
+    validateApprovalActor(
+      actor,
+    )
 
   const client =
     await pool.connect()
@@ -65,9 +73,10 @@ export async function approveWorkPlan({
     )
 
     const plan =
-      await lockManagerPlan(
+      await lockApprovalPlan(
         client,
         planId,
+        actorRole,
         actor.id,
       )
 
@@ -363,9 +372,10 @@ export async function rejectWorkPlan({
     planId,
   )
 
-  validateManagerActor(
-    actor,
-  )
+  const actorRole =
+    validateApprovalActor(
+      actor,
+    )
 
   const normalizedComment =
     normalizeRequiredComment(
@@ -381,9 +391,10 @@ export async function rejectWorkPlan({
     )
 
     const plan =
-      await lockManagerPlan(
+      await lockApprovalPlan(
         client,
         planId,
+        actorRole,
         actor.id,
       )
 
@@ -570,10 +581,11 @@ export async function rejectWorkPlan({
  * ============================================================
  */
 
-async function lockManagerPlan(
+async function lockApprovalPlan(
   client,
   planId,
-  managerId,
+  actorRole,
+  actorId,
 ) {
   const result =
     await client.query(
@@ -615,7 +627,7 @@ async function lockManagerPlan(
           TRUE
 
       WHERE wp.id =
-          $1
+          $1::uuid
 
         AND supervisor.area::text =
           'FARMACIAS'
@@ -626,19 +638,40 @@ async function lockManagerPlan(
         AND supervisor.activo =
           TRUE
 
-        AND (
-          supervisor.superior_id =
-            $2
+        AND wp.supervisor_id <>
+          $3::uuid
 
-          OR coordinator.superior_id =
-            $2
+        AND (
+          (
+            $2::text =
+              'COORDINADOR'
+
+            AND supervisor.superior_id =
+              $3::uuid
+          )
+
+          OR (
+            $2::text IN (
+              'GERENTE',
+              'DIRECTOR'
+            )
+
+            AND (
+              supervisor.superior_id =
+                $3::uuid
+
+              OR coordinator.superior_id =
+                $3::uuid
+            )
+          )
         )
 
       FOR UPDATE OF wp
       `,
       [
         planId,
-        managerId,
+        actorRole,
+        actorId,
       ],
     )
 
@@ -653,7 +686,7 @@ function validatePendingPlan(
 ) {
   if (!plan) {
     throw new WorkPlanApprovalError(
-      'El plan no existe o no pertenece a la estructura del gerente',
+      'El plan no existe o no pertenece a tu estructura de aprobación',
       {
         status:
           404,
@@ -722,7 +755,7 @@ function validatePlanId(
   }
 }
 
-function validateManagerActor(
+function validateApprovalActor(
   actor,
 ) {
   if (!actor?.id) {
@@ -738,13 +771,24 @@ function validateManagerActor(
     )
   }
 
-  if (
+  const area =
     String(
       actor.area ??
       '',
     )
       .trim()
-      .toUpperCase() !==
+      .toUpperCase()
+
+  const role =
+    String(
+      actor.rol ??
+      '',
+    )
+      .trim()
+      .toUpperCase()
+
+  if (
+    area !==
       'FARMACIAS'
   ) {
     throw new WorkPlanApprovalError(
@@ -760,25 +804,23 @@ function validateManagerActor(
   }
 
   if (
-    String(
-      actor.rol ??
-      '',
+    !APPROVAL_ROLES.has(
+      role,
     )
-      .trim()
-      .toUpperCase() !==
-      'GERENTE'
   ) {
     throw new WorkPlanApprovalError(
-      'Esta operación está disponible únicamente para gerentes',
+      'El perfil no tiene permisos para resolver planes de trabajo',
       {
         status:
           403,
 
         code:
-          'MANAGER_ROLE_REQUIRED',
+          'APPROVAL_ROLE_REQUIRED',
       },
     )
   }
+
+  return role
 }
 
 function normalizeRequiredComment(

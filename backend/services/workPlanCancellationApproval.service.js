@@ -1,74 +1,57 @@
-import {
-  pool,
-} from '../db/pool.js'
-
-import {
-  appendWorkPlanEvent,
-} from './workPlanAudit.service.js'
+import { pool } from '../db/pool.js'
+import { appendWorkPlanEvent } from './workPlanAudit.service.js'
 
 const UUID_PATTERN =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
-export class WorkPlanCancellationApprovalError
-  extends Error {
+const APPROVAL_ROLES = new Set([
+  'DIRECTOR',
+  'GERENTE',
+  'COORDINADOR',
+])
+
+export class WorkPlanCancellationApprovalError extends Error {
   constructor(
     message,
     {
       status = 500,
-      code =
-        'CANCELLATION_REQUEST_FAILED',
+      code = 'CANCELLATION_REQUEST_FAILED',
     } = {},
   ) {
-    super(
-      message,
-    )
+    super(message)
 
-    this.name =
-      'WorkPlanCancellationApprovalError'
-
-    this.status =
-      status
-
-    this.code =
-      code
+    this.name = 'WorkPlanCancellationApprovalError'
+    this.status = status
+    this.code = code
   }
 }
-
-/**
- * ============================================================
- * APROBAR CANCELACIÓN
- * ============================================================
- */
 
 export async function approveCancellationRequest({
   itemId,
   actor,
 }) {
-  validateItemId(
-    itemId,
-  )
+  validateItemId(itemId)
 
-  validateManagerActor(
-    actor,
-  )
+  const actorRole =
+    validateApprovalActor(actor)
 
   const client =
     await pool.connect()
 
   try {
-    await client.query(
-      'BEGIN',
-    )
+    await client.query('BEGIN')
 
     const item =
-      await lockManagerCancellationRequest(
+      await lockCancellationRequestForActor(
         client,
         itemId,
+        actorRole,
         actor.id,
       )
 
     validatePendingCancellationRequest(
       item,
+      actor.id,
     )
 
     const updateResult =
@@ -77,35 +60,21 @@ export async function approveCancellationRequest({
         UPDATE public.work_plan_item
 
         SET
-          status =
-            'CANCELLED',
+          status = 'CANCELLED',
 
-          cancellation_request_status =
-            'APPROVED',
+          cancellation_request_status = 'APPROVED',
 
-          cancellation_reviewed_at =
-            NOW(),
+          cancellation_reviewed_at = NOW(),
+          cancellation_reviewed_by = $2,
+          cancellation_review_comment = NULL,
 
-          cancellation_reviewed_by =
-            $2,
+          cancelled_at = NOW(),
+          cancelled_by = $2,
 
-          cancellation_review_comment =
-            NULL,
+          updated_by = $2,
+          updated_at = NOW()
 
-          cancelled_at =
-            NOW(),
-
-          cancelled_by =
-            $2,
-
-          updated_by =
-            $2,
-
-          updated_at =
-            NOW()
-
-        WHERE id =
-          $1
+        WHERE id = $1
 
         RETURNING *
         `,
@@ -160,6 +129,10 @@ export async function approveCancellationRequest({
           requestedBy:
             item.cancellation_requested_by,
 
+          requesterRole:
+            item.requester_role ??
+            null,
+
           channel:
             actor.channel ??
             null,
@@ -167,13 +140,10 @@ export async function approveCancellationRequest({
       },
     )
 
-    await client.query(
-      'COMMIT',
-    )
+    await client.query('COMMIT')
 
     return {
-      ok:
-        true,
+      ok: true,
 
       itemId,
 
@@ -186,12 +156,8 @@ export async function approveCancellationRequest({
       cancellationRequestStatus:
         'APPROVED',
     }
-  } catch (
-    error
-  ) {
-    await rollbackSafely(
-      client,
-    )
+  } catch (error) {
+    await rollbackSafely(client)
 
     if (
       error instanceof
@@ -208,8 +174,7 @@ export async function approveCancellationRequest({
     throw new WorkPlanCancellationApprovalError(
       'No fue posible aprobar la cancelación',
       {
-        status:
-          500,
+        status: 500,
 
         code:
           'CANCELLATION_REQUEST_APPROVE_FAILED',
@@ -220,24 +185,15 @@ export async function approveCancellationRequest({
   }
 }
 
-/**
- * ============================================================
- * RECHAZAR CANCELACIÓN
- * ============================================================
- */
-
 export async function rejectCancellationRequest({
   itemId,
   actor,
   comment,
 }) {
-  validateItemId(
-    itemId,
-  )
+  validateItemId(itemId)
 
-  validateManagerActor(
-    actor,
-  )
+  const actorRole =
+    validateApprovalActor(actor)
 
   const normalizedComment =
     normalizeRequiredComment(
@@ -248,19 +204,19 @@ export async function rejectCancellationRequest({
     await pool.connect()
 
   try {
-    await client.query(
-      'BEGIN',
-    )
+    await client.query('BEGIN')
 
     const item =
-      await lockManagerCancellationRequest(
+      await lockCancellationRequestForActor(
         client,
         itemId,
+        actorRole,
         actor.id,
       )
 
     validatePendingCancellationRequest(
       item,
+      actor.id,
     )
 
     const updateResult =
@@ -269,26 +225,16 @@ export async function rejectCancellationRequest({
         UPDATE public.work_plan_item
 
         SET
-          cancellation_request_status =
-            'REJECTED',
+          cancellation_request_status = 'REJECTED',
 
-          cancellation_reviewed_at =
-            NOW(),
+          cancellation_reviewed_at = NOW(),
+          cancellation_reviewed_by = $2,
+          cancellation_review_comment = $3,
 
-          cancellation_reviewed_by =
-            $2,
+          updated_by = $2,
+          updated_at = NOW()
 
-          cancellation_review_comment =
-            $3,
-
-          updated_by =
-            $2,
-
-          updated_at =
-            NOW()
-
-        WHERE id =
-          $1
+        WHERE id = $1
 
         RETURNING *
         `,
@@ -347,6 +293,10 @@ export async function rejectCancellationRequest({
           requestedBy:
             item.cancellation_requested_by,
 
+          requesterRole:
+            item.requester_role ??
+            null,
+
           channel:
             actor.channel ??
             null,
@@ -354,13 +304,10 @@ export async function rejectCancellationRequest({
       },
     )
 
-    await client.query(
-      'COMMIT',
-    )
+    await client.query('COMMIT')
 
     return {
-      ok:
-        true,
+      ok: true,
 
       itemId,
 
@@ -373,12 +320,8 @@ export async function rejectCancellationRequest({
       cancellationRequestStatus:
         'REJECTED',
     }
-  } catch (
-    error
-  ) {
-    await rollbackSafely(
-      client,
-    )
+  } catch (error) {
+    await rollbackSafely(client)
 
     if (
       error instanceof
@@ -395,8 +338,7 @@ export async function rejectCancellationRequest({
     throw new WorkPlanCancellationApprovalError(
       'No fue posible rechazar la solicitud de cancelación',
       {
-        status:
-          500,
+        status: 500,
 
         code:
           'CANCELLATION_REQUEST_REJECT_FAILED',
@@ -408,15 +350,21 @@ export async function rejectCancellationRequest({
 }
 
 /**
- * ============================================================
- * AUTORIZACIÓN
- * ============================================================
+ * Cadena:
+ *
+ * SUPERVISOR -> COORDINADOR directo
+ * SUPERVISOR sin coordinador -> GERENTE directo
+ * COORDINADOR -> GERENTE directo
+ *
+ * DIRECTOR conserva el alcance jerárquico existente.
+ *
+ * Nadie puede resolver su propia solicitud.
  */
-
-async function lockManagerCancellationRequest(
+async function lockCancellationRequestForActor(
   client,
   itemId,
-  managerId,
+  actorRole,
+  actorId,
 ) {
   const result =
     await client.query(
@@ -431,38 +379,45 @@ async function lockManagerCancellationRequest(
           AS plan_archived_at,
 
         wp.revision_number,
-
         wp.supervisor_id,
 
-        supervisor.nombre
+        owner.nombre
           AS supervisor_name,
+
+        owner.rol::text
+          AS executor_role,
+
+        owner.superior_id
+          AS executor_superior_id,
 
         coordinator.id
           AS coordinator_id,
 
         coordinator.nombre
-          AS coordinator_name
+          AS coordinator_name,
 
-      FROM public.work_plan_item
-        wpi
+        requester.nombre
+          AS requester_name,
 
-      INNER JOIN public.work_plan
-        wp
+        requester.rol::text
+          AS requester_role,
 
+        requester.superior_id
+          AS requester_superior_id
+
+      FROM public.work_plan_item wpi
+
+      INNER JOIN public.work_plan wp
         ON wp.id =
           wpi.plan_id
 
-      INNER JOIN public.personas
-        supervisor
-
-        ON supervisor.id =
+      INNER JOIN public.personas owner
+        ON owner.id =
           wp.supervisor_id
 
-      LEFT JOIN public.personas
-        coordinator
-
+      LEFT JOIN public.personas coordinator
         ON coordinator.id =
-          supervisor.superior_id
+          owner.superior_id
 
         AND coordinator.area::text =
           'FARMACIAS'
@@ -473,31 +428,97 @@ async function lockManagerCancellationRequest(
         AND coordinator.activo =
           TRUE
 
+      INNER JOIN public.personas requester
+        ON requester.id =
+          wpi.cancellation_requested_by
+
       WHERE wpi.id =
           $1
 
-        AND supervisor.area::text =
+        AND owner.area::text =
           'FARMACIAS'
 
-        AND supervisor.rol::text =
-          'SUPERVISOR'
+        AND owner.rol::text IN (
+          'SUPERVISOR',
+          'COORDINADOR'
+        )
 
-        AND supervisor.activo =
+        AND owner.activo =
           TRUE
 
-        AND (
-          supervisor.superior_id =
-            $2
+        AND requester.area::text =
+          'FARMACIAS'
 
-          OR coordinator.superior_id =
-            $2
+        AND requester.activo =
+          TRUE
+
+        AND wpi.cancellation_requested_by
+          <> $3::uuid
+
+        AND (
+          (
+            $2::text =
+              'COORDINADOR'
+
+            AND requester.rol::text =
+              'SUPERVISOR'
+
+            AND requester.superior_id =
+              $3::uuid
+
+            AND owner.id =
+              requester.id
+          )
+
+          OR (
+            $2::text =
+              'GERENTE'
+
+            AND (
+              (
+                requester.rol::text =
+                  'COORDINADOR'
+
+                AND requester.superior_id =
+                  $3::uuid
+
+                AND owner.id =
+                  requester.id
+              )
+
+              OR (
+                requester.rol::text =
+                  'SUPERVISOR'
+
+                AND requester.superior_id =
+                  $3::uuid
+
+                AND owner.id =
+                  requester.id
+              )
+            )
+          )
+
+          OR (
+            $2::text =
+              'DIRECTOR'
+
+            AND (
+              owner.superior_id =
+                $3::uuid
+
+              OR coordinator.superior_id =
+                $3::uuid
+            )
+          )
         )
 
       FOR UPDATE OF wpi
       `,
       [
         itemId,
-        managerId,
+        actorRole,
+        actorId,
       ],
     )
 
@@ -509,16 +530,37 @@ async function lockManagerCancellationRequest(
 
 function validatePendingCancellationRequest(
   item,
+  actorId,
 ) {
   if (!item) {
     throw new WorkPlanCancellationApprovalError(
-      'La solicitud no existe o no pertenece a la estructura del gerente',
+      'La solicitud no existe o no pertenece a tu estructura de aprobación',
       {
-        status:
-          404,
+        status: 404,
 
         code:
           'CANCELLATION_REQUEST_NOT_FOUND',
+      },
+    )
+  }
+
+  if (
+    String(
+      item.cancellation_requested_by ??
+      '',
+    ) ===
+    String(
+      actorId ??
+      '',
+    )
+  ) {
+    throw new WorkPlanCancellationApprovalError(
+      'No puedes resolver una solicitud de cancelación creada por ti',
+      {
+        status: 403,
+
+        code:
+          'SELF_CANCELLATION_REVIEW_NOT_ALLOWED',
       },
     )
   }
@@ -531,8 +573,7 @@ function validatePendingCancellationRequest(
     throw new WorkPlanCancellationApprovalError(
       'El plan ya no se encuentra autorizado para ejecución',
       {
-        status:
-          409,
+        status: 409,
 
         code:
           'CANCELLATION_REQUEST_PLAN_NOT_APPROVED',
@@ -540,17 +581,46 @@ function validatePendingCancellationRequest(
     )
   }
 
+  const itemType =
+    String(
+      item.item_type ??
+      '',
+    )
+      .trim()
+      .toUpperCase()
+
+  const source =
+    String(
+      item.source ??
+      '',
+    )
+      .trim()
+      .toUpperCase()
+
+  const isPlannedPharmacy =
+    source ===
+      'PLAN' &&
+    itemType ===
+      'PHARMACY'
+
+  const isHierarchyAssignment =
+    source ===
+      'HIERARCHY_ASSIGNED' &&
+    [
+      'PHARMACY',
+      'EXTRA_STOP',
+    ].includes(
+      itemType,
+    )
+
   if (
-    item.item_type !==
-      'PHARMACY' ||
-    item.source !==
-      'PLAN'
+    !isPlannedPharmacy &&
+    !isHierarchyAssignment
   ) {
     throw new WorkPlanCancellationApprovalError(
       'La solicitud no corresponde a una visita programada',
       {
-        status:
-          409,
+        status: 409,
 
         code:
           'INVALID_CANCELLATION_REQUEST_ITEM',
@@ -565,8 +635,7 @@ function validatePendingCancellationRequest(
     throw new WorkPlanCancellationApprovalError(
       'La visita ya no se encuentra pendiente',
       {
-        status:
-          409,
+        status: 409,
 
         code:
           'CANCELLATION_REQUEST_ITEM_NOT_PENDING',
@@ -581,8 +650,7 @@ function validatePendingCancellationRequest(
     throw new WorkPlanCancellationApprovalError(
       'La solicitud ya fue resuelta',
       {
-        status:
-          409,
+        status: 409,
 
         code:
           'CANCELLATION_REQUEST_ALREADY_REVIEWED',
@@ -605,8 +673,7 @@ function validateItemId(
     throw new WorkPlanCancellationApprovalError(
       'El identificador de la visita no es válido',
       {
-        status:
-          400,
+        status: 400,
 
         code:
           'INVALID_PLAN_ITEM_ID',
@@ -615,15 +682,14 @@ function validateItemId(
   }
 }
 
-function validateManagerActor(
+function validateApprovalActor(
   actor,
 ) {
   if (!actor?.id) {
     throw new WorkPlanCancellationApprovalError(
       'No existe un perfil operativo válido',
       {
-        status:
-          403,
+        status: 403,
 
         code:
           'PROFILE_REQUIRED',
@@ -631,20 +697,30 @@ function validateManagerActor(
     )
   }
 
-  if (
+  const area =
     String(
       actor.area ??
       '',
     )
       .trim()
-      .toUpperCase() !==
+      .toUpperCase()
+
+  const role =
+    String(
+      actor.rol ??
+      '',
+    )
+      .trim()
+      .toUpperCase()
+
+  if (
+    area !==
       'FARMACIAS'
   ) {
     throw new WorkPlanCancellationApprovalError(
       'Esta función está disponible únicamente para Farmacias',
       {
-        status:
-          403,
+        status: 403,
 
         code:
           'AREA_NOT_ALLOWED',
@@ -653,25 +729,22 @@ function validateManagerActor(
   }
 
   if (
-    String(
-      actor.rol ??
-      '',
+    !APPROVAL_ROLES.has(
+      role,
     )
-      .trim()
-      .toUpperCase() !==
-      'GERENTE'
   ) {
     throw new WorkPlanCancellationApprovalError(
-      'Esta operación está disponible únicamente para gerentes',
+      'Esta operación está disponible únicamente para roles de aprobación',
       {
-        status:
-          403,
+        status: 403,
 
         code:
-          'MANAGER_ROLE_REQUIRED',
+          'APPROVAL_ROLE_REQUIRED',
       },
     )
   }
+
+  return role
 }
 
 function normalizeRequiredComment(
@@ -687,8 +760,7 @@ function normalizeRequiredComment(
     throw new WorkPlanCancellationApprovalError(
       'Debes indicar el motivo del rechazo',
       {
-        status:
-          400,
+        status: 400,
 
         code:
           'CANCELLATION_REJECTION_COMMENT_REQUIRED',
@@ -703,8 +775,7 @@ function normalizeRequiredComment(
     throw new WorkPlanCancellationApprovalError(
       'El comentario no puede superar 2000 caracteres',
       {
-        status:
-          400,
+        status: 400,
 
         code:
           'CANCELLATION_REJECTION_COMMENT_TOO_LONG',
@@ -722,9 +793,7 @@ async function rollbackSafely(
     await client.query(
       'ROLLBACK',
     )
-  } catch (
-    rollbackError
-  ) {
+  } catch (rollbackError) {
     console.error(
       '[workPlanCancellationApproval.service][rollback]',
       rollbackError,

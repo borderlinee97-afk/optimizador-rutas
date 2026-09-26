@@ -136,8 +136,12 @@ router.get(
             req.profile.rol,
 
           canDecide:
-            req.profile.rol ===
-            'GERENTE',
+            [
+              'GERENTE',
+              'COORDINADOR',
+            ].includes(
+              req.profile.rol,
+            ),
         },
 
         counts,
@@ -185,7 +189,7 @@ router.get(
 
 router.post(
   '/cancellation-requests/:itemId/approve',
-  requireManager,
+  requireApprovalRole,
   async (
     req,
     res,
@@ -228,7 +232,7 @@ router.post(
 
 router.post(
   '/cancellation-requests/:itemId/reject',
-  requireManager,
+  requireApprovalRole,
   async (
     req,
     res,

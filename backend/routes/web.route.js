@@ -3306,7 +3306,7 @@ function buildCapabilities(
       (
         isAdmin ||
         profile.rol ===
-          'DIRECTOR' ||
+          'COORDINADOR' ||
         profile.rol ===
           'GERENTE'
       ),
