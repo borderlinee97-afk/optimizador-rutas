@@ -47,9 +47,9 @@ router.use(
  * - coberturas pendientes.
  *
  * COORDINADOR:
- * - seguimiento de solicitudes de su equipo;
+ * - decisión de planes y cancelaciones de Supervisores directos;
  * - seguimiento de coberturas de su territorio;
- * - sin capacidad de resolver.
+ * - coberturas conforme a los permisos existentes.
  * ============================================================
  */
 
@@ -183,7 +183,7 @@ router.get(
 /**
  * ============================================================
  * APROBAR CANCELACIÓN
- * Solo GERENTE.
+ * GERENTE y COORDINADOR conforme a la jerarquía del servicio.
  * ============================================================
  */
 
@@ -226,7 +226,7 @@ router.post(
 /**
  * ============================================================
  * RECHAZAR CANCELACIÓN
- * Solo GERENTE.
+ * GERENTE y COORDINADOR conforme a la jerarquía del servicio.
  * ============================================================
  */
 
@@ -457,6 +457,15 @@ function getPendingCancellations(
       wpi.cancellation_requested_at,
       wpi.cancellation_requested_by,
 
+      (requester.id <> $2::uuid
+        AND supervisor.id = requester.id
+        AND requester.superior_id = $2::uuid
+        AND (($1::text = 'GERENTE'
+          AND requester.rol::text IN ('SUPERVISOR', 'COORDINADOR'))
+          OR ($1::text = 'COORDINADOR'
+            AND requester.rol::text = 'SUPERVISOR'))
+      ) AS can_decide,
+
       wp.plan_type,
       wp.period_start,
       wp.period_end,
@@ -527,6 +536,11 @@ function getPendingCancellations(
       AND coordinator.activo =
         TRUE
 
+    INNER JOIN public.personas requester
+      ON requester.id = wpi.cancellation_requested_by
+      AND requester.area::text = 'FARMACIAS'
+      AND requester.activo = TRUE
+
     LEFT JOIN public.farmacia
       f
 
@@ -540,11 +554,12 @@ function getPendingCancellations(
       AND wpi.status::text =
         'PENDING'
 
-      AND wpi.item_type::text =
-        'PHARMACY'
-
-      AND wpi.source::text =
-        'PLAN'
+      AND (
+        (wpi.source::text = 'PLAN'
+          AND wpi.item_type::text = 'PHARMACY')
+        OR (wpi.source::text = 'HIERARCHY_ASSIGNED'
+          AND wpi.item_type::text IN ('PHARMACY', 'EXTRA_STOP'))
+      )
 
       AND wpi.removed_at
         IS NULL
@@ -558,8 +573,7 @@ function getPendingCancellations(
       AND supervisor.area::text =
         'FARMACIAS'
 
-      AND supervisor.rol::text =
-        'SUPERVISOR'
+      AND supervisor.rol::text IN ('SUPERVISOR', 'COORDINADOR')
 
       AND supervisor.activo =
         TRUE
@@ -570,11 +584,8 @@ function getPendingCancellations(
             'GERENTE'
 
           AND (
-            supervisor.superior_id =
-              $2::uuid
-
-            OR coordinator.superior_id =
-              $2::uuid
+            supervisor.superior_id = $2::uuid
+            OR coordinator.superior_id = $2::uuid
           )
         )
 
@@ -582,8 +593,10 @@ function getPendingCancellations(
           $1::text =
             'COORDINADOR'
 
-          AND supervisor.superior_id =
-            $2::uuid
+          AND requester.rol::text = 'SUPERVISOR'
+          AND requester.superior_id = $2::uuid
+          AND supervisor.id = requester.id
+          AND requester.id <> $2::uuid
         )
       )
 
@@ -1043,6 +1056,9 @@ function mapCancellationRequest(
   row,
 ) {
   return {
+    canDecide:
+      row.can_decide === true,
+
     itemId:
       row.item_id,
 

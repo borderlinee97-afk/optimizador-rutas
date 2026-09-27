@@ -569,7 +569,7 @@
               </div>
 
               <div
-                v-if="canDecide"
+                v-if="canDecide && request.canDecide"
                 class="cancel-actions"
               >
                 <button

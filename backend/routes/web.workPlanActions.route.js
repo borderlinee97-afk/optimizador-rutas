@@ -179,7 +179,7 @@ async function loadManagerProfile(
       ![
         'DIRECTOR',
         'GERENTE',
-        COORDINADOR,
+        'COORDINADOR',
       ].includes(
         String(
           profile.rol,

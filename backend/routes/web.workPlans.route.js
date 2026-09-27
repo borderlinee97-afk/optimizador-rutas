@@ -659,7 +659,22 @@ router.get(
               AS coordinator_id,
 
             coordinator.nombre
-              AS coordinator_name
+              AS coordinator_name,
+
+            (
+              supervisor.activo = TRUE
+              AND wp.supervisor_id <> $2::uuid
+              AND wp.status::text = 'PENDING_APPROVAL'
+              AND wp.archived_at IS NULL
+              AND (
+                ($3::text = 'COORDINADOR'
+                  AND supervisor.superior_id = $2::uuid)
+                OR ($3::text = 'GERENTE'
+                  AND (supervisor.superior_id = $2::uuid
+                    OR (coordinator.activo = TRUE
+                      AND coordinator.superior_id = $2::uuid)))
+              )
+            ) AS can_review
 
           FROM public.work_plan wp
 
@@ -694,6 +709,8 @@ router.get(
           `,
           [
             planId,
+            req.profile.id,
+            req.profile.rol,
           ],
         )
 
@@ -970,16 +987,10 @@ router.get(
             ),
 
           canApprove:
-            req.profile.rol ===
-              'GERENTE' &&
-            row.status ===
-              'PENDING_APPROVAL',
+            row.can_review === true,
 
           canReject:
-            req.profile.rol ===
-              'GERENTE' &&
-            row.status ===
-              'PENDING_APPROVAL',
+            row.can_review === true,
         },
 
         items:
