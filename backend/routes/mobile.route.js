@@ -32,6 +32,9 @@ import mobileWorkPlanCancellationActionsRouter
 import mobileWorkPlanApprovalsRouter
   from './mobile.workPlanApprovals.route.js'
 
+import mobileHierarchyAssignmentsRouter
+  from './mobile.hierarchyAssignments.route.js'
+
 import mobileEvidenceRouter
   from './mobile.evidence.route.js'
 
@@ -70,6 +73,11 @@ router.use(
 router.use(
   '/places',
   mobilePlacesRouter,
+)
+
+router.use(
+  '/hierarchy-assignments',
+  mobileHierarchyAssignmentsRouter,
 )
 
 router.use(

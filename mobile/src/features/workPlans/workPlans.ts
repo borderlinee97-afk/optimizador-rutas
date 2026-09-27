@@ -227,6 +227,7 @@ export interface WorkPlanItem {
   source:
     | 'PLAN'
     | 'SUPERVISOR_ADHOC'
+    | 'HIERARCHY_ASSIGNED'
 
   name: string
 

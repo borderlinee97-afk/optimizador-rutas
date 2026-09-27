@@ -515,8 +515,7 @@ export default function WorkPlansScreen() {
   }
 
   if (
-    profile?.rol !==
-    'SUPERVISOR'
+    !['SUPERVISOR', 'COORDINADOR'].includes(profile?.rol ?? '')
   ) {
     return (
       <SafeAreaView className="flex-1 items-center justify-center bg-surface px-6">
@@ -534,7 +533,7 @@ export default function WorkPlansScreen() {
 
         <Text className="mt-2 text-center text-sm leading-6 text-slate-500">
           La creación de planes de trabajo está
-          disponible únicamente para supervisores.
+          disponible para supervisores y coordinadores.
         </Text>
       </SafeAreaView>
     )

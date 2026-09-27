@@ -4,6 +4,7 @@ import {
 import * as ImagePicker from 'expo-image-picker'
 import * as Location from 'expo-location'
 import * as FileSystem from 'expo-file-system/legacy'
+import { File } from 'expo-file-system'
 import {
   useCallback,
   useEffect,
@@ -209,17 +210,9 @@ export function EvidenceCapture({
         return
       }
 
-      const fileResponse =
-        await fetch(
-          asset.uri,
-        )
-
-      const fileBody =
-        await fileResponse.arrayBuffer()
-
       const byteSize =
         asset.fileSize ??
-        fileBody.byteLength
+        new File(asset.uri).size
 
       if (
         byteSize <
@@ -353,6 +346,7 @@ export function EvidenceCapture({
       setBusy(true)
       await syncPendingEvidence(
         accessToken,
+        true,
       )
       refresh()
       onSynced?.()

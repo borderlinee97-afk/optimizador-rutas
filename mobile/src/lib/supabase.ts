@@ -23,6 +23,19 @@ export const supabase = createClient(
   supabaseUrl,
   supabasePublishableKey,
   {
+    global: {
+      fetch: async (input, init) => {
+        const isEvidenceUpload = String(input).includes('/storage/v1/object/upload/sign/')
+        if (!isEvidenceUpload) return fetch(input, init)
+        const controller = new AbortController()
+        const timeout = setTimeout(() => controller.abort(), 60_000)
+        try {
+          return await fetch(input, { ...init, signal: controller.signal })
+        } finally {
+          clearTimeout(timeout)
+        }
+      },
+    },
     auth: {
       ...(Platform.OS !== 'web'
         ? {

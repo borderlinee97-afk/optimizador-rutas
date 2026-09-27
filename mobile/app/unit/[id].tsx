@@ -612,14 +612,18 @@ export default function UnitDetailScreen() {
   const isCancellableExtraStop =
     isEditableExtraStop
 
+  const isHierarchyAssignment = item?.source === 'HIERARCHY_ASSIGNED'
+  const canRequestCancellation = isHierarchyAssignment || (
+    item?.item_type === 'PHARMACY' && item?.source === 'PLAN'
+  )
+
   const isPlannedPharmacy =
     Boolean(
       item &&
         !isExtraStop &&
         item.item_type ===
           'PHARMACY' &&
-        item.source ===
-          'PLAN',
+        (item.source === 'PLAN' || isHierarchyAssignment),
     )
 
   const hasPendingCancellationRequest =
@@ -1132,7 +1136,7 @@ export default function UnitDetailScreen() {
     }
 
     if (
-      !isPlannedPharmacy
+      !(payload.mode === 'CANCELLATION_REQUEST' ? canRequestCancellation : isPlannedPharmacy && !isHierarchyAssignment)
     ) {
       Alert.alert(
         'Acción no disponible',
@@ -1929,7 +1933,7 @@ export default function UnitDetailScreen() {
                   item.source ===
                   'SUPERVISOR_ADHOC'
                     ? 'Agregada por el Supervisor'
-                    : 'Plan de trabajo'
+                    : isHierarchyAssignment ? 'Asignada jerárquicamente' : 'Plan de trabajo'
                 }
               />
 
@@ -2577,7 +2581,7 @@ export default function UnitDetailScreen() {
               )}
             </Pressable>
 
-            {isPlannedPharmacy ? (
+            {canRequestCancellation ? (
               <View className="mt-5 rounded-3xl border border-slate-200 bg-white p-5">
                 <Text className="text-base font-bold text-slate-900">
                   No puedo realizarla como estaba programada
@@ -2587,6 +2591,7 @@ export default function UnitDetailScreen() {
                   Selecciona qué ocurrió con esta visita.
                 </Text>
 
+                {!isHierarchyAssignment ? <>
                 <Pressable
                   className="mt-4 flex-row items-center rounded-2xl border border-violet-200 bg-violet-50 p-4"
                   onPress={() =>
@@ -2663,6 +2668,7 @@ export default function UnitDetailScreen() {
                   />
                 </Pressable>
 
+                </> : null}
                 <Pressable
                   className="mt-3 flex-row items-center rounded-2xl border border-rose-200 bg-rose-50 p-4"
                   onPress={() =>

@@ -176,7 +176,7 @@ const PLAN_ITEM_SELECT = `
 `
 
 router.use(requireAuth)
-router.use(loadSupervisorProfile)
+router.use(loadFieldExecutorProfile)
 
 /**
  * GET /api/mobile/farmacias/my-plan/today
@@ -192,10 +192,6 @@ router.get(
   '/my-plan/today',
   async (req, res) => {
     try {
-      /*
-       * 1. Todos los planes aprobados
-       * vigentes para la fecha actual.
-       */
       const plansResult =
         await pool.query(
           `
@@ -208,7 +204,8 @@ router.get(
 
           FROM public.work_plan wp
 
-          WHERE wp.supervisor_id = $1
+          WHERE wp.supervisor_id =
+              $1::uuid
 
             AND wp.status =
               'APPROVED'
@@ -216,10 +213,42 @@ router.get(
             AND wp.archived_at
               IS NULL
 
-            AND CURRENT_DATE
-              BETWEEN
-                wp.period_start
-                AND wp.period_end
+            AND CURRENT_DATE BETWEEN
+              wp.period_start
+              AND wp.period_end
+
+            AND (
+              $2::text =
+                'SUPERVISOR'
+
+              OR (
+                $2::text =
+                  'COORDINADOR'
+
+                AND EXISTS (
+                  SELECT 1
+
+                  FROM public.work_plan_item
+                    scope_item
+
+                  WHERE scope_item.plan_id =
+                      wp.id
+
+                    AND scope_item.scheduled_date =
+                      CURRENT_DATE
+
+                    AND scope_item.removed_at
+                      IS NULL
+
+                    AND scope_item.source::text IN ('PLAN', 'HIERARCHY_ASSIGNED')
+
+                    AND scope_item.item_type IN (
+                      'PHARMACY',
+                      'EXTRA_STOP'
+                    )
+                )
+              )
+            )
 
           ORDER BY
             CASE
@@ -238,6 +267,7 @@ router.get(
           `,
           [
             req.profile.id,
+            req.profile.rol,
           ],
         )
 
@@ -255,22 +285,9 @@ router.get(
       const plans =
         plansResult.rows
 
-      /*
-       * El ORDINARY queda como plan principal
-       * cuando existe. Se mantiene `plan`
-       * por compatibilidad con PlanContext
-       * y la caché móvil actual.
-       */
       const primaryPlan =
         plans[0]
 
-      /*
-       * 2. Todas las actividades autorizadas
-       * correspondientes específicamente a hoy.
-       *
-       * Usamos PLAN_ITEM_SELECT para no tener
-       * dos SELECT distintos que mantener.
-       */
       const itemsResult =
         await pool.query(
           `
@@ -281,7 +298,7 @@ router.get(
               wpi.plan_id
 
           WHERE wp.supervisor_id =
-              $1
+              $1::uuid
 
             AND wp.status =
               'APPROVED'
@@ -289,16 +306,32 @@ router.get(
             AND wp.archived_at
               IS NULL
 
-            AND CURRENT_DATE
-              BETWEEN
-                wp.period_start
-                AND wp.period_end
+            AND CURRENT_DATE BETWEEN
+              wp.period_start
+              AND wp.period_end
 
             AND wpi.scheduled_date =
               CURRENT_DATE
 
             AND wpi.removed_at
               IS NULL
+
+            AND (
+              $2::text =
+                'SUPERVISOR'
+
+              OR (
+                $2::text =
+                  'COORDINADOR'
+
+                AND wpi.source::text IN ('PLAN', 'HIERARCHY_ASSIGNED')
+
+                AND wpi.item_type IN (
+                  'PHARMACY',
+                  'EXTRA_STOP'
+                )
+              )
+            )
 
           ORDER BY
             wpi.scheduled_time ASC
@@ -323,14 +356,13 @@ router.get(
           `,
           [
             req.profile.id,
+            req.profile.rol,
           ],
         )
 
       const mappedPlans =
         plans.map(
-          (
-            plan,
-          ) => ({
+          (plan) => ({
             id:
               plan.id,
 
@@ -372,6 +404,7 @@ router.get(
         items:
           await attachActivitiesToItems(
             pool,
+
             itemsResult.rows.map(
               mapPlanItem,
             ),
@@ -439,6 +472,7 @@ router.post(
           client,
           itemId,
           req.profile.id,
+          req.profile.rol,
         )
 
       if (!item) {
@@ -677,6 +711,7 @@ router.post(
           client,
           itemId,
           req.profile.id,
+          req.profile.rol,
         )
 
       if (!item) {
@@ -985,6 +1020,7 @@ router.post(
           client,
           itemId,
           req.profile.id,
+          req.profile.rol,
         )
 
       if (!item) {
@@ -1015,6 +1051,23 @@ router.post(
         return res
           .status(409)
           .json(validation)
+      }
+
+      if (
+        item.source ===
+        'HIERARCHY_ASSIGNED'
+      ) {
+        await client.query(
+          'ROLLBACK',
+        )
+
+        return res.status(409).json({
+          error:
+            'Una visita asignada por tu superior no puede omitirse directamente. Debes solicitar su cancelación.',
+
+          code:
+            'HIERARCHY_ASSIGNED_SKIP_NOT_ALLOWED',
+        })
       }
 
       const activeVisitResult =
@@ -1328,6 +1381,7 @@ router.post(
           client,
           itemId,
           req.profile.id,
+          req.profile.rol,
         )
 
       if (!item) {
@@ -1921,9 +1975,7 @@ router.post(
         itemId,
       )
 
-    if (
-      invalidIdResponse
-    ) {
+    if (invalidIdResponse) {
       return res
         .status(400)
         .json(
@@ -1995,6 +2047,7 @@ router.post(
           client,
           itemId,
           req.profile.id,
+          req.profile.rol,
         )
 
       if (!item) {
@@ -2029,11 +2082,43 @@ router.post(
           )
       }
 
+      const itemType =
+        String(
+          item.item_type ??
+          '',
+        )
+          .trim()
+          .toUpperCase()
+
+      const source =
+        String(
+          item.source ??
+          '',
+        )
+          .trim()
+          .toUpperCase()
+
+      const isPlannedPharmacy =
+        source ===
+          'PLAN' &&
+        itemType ===
+          'PHARMACY'
+
+      const isHierarchyAssignment =
+        source ===
+          'HIERARCHY_ASSIGNED' &&
+        [
+          'PHARMACY',
+          'EXTRA_STOP',
+        ].includes(
+          itemType,
+        )
+
       if (
-        item.item_type !==
-          'PHARMACY' ||
-        item.source !==
-          'PLAN'
+        source ===
+          'SUPERVISOR_ADHOC' &&
+        itemType ===
+          'EXTRA_STOP'
       ) {
         await client.query(
           'ROLLBACK',
@@ -2041,10 +2126,27 @@ router.post(
 
         return res.status(409).json({
           error:
-            'Las paradas adicionales utilizan su propio flujo de cancelación',
+            'Las paradas adicionales creadas por el Supervisor utilizan su propio flujo de cancelación',
 
           code:
             'CANCELLATION_REQUEST_NOT_ALLOWED_FOR_EXTRA_STOP',
+        })
+      }
+
+      if (
+        !isPlannedPharmacy &&
+        !isHierarchyAssignment
+      ) {
+        await client.query(
+          'ROLLBACK',
+        )
+
+        return res.status(409).json({
+          error:
+            'Esta actividad no utiliza el flujo jerárquico de cancelación',
+
+          code:
+            'CANCELLATION_REQUEST_NOT_ALLOWED',
         })
       }
 
@@ -2061,7 +2163,7 @@ router.post(
               wpi.plan_id
 
           WHERE wp.supervisor_id =
-              $1
+              $1::uuid
 
             AND wpi.status =
               'IN_PROGRESS'
@@ -2130,7 +2232,8 @@ router.post(
           updated_at =
             NOW()
 
-        WHERE id = $1
+        WHERE id =
+          $1
         `,
         [
           itemId,
@@ -2196,6 +2299,13 @@ router.post(
             notes:
               notes ||
               null,
+
+            source,
+
+            itemType,
+
+            hierarchyAssigned:
+              isHierarchyAssignment,
           },
         },
       )
@@ -2336,6 +2446,7 @@ async function handleActivityResolution(
         client,
         itemId,
         req.profile.id,
+        req.profile.rol,
       )
 
     if (!item) {
@@ -2709,7 +2820,8 @@ async function handleActivityResolution(
 async function getLockedOwnedItem(
   client,
   itemId,
-  supervisorId,
+  executorId,
+  executorRole,
 ) {
   const result =
     await client.query(
@@ -2751,9 +2863,11 @@ async function getLockedOwnedItem(
         ON wp.id =
           wpi.plan_id
 
-      WHERE wpi.id = $1
+      WHERE wpi.id =
+          $1::uuid
 
-        AND wp.supervisor_id = $2
+        AND wp.supervisor_id =
+          $2::uuid
 
         AND wp.archived_at
           IS NULL
@@ -2761,16 +2875,36 @@ async function getLockedOwnedItem(
         AND wpi.removed_at
           IS NULL
 
+        AND (
+          $3::text =
+            'SUPERVISOR'
+
+          OR (
+            $3::text =
+              'COORDINADOR'
+
+            AND wpi.source::text IN ('PLAN', 'HIERARCHY_ASSIGNED')
+
+            AND wpi.item_type IN (
+              'PHARMACY',
+              'EXTRA_STOP'
+            )
+          )
+        )
+
       FOR UPDATE OF wpi
       `,
       [
         itemId,
-        supervisorId,
+        executorId,
+        executorRole,
       ],
     )
 
-  return result.rows[0] ??
+  return (
+    result.rows[0] ??
     null
+  )
 }
 
 function validateExecutableItem(
@@ -2849,7 +2983,7 @@ async function getCompletePlanItem(
     null
 }
 
-async function loadSupervisorProfile(
+async function loadFieldExecutorProfile(
   req,
   res,
   next,
@@ -2861,15 +2995,21 @@ async function loadSupervisorProfile(
         SELECT
           id,
           nombre,
-          area,
-          rol,
+
+          area::text
+            AS area,
+
+          rol::text
+            AS rol,
+
           activo,
           superior_id,
           pharmacy_scope_mode
 
         FROM public.personas
 
-        WHERE auth_user_id = $1
+        WHERE auth_user_id =
+          $1
 
         LIMIT 1
         `,
@@ -2879,7 +3019,8 @@ async function loadSupervisorProfile(
       )
 
     if (
-      result.rowCount === 0
+      result.rowCount ===
+      0
     ) {
       return res.status(403).json({
         error:
@@ -2903,23 +3044,49 @@ async function loadSupervisorProfile(
       })
     }
 
+    const area =
+      String(
+        profile.area ??
+        '',
+      )
+        .trim()
+        .toUpperCase()
+
+    const role =
+      String(
+        profile.rol ??
+        '',
+      )
+        .trim()
+        .toUpperCase()
+
     if (
-      profile.area !==
+      area !==
         'FARMACIAS' ||
-      profile.rol !==
-        'SUPERVISOR'
+      ![
+        'SUPERVISOR',
+        'COORDINADOR',
+      ].includes(
+        role,
+      )
     ) {
       return res.status(403).json({
         error:
-          'Esta función está disponible únicamente para supervisores de Farmacias',
+          'Esta función está disponible únicamente para personal de ejecución de Farmacias',
 
         code:
           'ROLE_NOT_ALLOWED',
       })
     }
 
-    req.profile =
-      profile
+    req.profile = {
+      ...profile,
+
+      area,
+
+      rol:
+        role,
+    }
 
     return next()
   } catch (error) {

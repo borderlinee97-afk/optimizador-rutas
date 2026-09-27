@@ -1,6 +1,8 @@
 import {
   db,
 } from '../../storage/db'
+import { File } from 'expo-file-system'
+import { Platform } from 'react-native'
 
 import {
   ApiError,
@@ -175,8 +177,22 @@ export function listLocalEvidence({
   )
 }
 
-export async function syncPendingEvidence(
+let activeSync: Promise<{ synced: number; pending: number; failed: number }> | null = null
+
+export function syncPendingEvidence(
   accessToken: string,
+  retryFailed = false,
+) {
+  if (activeSync) return activeSync
+  activeSync = processPendingEvidence(accessToken, retryFailed).finally(() => {
+    activeSync = null
+  })
+  return activeSync
+}
+
+async function processPendingEvidence(
+  accessToken: string,
+  retryFailed: boolean,
 ): Promise<{
   synced: number
   pending: number
@@ -191,8 +207,10 @@ export async function syncPendingEvidence(
         'PENDING',
         'UPLOADING'
       )
+      OR (? = 1 AND status = 'FAILED')
       ORDER BY created_at ASC
       `,
+      [retryFailed ? 1 : 0],
     ) as EvidenceQueueRow[]
 
   let synced =
@@ -207,7 +225,19 @@ export async function syncPendingEvidence(
   for (
     const row of rows
   ) {
+    let stage = 'SESSION'
     try {
+      const { data, error: sessionError } = await supabase.auth.getSession()
+      if (sessionError) throw sessionError
+      if (!data.session) throw new ApiError('Inicia sesión para sincronizar la evidencia.', 401)
+      let currentSession = data.session
+      if ((currentSession.expires_at ?? 0) * 1000 <= Date.now() + 60_000) {
+        const refreshed = await supabase.auth.refreshSession()
+        if (refreshed.error) throw refreshed.error
+        if (!refreshed.data.session) throw new ApiError('Inicia sesión para sincronizar la evidencia.', 401)
+        currentSession = refreshed.data.session
+      }
+      accessToken = currentSession.access_token
       markUploading(
         row.evidence_id,
       )
@@ -234,6 +264,7 @@ export async function syncPendingEvidence(
           row.byte_size,
       }
 
+      stage = 'TICKET'
       const ticket =
         row.task_id
           ? await createTaskEvidenceTicket(
@@ -253,20 +284,15 @@ export async function syncPendingEvidence(
             )
 
       if (ticket.upload) {
-        const fileResponse =
-          await fetch(
-            row.local_uri,
-          )
-
-        if (!fileResponse.ok) {
-          throw new Error(
-            'No fue posible leer la fotografía local.',
-          )
+        stage = 'LOCAL_FILE'
+        const fileBody = Platform.OS === 'web'
+          ? await (await fetch(row.local_uri)).arrayBuffer()
+          : await new File(row.local_uri).arrayBuffer()
+        if (fileBody.byteLength !== row.byte_size || fileBody.byteLength === 0) {
+          throw new ApiError('El archivo local no coincide con la evidencia guardada.', 422, 'LOCAL_FILE_INVALID')
         }
 
-        const fileBody =
-          await fileResponse.arrayBuffer()
-
+        stage = 'STORAGE'
         const {
           error,
         } =
@@ -291,10 +317,14 @@ export async function syncPendingEvidence(
         }
       }
 
-      await completeEvidenceUpload(
+      stage = 'CONFIRMATION'
+      const confirmation = await completeEvidenceUpload(
         row.evidence_id,
         accessToken,
       )
+      if (!confirmation.ok || confirmation.evidence.id !== row.evidence_id || confirmation.evidence.status !== 'READY') {
+        throw new Error('El servidor no confirmó la evidencia como READY.')
+      }
 
       db.runSync(
         `
@@ -319,6 +349,10 @@ export async function syncPendingEvidence(
     } catch (
       error
     ) {
+      if (error instanceof ApiError && error.status === 401) {
+        // One refresh prepares the next explicit/foreground attempt; no retry loop.
+        await supabase.auth.refreshSession().catch(() => undefined)
+      }
       const permanent =
         error instanceof
           ApiError &&
@@ -327,6 +361,7 @@ export async function syncPendingEvidence(
         error.status <
           500 &&
         ![
+          401,
           408,
           409,
           429,
@@ -335,7 +370,7 @@ export async function syncPendingEvidence(
         )
 
       const nextStatus =
-        permanent
+        permanent || stage === 'LOCAL_FILE'
           ? 'FAILED'
           : 'PENDING'
 
@@ -353,13 +388,13 @@ export async function syncPendingEvidence(
           nextStatus,
           getErrorMessage(
             error,
-          ),
+          ).replace(/^/, `${stage}: `),
           Date.now(),
           row.evidence_id,
         ],
       )
 
-      if (permanent) {
+      if (permanent || stage === 'LOCAL_FILE') {
         failed +=
           1
       } else {

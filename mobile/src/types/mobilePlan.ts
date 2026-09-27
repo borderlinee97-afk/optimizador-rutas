@@ -13,6 +13,7 @@ export type MobilePlanItemType =
 export type MobilePlanItemSource =
   | 'PLAN'
   | 'SUPERVISOR_ADHOC'
+  | 'HIERARCHY_ASSIGNED'
 
 export type MobileCancellationRequestStatus =
   | 'PENDING'

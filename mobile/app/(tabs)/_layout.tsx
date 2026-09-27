@@ -53,14 +53,21 @@ export default function TabLayout() {
   } =
     useAuth()
 
-  const isSupervisor =
-    profile?.rol ===
-    'SUPERVISOR'
+  const role =
+    profile?.rol ?? null
 
-  const isManager =
-    profile?.rol ===
+  const canExecuteFieldWork =
+    role ===
+      'SUPERVISOR' ||
+    role ===
+      'COORDINADOR'
+
+  const canAccessApprovals =
+    role ===
+      'COORDINADOR' ||
+    role ===
       'GERENTE' ||
-    profile?.rol ===
+    role ===
       'DIRECTOR'
 
   return (
@@ -161,7 +168,7 @@ export default function TabLayout() {
             'Trabajo',
 
           href:
-            isSupervisor
+            canExecuteFieldWork
               ? undefined
               : null,
         }}
@@ -182,7 +189,7 @@ export default function TabLayout() {
             'Aprobaciones',
 
           href:
-            isManager
+            canAccessApprovals
               ? undefined
               : null,
         }}

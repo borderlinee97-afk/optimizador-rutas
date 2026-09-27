@@ -632,8 +632,8 @@ async function lockApprovalPlan(
         AND supervisor.area::text =
           'FARMACIAS'
 
-        AND supervisor.rol::text =
-          'SUPERVISOR'
+        AND (supervisor.rol::text = 'SUPERVISOR'
+          OR ($2::text = 'GERENTE' AND supervisor.rol::text = 'COORDINADOR'))
 
         AND supervisor.activo =
           TRUE
@@ -645,6 +645,8 @@ async function lockApprovalPlan(
           (
             $2::text =
               'COORDINADOR'
+
+            AND supervisor.rol::text = 'SUPERVISOR'
 
             AND supervisor.superior_id =
               $3::uuid
@@ -660,8 +662,7 @@ async function lockApprovalPlan(
               supervisor.superior_id =
                 $3::uuid
 
-              OR coordinator.superior_id =
-                $3::uuid
+              OR ($2::text = 'DIRECTOR' AND coordinator.superior_id = $3::uuid)
             )
           )
         )

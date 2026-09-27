@@ -87,8 +87,7 @@ export function PlanProvider({
   const isSupervisor =
     profile?.area ===
       'FARMACIAS' &&
-    profile?.rol ===
-      'SUPERVISOR'
+    ['SUPERVISOR', 'COORDINADOR'].includes(profile?.rol ?? '')
 
   const reloadFromCache =
     useCallback(() => {

@@ -31,7 +31,7 @@ const TIME_PATTERN =
 
 router.use(requireAuth)
 router.use(loadFarmaciasProfile)
-router.use(requireSupervisor)
+router.use(requirePlanOwner)
 
 /**
  * POST
@@ -121,20 +121,24 @@ router.post(
       }
 
       const pharmacyAccess =
-      await getPharmacyAccess(
-          client,
-          {
-          pharmacyId:
-              payload.value
-              .pharmacyId,
+        req.profile.rol ===
+          'COORDINADOR'
+          ? await getCoordinatorPlanPharmacyAccess(
+              client,
+              pharmacyId,
+            )
+          : await getPharmacyAccess(
+              client,
+              {
+                pharmacyId,
 
-          profile:
-              req.profile,
+                profile:
+                  req.profile,
 
-          accessDate:
-            payload.value.scheduledDate,
-          },
-      )
+                accessDate:
+                  scheduledDate,
+              },
+            )
 
       const pharmacyAccessError =
       getPharmacyAccessError(
@@ -480,20 +484,24 @@ router.patch(
       }
 
       const pharmacyAccess =
-        await getPharmacyAccess(
-          client,
-          {
-            pharmacyId:
-              payload.value
-                .pharmacyId,
+        req.profile.rol ===
+          'COORDINADOR'
+          ? await getCoordinatorPlanPharmacyAccess(
+              client,
+              pharmacyId,
+            )
+          : await getPharmacyAccess(
+              client,
+              {
+                pharmacyId,
 
-            profile:
-              req.profile,
+                profile:
+                  req.profile,
 
-            accessDate:
-              payload.value.scheduledDate,
-          },
-        )
+                accessDate:
+                  scheduledDate,
+              },
+            )
 
       const pharmacyAccessError =
         getPharmacyAccessError(
@@ -1349,25 +1357,62 @@ async function loadFarmaciasProfile(
   }
 }
 
-function requireSupervisor(
+function requirePlanOwner(
   req,
   res,
   next,
 ) {
   if (
-    req.profile?.rol !==
-    'SUPERVISOR'
+    ![
+      'SUPERVISOR',
+      'COORDINADOR',
+    ].includes(
+      req.profile?.rol,
+    )
   ) {
     return res.status(403).json({
       error:
-        'Esta operación está disponible únicamente para supervisores',
+        'Esta operación está disponible únicamente para Supervisores y Coordinadores',
 
       code:
-        'SUPERVISOR_ROLE_REQUIRED',
+        'WORK_PLAN_OWNER_ROLE_REQUIRED',
     })
   }
 
   return next()
+}
+
+async function getCoordinatorPlanPharmacyAccess(
+  client,
+  pharmacyId,
+) {
+  const result =
+    await client.query(
+      `
+      SELECT EXISTS (
+        SELECT 1
+
+        FROM public.farmacia
+
+        WHERE id = $1
+      ) AS exists
+      `,
+      [
+        pharmacyId,
+      ],
+    )
+
+  const exists =
+    Boolean(
+      result.rows[0]
+        ?.exists,
+    )
+
+  return {
+    exists,
+    allowed:
+      exists,
+  }
 }
 
 function getPharmacyAccessError(

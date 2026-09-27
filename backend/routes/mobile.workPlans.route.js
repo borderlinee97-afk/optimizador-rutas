@@ -62,7 +62,7 @@ router.get(
     res,
   ) => {
     const roleError =
-      requireSupervisor(
+      requirePlanOwner(
         req,
       )
 
@@ -235,7 +235,7 @@ router.post(
     res,
   ) => {
     const roleError =
-      requireSupervisor(
+      requirePlanOwner(
         req,
       )
 
@@ -414,7 +414,7 @@ router.get(
     res,
   ) => {
     const roleError =
-      requireSupervisor(
+      requirePlanOwner(
         req,
       )
 
@@ -446,7 +446,7 @@ router.get(
     }
 
     const scopeMode =
-      normalizePharmacyScopeMode(
+      req.profile.rol === 'COORDINADOR' ? 'ALL' : normalizePharmacyScopeMode(
         req.profile
           .pharmacy_scope_mode,
       )
@@ -902,7 +902,7 @@ router.patch(
     res,
   ) => {
     const roleError =
-      requireSupervisor(
+      requirePlanOwner(
         req,
       )
 
@@ -1234,7 +1234,7 @@ router.post(
     res,
   ) => {
     const roleError =
-      requireSupervisor(
+      requirePlanOwner(
         req,
       )
 
@@ -1512,7 +1512,7 @@ router.post(
        * scheduled_date está dentro de start_date/end_date.
        */
       const unauthorizedPharmacy =
-        await findUnauthorizedPlanPharmacy(
+        req.profile.rol === 'COORDINADOR' ? null : await findUnauthorizedPlanPharmacy(
           client,
           {
             planId,
@@ -1877,7 +1877,7 @@ router.post(
     res,
   ) => {
     const roleError =
-      requireSupervisor(
+      requirePlanOwner(
         req,
       )
 
@@ -2232,22 +2232,24 @@ async function loadFarmaciasProfile(
   }
 }
 
-function requireSupervisor(
-  req,
-) {
+function requirePlanOwner(req) {
   if (
-    req.profile?.rol ===
-    'SUPERVISOR'
+    [
+      'SUPERVISOR',
+      'COORDINADOR',
+    ].includes(
+      req.profile?.rol,
+    )
   ) {
     return null
   }
 
   return {
     error:
-      'Esta operación está disponible únicamente para supervisores',
+      'Esta operación está disponible únicamente para Supervisores y Coordinadores',
 
     code:
-      'SUPERVISOR_ROLE_REQUIRED',
+      'WORK_PLAN_OWNER_ROLE_REQUIRED',
   }
 }
 
