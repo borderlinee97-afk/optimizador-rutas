@@ -1229,13 +1229,14 @@ function resolveItemSource(
     item.source ===
       'PLAN' ||
     item.source ===
-      'SUPERVISOR_ADHOC'
+      'SUPERVISOR_ADHOC' ||
+    item.source ===
+      'HIERARCHY_ASSIGNED'
   ) {
     return item.source
   }
 
-  return itemType ===
-    'EXTRA_STOP'
+  return itemType === 'EXTRA_STOP'
     ? 'SUPERVISOR_ADHOC'
     : 'PLAN'
 }

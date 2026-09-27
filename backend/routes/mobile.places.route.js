@@ -427,13 +427,20 @@ async function loadSupervisorProfile(
     if (
       profile.area !==
         'FARMACIAS' ||
-      profile.rol !==
-        'SUPERVISOR'
+      ![
+        'SUPERVISOR',
+        'COORDINADOR',
+        'GERENTE',
+      ].includes(
+        profile.rol,
+      )
     ) {
       return res.status(403).json({
         error:
-          'Esta función está disponible únicamente para supervisores de Farmacias',
-        code: 'ROLE_NOT_ALLOWED'
+          'Esta función está disponible únicamente para personal autorizado de Farmacias',
+
+        code:
+          'ROLE_NOT_ALLOWED',
       })
     }
 

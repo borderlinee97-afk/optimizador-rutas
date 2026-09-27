@@ -2,49 +2,74 @@ import { Router } from 'express'
 
 import { pool } from '../db/pool.js'
 import { requireAuth } from '../middleware/requireAuth.js'
+
 import {
   getPharmacyAccess,
 } from '../services/pharmacyAccess.service.js'
+
 import {
   evaluateVisitGeofence,
   getVisitGeofenceConfig,
 } from '../services/visitGeofence.service.js'
 
-const router = Router()
+const router =
+  Router()
 
 const UUID_PATTERN =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
-router.use(requireAuth)
+router.use(
+  requireAuth,
+)
 
 router.post(
   '/items/:itemId/check-in',
-  validateVisitLocation('CHECK_IN'),
+  validateVisitLocation(
+    'CHECK_IN',
+  ),
 )
 
 router.post(
   '/items/:itemId/check-out',
-  validateVisitLocation('CHECK_OUT'),
+  validateVisitLocation(
+    'CHECK_OUT',
+  ),
 )
 
-function validateVisitLocation(action) {
-  return async (req, res, next) => {
-    const itemId = String(
-      req.params.itemId ?? '',
-    )
+function validateVisitLocation(
+  action,
+) {
+  return async (
+    req,
+    res,
+    next,
+  ) => {
+    const itemId =
+      String(
+        req.params.itemId ??
+        '',
+      )
 
-    if (!UUID_PATTERN.test(itemId)) {
+    if (
+      !UUID_PATTERN.test(
+        itemId,
+      )
+    ) {
       return next()
     }
 
-    const location = parseLocation(
-      req.body,
-    )
+    const location =
+      parseLocation(
+        req.body,
+      )
 
     if (!location.ok) {
       return res.status(400).json({
-        error: location.error,
-        code: location.code,
+        error:
+          location.error,
+
+        code:
+          location.code,
       })
     }
 
@@ -53,12 +78,25 @@ function validateVisitLocation(action) {
         await pool.query(
           `
           SELECT
-            p.id AS person_id,
+            p.id
+              AS person_id,
+
+            p.rol::text
+              AS person_role,
+
             p.pharmacy_scope_mode,
+
             wpi.pharmacy_id,
             wpi.scheduled_date,
-            wpi.item_type::text AS item_type,
-            wpi.source::text AS source,
+
+            wpi.item_type::text
+              AS item_type,
+
+            wpi.source::text
+              AS source,
+
+            wp.status::text
+              AS plan_status,
 
             COALESCE(
               wpi.custom_lat,
@@ -73,21 +111,59 @@ function validateVisitLocation(action) {
           FROM public.work_plan_item wpi
 
           INNER JOIN public.work_plan wp
-            ON wp.id = wpi.plan_id
+            ON wp.id =
+              wpi.plan_id
 
           INNER JOIN public.personas p
-            ON p.id = wp.supervisor_id
+            ON p.id =
+              wp.supervisor_id
 
           LEFT JOIN public.farmacia f
-            ON f.id = wpi.pharmacy_id
+            ON f.id =
+              wpi.pharmacy_id
 
-          WHERE wpi.id = $1
-            AND p.auth_user_id = $2
-            AND p.activo = TRUE
-            AND p.area::text = 'FARMACIAS'
-            AND p.rol::text = 'SUPERVISOR'
-            AND wp.archived_at IS NULL
-            AND wpi.removed_at IS NULL
+          WHERE wpi.id =
+              $1::uuid
+
+            AND p.auth_user_id =
+              $2
+
+            AND p.activo =
+              TRUE
+
+            AND p.area::text =
+              'FARMACIAS'
+
+            AND p.rol::text IN (
+              'SUPERVISOR',
+              'COORDINADOR'
+            )
+
+            AND wp.status =
+              'APPROVED'
+
+            AND wp.archived_at
+              IS NULL
+
+            AND wpi.removed_at
+              IS NULL
+
+            AND (
+              p.rol::text =
+                'SUPERVISOR'
+
+              OR (
+                p.rol::text =
+                  'COORDINADOR'
+
+                AND wpi.source::text IN ('PLAN', 'HIERARCHY_ASSIGNED')
+
+                AND wpi.item_type::text IN (
+                  'PHARMACY',
+                  'EXTRA_STOP'
+                )
+              )
+            )
 
           LIMIT 1
           `,
@@ -97,16 +173,38 @@ function validateVisitLocation(action) {
           ],
         )
 
-      if (result.rowCount === 0) {
+      /**
+       * Si este middleware no reconoce
+       * la visita, dejamos que el handler
+       * principal de mobile.farmacias
+       * determine el error final.
+       */
+      if (
+        result.rowCount ===
+        0
+      ) {
         return next()
       }
 
       const target =
         result.rows[0]
 
+      /**
+       * Sólo las visitas normales del plan
+       * del Supervisor vuelven a comprobar
+       * asignación/cobertura de farmacia.
+       *
+       * HIERARCHY_ASSIGNED es una instrucción
+       * operativa emitida por el superior y
+       * no depende del modelo
+       * pharmacy_supervisor_assignment durante
+       * la ejecución.
+       */
       if (
         action ===
           'CHECK_IN' &&
+        target.person_role ===
+          'SUPERVISOR' &&
         target.item_type ===
           'PHARMACY' &&
         target.source ===
@@ -179,37 +277,57 @@ function validateVisitLocation(action) {
           person_id,
           plan_item_id,
           action,
+
           lat,
           lng,
           accuracy_m,
           mocked,
+
           target_lat,
           target_lng,
+
           distance_m,
           radius_m,
           max_accuracy_m,
+
           result,
           allowed
         )
         VALUES (
-          $1, $2, $3, $4, $5, $6, $7,
-          $8, $9, $10, $11, $12, $13, $14
+          $1,
+          $2,
+          $3,
+          $4,
+          $5,
+          $6,
+          $7,
+          $8,
+          $9,
+          $10,
+          $11,
+          $12,
+          $13,
+          $14
         )
         `,
         [
           target.person_id,
           itemId,
           action,
+
           location.lat,
           location.lng,
           location.accuracyM,
           location.mocked,
+
           numberOrNull(
             target.target_lat,
           ),
+
           numberOrNull(
             target.target_lng,
           ),
+
           evaluation.distanceM,
           evaluation.radiusM,
           evaluation.maxAccuracyM,
@@ -218,11 +336,13 @@ function validateVisitLocation(action) {
         ],
       )
 
-      if (!evaluation.allowed) {
+      if (
+        !evaluation.allowed
+      ) {
         return res
           .status(
             evaluation.httpStatus ||
-              422,
+            422,
           )
           .json({
             error:
@@ -276,34 +396,48 @@ function parseLocation(
   body = {},
 ) {
   const lat =
-    Number(body.lat)
+    Number(
+      body.lat,
+    )
 
   const lng =
-    Number(body.lng)
+    Number(
+      body.lng,
+    )
 
   if (
-    !Number.isFinite(lat) ||
+    !Number.isFinite(
+      lat,
+    ) ||
     lat < -90 ||
     lat > 90
   ) {
     return {
-      ok: false,
+      ok:
+        false,
+
       code:
         'INVALID_EXECUTION_COORDINATES',
+
       error:
         'Invalid latitude',
     }
   }
 
   if (
-    !Number.isFinite(lng) ||
+    !Number.isFinite(
+      lng,
+    ) ||
     lng < -180 ||
     lng > 180
   ) {
     return {
-      ok: false,
+      ok:
+        false,
+
       code:
         'INVALID_EXECUTION_COORDINATES',
+
       error:
         'Invalid longitude',
     }
@@ -319,7 +453,7 @@ function parseLocation(
     accuracyM =
       Number(
         body.accuracyM ??
-          body.accuracy,
+        body.accuracy,
       )
 
     if (
@@ -329,9 +463,12 @@ function parseLocation(
       accuracyM < 0
     ) {
       return {
-        ok: false,
+        ok:
+          false,
+
         code:
           'INVALID_LOCATION_ACCURACY',
+
         error:
           'Invalid GPS accuracy',
       }
@@ -339,12 +476,17 @@ function parseLocation(
   }
 
   return {
-    ok: true,
+    ok:
+      true,
+
     lat,
     lng,
+
     accuracyM,
+
     mocked:
-      body.mocked === true,
+      body.mocked ===
+      true,
   }
 }
 
@@ -353,15 +495,20 @@ function numberOrNull(
 ) {
   if (
     value == null ||
-    value === ''
+    value ===
+      ''
   ) {
     return null
   }
 
   const parsed =
-    Number(value)
+    Number(
+      value,
+    )
 
-  return Number.isFinite(parsed)
+  return Number.isFinite(
+    parsed,
+  )
     ? parsed
     : null
 }
@@ -369,9 +516,12 @@ function numberOrNull(
 function roundOrNull(
   value,
 ) {
-  return Number.isFinite(value)
+  return Number.isFinite(
+    value,
+  )
     ? Math.round(
-        value * 10,
+        value *
+        10,
       ) / 10
     : null
 }

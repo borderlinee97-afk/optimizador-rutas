@@ -403,21 +403,45 @@ async function loadOwnedVisitTarget(
   ) {
     return invalidTarget(
       400,
+
       'INVALID_PLAN_ITEM_ID',
+
       'El identificador de visita no es válido',
     )
   }
 
+  const area =
+    String(
+      profile?.area ??
+      '',
+    )
+      .trim()
+      .toUpperCase()
+
+  const role =
+    String(
+      profile?.rol ??
+      '',
+    )
+      .trim()
+      .toUpperCase()
+
   if (
-    profile.area !==
+    area !==
       'FARMACIAS' ||
-    profile.rol !==
-      'SUPERVISOR'
+    ![
+      'SUPERVISOR',
+      'COORDINADOR',
+    ].includes(
+      role,
+    )
   ) {
     return invalidTarget(
       403,
+
       'ROLE_NOT_ALLOWED',
-      'Solo un supervisor puede registrar evidencia de su visita',
+
+      'El perfil no tiene permisos para registrar evidencia de esta visita',
     )
   }
 
@@ -426,18 +450,59 @@ async function loadOwnedVisitTarget(
       `
       SELECT
         wpi.id,
+
+        wpi.item_type::text
+          AS item_type,
+
+        wpi.source::text
+          AS source,
+
         wp.supervisor_id
+
       FROM public.work_plan_item wpi
+
       INNER JOIN public.work_plan wp
-        ON wp.id = wpi.plan_id
-      WHERE wpi.id = $1::uuid
-        AND wp.supervisor_id = $2::uuid
-        AND wp.status = 'APPROVED'
+        ON wp.id =
+          wpi.plan_id
+
+      WHERE wpi.id =
+          $1::uuid
+
+        AND wp.supervisor_id =
+          $2::uuid
+
+        AND wp.status =
+          'APPROVED'
+
+        AND wp.archived_at
+          IS NULL
+
+        AND wpi.removed_at
+          IS NULL
+
+        AND (
+          $3::text =
+            'SUPERVISOR'
+
+          OR (
+            $3::text =
+              'COORDINADOR'
+
+            AND wpi.source::text IN ('PLAN', 'HIERARCHY_ASSIGNED')
+
+            AND wpi.item_type::text IN (
+              'PHARMACY',
+              'EXTRA_STOP'
+            )
+          )
+        )
+
       LIMIT 1
       `,
       [
         itemId,
         profile.id,
+        role,
       ],
     )
 
@@ -447,7 +512,9 @@ async function loadOwnedVisitTarget(
   if (!item) {
     return invalidTarget(
       404,
+
       'PLAN_ITEM_NOT_FOUND',
+
       'La visita no existe o no pertenece al usuario autenticado',
     )
   }
@@ -470,7 +537,9 @@ async function loadOwnedVisitTarget(
   ) {
     return invalidTarget(
       400,
+
       'INVALID_ACTIVITY_ID',
+
       'El identificador de actividad no es válido',
     )
   }
@@ -479,10 +548,17 @@ async function loadOwnedVisitTarget(
     const activityResult =
       await pool.query(
         `
-        SELECT id
+        SELECT
+          id
+
         FROM public.pharmacy_activity
-        WHERE id = $1::uuid
-          AND plan_item_id = $2::uuid
+
+        WHERE id =
+            $1::uuid
+
+          AND plan_item_id =
+            $2::uuid
+
         LIMIT 1
         `,
         [
@@ -497,7 +573,9 @@ async function loadOwnedVisitTarget(
     ) {
       return invalidTarget(
         404,
+
         'VISIT_ACTIVITY_NOT_FOUND',
+
         'La actividad no pertenece a esta visita',
       )
     }
@@ -508,6 +586,7 @@ async function loadOwnedVisitTarget(
       true,
 
     item,
+
     activityId,
   }
 }

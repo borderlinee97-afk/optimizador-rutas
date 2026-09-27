@@ -16,7 +16,7 @@ const UUID_PATTERN =
 
 router.use(requireAuth)
 router.use(loadFarmaciasProfile)
-router.use(requireManager)
+router.use(requireApprovalRole)
 
 /**
  * GET
@@ -148,18 +148,35 @@ router.get(
             AND supervisor.area =
               'FARMACIAS'
 
-            AND supervisor.rol =
-              'SUPERVISOR'
+            AND (supervisor.rol::text = 'SUPERVISOR'
+          OR ($1::text = 'GERENTE' AND supervisor.rol::text = 'COORDINADOR'))
+        AND wp.supervisor_id <> $2
 
             AND supervisor.activo =
               TRUE
 
             AND (
-              supervisor.superior_id =
-                $1
+              (
+                $1::text =
+                  'COORDINADOR'
+                AND supervisor.rol::text = 'SUPERVISOR'
+                AND supervisor.superior_id =
+                  $2
+              )
 
-              OR coordinator.superior_id =
-                $1
+              OR (
+                $1::text IN (
+                  'GERENTE',
+                  'DIRECTOR'
+                )
+
+                AND (
+                  supervisor.superior_id =
+                    $2
+
+                  OR ($1::text = 'DIRECTOR' AND coordinator.superior_id = $2)
+                )
+              )
             )
 
           GROUP BY
@@ -175,6 +192,7 @@ router.get(
             supervisor.nombre ASC
           `,
           [
+            req.profile.rol,
             req.profile.id,
           ],
         )
@@ -227,6 +245,18 @@ router.get(
             wpi.plan_id,
             wpi.pharmacy_id,
 
+            wpi.item_type,
+            wpi.source,
+
+            wpi.custom_name,
+            wpi.custom_address,
+            wpi.google_place_id,
+            wpi.custom_lat,
+            wpi.custom_lng,
+            wpi.activity_category,
+            wpi.addition_reason,
+            wpi.estimated_minutes,
+
             wpi.scheduled_date,
             wpi.scheduled_time::text,
 
@@ -244,11 +274,14 @@ router.get(
             wp.period_end,
             wp.revision_number,
 
-            supervisor.id
+            owner.id
               AS supervisor_id,
 
-            supervisor.nombre
+            owner.nombre
               AS supervisor_name,
+
+            owner.rol
+              AS executor_role,
 
             coordinator.id
               AS coordinator_id,
@@ -256,9 +289,21 @@ router.get(
             coordinator.nombre
               AS coordinator_name,
 
+            requester.nombre
+              AS requester_name,
+
+            requester.rol
+              AS requester_role,
+
             f.clues,
 
             COALESCE(
+              NULLIF(
+                TRIM(
+                  wpi.custom_name
+                ),
+                ''
+              ),
               NULLIF(
                 TRIM(
                   f.unidad
@@ -266,14 +311,37 @@ router.get(
                 ''
               ),
               f.clues,
-              'Farmacia sin nombre'
+              'Punto sin nombre'
             ) AS name,
 
-            f.direccion
-              AS address,
+            COALESCE(
+              NULLIF(
+                TRIM(
+                  wpi.custom_address
+                ),
+                ''
+              ),
+              NULLIF(
+                TRIM(
+                  f.direccion
+                ),
+                ''
+              )
+            ) AS address,
 
             f.region_sanitaria,
-            f.proyecto
+            f.proyecto,
+            f.estado,
+
+            COALESCE(
+              wpi.custom_lat::double precision,
+              f.latitud::double precision
+            ) AS lat,
+
+            COALESCE(
+              wpi.custom_lng::double precision,
+              f.longitud::double precision
+            ) AS lng
 
           FROM public.work_plan_item wpi
 
@@ -281,19 +349,23 @@ router.get(
             ON wp.id =
               wpi.plan_id
 
-          INNER JOIN public.personas supervisor
-            ON supervisor.id =
+          INNER JOIN public.personas owner
+            ON owner.id =
               wp.supervisor_id
 
           LEFT JOIN public.personas coordinator
             ON coordinator.id =
-              supervisor.superior_id
+              owner.superior_id
 
             AND coordinator.area =
               'FARMACIAS'
 
             AND coordinator.rol =
               'COORDINADOR'
+
+          INNER JOIN public.personas requester
+            ON requester.id =
+              wpi.cancellation_requested_by
 
           LEFT JOIN public.farmacia f
             ON f.id =
@@ -306,11 +378,25 @@ router.get(
             AND wpi.status =
               'PENDING'
 
-            AND wpi.item_type =
-              'PHARMACY'
+            AND (
+              (
+                wpi.source =
+                  'PLAN'
 
-            AND wpi.source =
-              'PLAN'
+                AND wpi.item_type =
+                  'PHARMACY'
+              )
+
+              OR (
+                wpi.source =
+                  'HIERARCHY_ASSIGNED'
+
+                AND wpi.item_type IN (
+                  'PHARMACY',
+                  'EXTRA_STOP'
+                )
+              )
+            )
 
             AND wpi.removed_at
               IS NULL
@@ -321,21 +407,82 @@ router.get(
             AND wp.archived_at
               IS NULL
 
-            AND supervisor.area =
+            AND owner.area =
               'FARMACIAS'
 
-            AND supervisor.rol =
-              'SUPERVISOR'
+            AND owner.rol IN (
+              'SUPERVISOR',
+              'COORDINADOR'
+            )
 
-            AND supervisor.activo =
+            AND owner.activo =
               TRUE
 
-            AND (
-              supervisor.superior_id =
-                $1
+            AND requester.area =
+              'FARMACIAS'
 
-              OR coordinator.superior_id =
-                $1
+            AND requester.activo =
+              TRUE
+
+            AND wpi.cancellation_requested_by
+              <> $2
+
+            AND (
+              (
+                $1::text =
+                  'COORDINADOR'
+
+                AND requester.rol =
+                  'SUPERVISOR'
+
+                AND requester.superior_id =
+                  $2
+
+                AND owner.id =
+                  requester.id
+              )
+
+              OR (
+                $1::text =
+                  'GERENTE'
+
+                AND (
+                  (
+                    requester.rol =
+                      'COORDINADOR'
+
+                    AND requester.superior_id =
+                      $2
+
+                    AND owner.id =
+                      requester.id
+                  )
+
+                  OR (
+                    requester.rol =
+                      'SUPERVISOR'
+
+                    AND requester.superior_id =
+                      $2
+
+                    AND owner.id =
+                      requester.id
+                  )
+                )
+              )
+
+              OR (
+                $1::text =
+                  'DIRECTOR'
+
+                AND (
+                  owner.superior_id =
+                    $2
+
+                  OR coordinator.superior_id =
+                    $2
+                )
+              )
             )
 
           ORDER BY
@@ -345,6 +492,7 @@ router.get(
               NULLS LAST
           `,
           [
+            req.profile.rol,
             req.profile.id,
           ],
         )
@@ -442,21 +590,42 @@ router.get(
             AND supervisor.area =
               'FARMACIAS'
 
-            AND supervisor.rol =
-              'SUPERVISOR'
+            AND (supervisor.rol::text = 'SUPERVISOR'
+          OR ($2::text = 'GERENTE' AND supervisor.rol::text = 'COORDINADOR'))
+        AND wp.supervisor_id <> $3
+
+            AND supervisor.activo =
+              TRUE
 
             AND (
-              supervisor.superior_id =
-                $2
+              (
+                $2::text =
+                  'COORDINADOR'
+                AND supervisor.rol::text = 'SUPERVISOR'
+                AND supervisor.superior_id =
+                  $3
+              )
 
-              OR coordinator.superior_id =
-                $2
+              OR (
+                $2::text IN (
+                  'GERENTE',
+                  'DIRECTOR'
+                )
+
+                AND (
+                  supervisor.superior_id =
+                    $3
+
+                  OR ($2::text = 'DIRECTOR' AND coordinator.superior_id = $3)
+                )
+              )
             )
 
           LIMIT 1
           `,
           [
             planId,
+            req.profile.rol,
             req.profile.id,
           ],
         )
@@ -467,7 +636,7 @@ router.get(
       ) {
         return res.status(404).json({
           error:
-            'El plan no existe o no pertenece a la estructura del gerente',
+            'El plan no existe o no pertenece a tu estructura de aprobación',
 
           code:
             'WORK_PLAN_APPROVAL_NOT_FOUND',
@@ -734,9 +903,10 @@ router.post(
       )
 
       const plan =
-        await lockManagerPlan(
+        await lockApprovalPlan(
           client,
           planId,
+          req.profile.rol,
           req.profile.id,
         )
 
@@ -988,9 +1158,10 @@ router.post(
       )
 
       const plan =
-        await lockManagerPlan(
+        await lockApprovalPlan(
           client,
           planId,
+          req.profile.rol,
           req.profile.id,
         )
 
@@ -1180,15 +1351,17 @@ router.post(
       )
 
       const item =
-        await lockManagerCancellationRequest(
+        await lockCancellationRequestForActor(
           client,
           itemId,
+          req.profile.rol,
           req.profile.id,
         )
 
       const validationError =
         validatePendingCancellationRequest(
           item,
+          req.profile.id,
         )
 
       if (validationError) {
@@ -1396,15 +1569,17 @@ router.post(
       )
 
       const item =
-        await lockManagerCancellationRequest(
+        await lockCancellationRequestForActor(
           client,
           itemId,
+          req.profile.rol,
           req.profile.id,
         )
 
       const validationError =
         validatePendingCancellationRequest(
           item,
+          req.profile.id,
         )
 
       if (validationError) {
@@ -1545,10 +1720,11 @@ router.post(
   },
 )
 
-async function lockManagerCancellationRequest(
+async function lockCancellationRequestForActor(
   client,
   itemId,
-  managerId,
+  actorRole,
+  actorId,
 ) {
   const result =
     await client.query(
@@ -1563,17 +1739,28 @@ async function lockManagerCancellationRequest(
           AS plan_archived_at,
 
         wp.revision_number,
-
         wp.supervisor_id,
 
-        supervisor.nombre
+        owner.nombre
           AS supervisor_name,
+
+        owner.rol
+          AS executor_role,
 
         coordinator.id
           AS coordinator_id,
 
         coordinator.nombre
-          AS coordinator_name
+          AS coordinator_name,
+
+        requester.nombre
+          AS requester_name,
+
+        requester.rol
+          AS requester_role,
+
+        requester.superior_id
+          AS requester_superior_id
 
       FROM public.work_plan_item wpi
 
@@ -1581,13 +1768,13 @@ async function lockManagerCancellationRequest(
         ON wp.id =
           wpi.plan_id
 
-      INNER JOIN public.personas supervisor
-        ON supervisor.id =
+      INNER JOIN public.personas owner
+        ON owner.id =
           wp.supervisor_id
 
       LEFT JOIN public.personas coordinator
         ON coordinator.id =
-          supervisor.superior_id
+          owner.superior_id
 
         AND coordinator.area =
           'FARMACIAS'
@@ -1595,39 +1782,109 @@ async function lockManagerCancellationRequest(
         AND coordinator.rol =
           'COORDINADOR'
 
-      WHERE wpi.id = $1
+      INNER JOIN public.personas requester
+        ON requester.id =
+          wpi.cancellation_requested_by
 
-        AND supervisor.area =
+      WHERE wpi.id =
+          $1
+
+        AND owner.area =
           'FARMACIAS'
 
-        AND supervisor.rol =
-          'SUPERVISOR'
+        AND owner.rol IN (
+          'SUPERVISOR',
+          'COORDINADOR'
+        )
 
-        AND supervisor.activo =
+        AND owner.activo =
           TRUE
 
-        AND (
-          supervisor.superior_id =
-            $2
+        AND requester.area =
+          'FARMACIAS'
 
-          OR coordinator.superior_id =
-            $2
+        AND requester.activo =
+          TRUE
+
+        AND wpi.cancellation_requested_by
+          <> $3
+
+        AND (
+          (
+            $2::text =
+              'COORDINADOR'
+
+            AND requester.rol =
+              'SUPERVISOR'
+
+            AND requester.superior_id =
+              $3
+
+            AND owner.id =
+              requester.id
+          )
+
+          OR (
+            $2::text =
+              'GERENTE'
+
+            AND (
+              (
+                requester.rol =
+                  'COORDINADOR'
+
+                AND requester.superior_id =
+                  $3
+
+                AND owner.id =
+                  requester.id
+              )
+
+              OR (
+                requester.rol =
+                  'SUPERVISOR'
+
+                AND requester.superior_id =
+                  $3
+
+                AND owner.id =
+                  requester.id
+              )
+            )
+          )
+
+          OR (
+            $2::text =
+              'DIRECTOR'
+
+            AND (
+              owner.superior_id =
+                $3
+
+              OR coordinator.superior_id =
+                $3
+            )
+          )
         )
 
       FOR UPDATE OF wpi
       `,
       [
         itemId,
-        managerId,
+        actorRole,
+        actorId,
       ],
     )
 
-  return result.rows[0] ??
+  return (
+    result.rows[0] ??
     null
+  )
 }
 
 function validatePendingCancellationRequest(
   item,
+  actorId,
 ) {
   if (!item) {
     return {
@@ -1635,10 +1892,33 @@ function validatePendingCancellationRequest(
 
       response: {
         error:
-          'La solicitud no existe o no pertenece a la estructura del gerente',
+          'La solicitud no existe o no pertenece a tu estructura de aprobación',
 
         code:
           'CANCELLATION_REQUEST_NOT_FOUND',
+      },
+    }
+  }
+
+  if (
+    String(
+      item.cancellation_requested_by ??
+      '',
+    ) ===
+    String(
+      actorId ??
+      '',
+    )
+  ) {
+    return {
+      status: 403,
+
+      response: {
+        error:
+          'No puedes resolver una solicitud de cancelación creada por ti',
+
+        code:
+          'SELF_CANCELLATION_REVIEW_NOT_ALLOWED',
       },
     }
   }
@@ -1661,11 +1941,41 @@ function validatePendingCancellationRequest(
     }
   }
 
+  const itemType =
+    String(
+      item.item_type ??
+      '',
+    )
+      .trim()
+      .toUpperCase()
+
+  const source =
+    String(
+      item.source ??
+      '',
+    )
+      .trim()
+      .toUpperCase()
+
+  const isPlannedPharmacy =
+    source ===
+      'PLAN' &&
+    itemType ===
+      'PHARMACY'
+
+  const isHierarchyAssignment =
+    source ===
+      'HIERARCHY_ASSIGNED' &&
+    [
+      'PHARMACY',
+      'EXTRA_STOP',
+    ].includes(
+      itemType,
+    )
+
   if (
-    item.item_type !==
-      'PHARMACY' ||
-    item.source !==
-      'PLAN'
+    !isPlannedPharmacy &&
+    !isHierarchyAssignment
   ) {
     return {
       status: 409,
@@ -1804,7 +2114,7 @@ async function loadFarmaciasProfile(
   }
 }
 
-function requireManager(
+function requireApprovalRole(
   req,
   res,
   next,
@@ -1813,26 +2123,28 @@ function requireManager(
     ![
       'DIRECTOR',
       'GERENTE',
+      'COORDINADOR',
     ].includes(
       req.profile?.rol,
     )
   ) {
     return res.status(403).json({
       error:
-        'Esta operación está disponible únicamente para gerentes',
+        'Esta operación está disponible únicamente para roles de aprobación',
 
       code:
-        'MANAGER_ROLE_REQUIRED',
+        'APPROVAL_ROLE_REQUIRED',
     })
   }
 
   return next()
 }
 
-async function lockManagerPlan(
+async function lockApprovalPlan(
   client,
   planId,
-  managerId,
+  actorRole,
+  actorId,
 ) {
   const result =
     await client.query(
@@ -1874,22 +2186,43 @@ async function lockManagerPlan(
         AND supervisor.area =
           'FARMACIAS'
 
-        AND supervisor.rol =
-          'SUPERVISOR'
+        AND (supervisor.rol::text = 'SUPERVISOR'
+          OR ($2::text = 'GERENTE' AND supervisor.rol::text = 'COORDINADOR'))
+        AND wp.supervisor_id <> $3
+
+        AND supervisor.activo =
+          TRUE
 
         AND (
-          supervisor.superior_id =
-            $2
+          (
+            $2::text =
+              'COORDINADOR'
+                AND supervisor.rol::text = 'SUPERVISOR'
+                AND supervisor.superior_id =
+              $3
+          )
 
-          OR coordinator.superior_id =
-            $2
+          OR (
+            $2::text IN (
+              'GERENTE',
+              'DIRECTOR'
+            )
+
+            AND (
+              supervisor.superior_id =
+                $3
+
+              OR ($2::text = 'DIRECTOR' AND coordinator.superior_id = $3)
+            )
+          )
         )
 
       FOR UPDATE OF wp
       `,
       [
         planId,
-        managerId,
+        actorRole,
+        actorId,
       ],
     )
 
@@ -1908,7 +2241,7 @@ function validatePendingPlan(
 
       response: {
         error:
-          'El plan no existe o no pertenece a la estructura del gerente',
+          'El plan no existe o no pertenece a tu estructura de aprobación',
 
         code:
           'WORK_PLAN_APPROVAL_NOT_FOUND',
@@ -1957,6 +2290,14 @@ function validatePendingPlan(
 function mapCancellationRequest(
   row,
 ) {
+  const itemType =
+    String(
+      row.item_type ??
+      '',
+    )
+      .trim()
+      .toUpperCase()
+
   return {
     itemId:
       row.item_id,
@@ -1995,10 +2336,23 @@ function mapCancellationRequest(
         0,
       ),
 
+    itemType,
+
+    destinationType:
+      itemType ===
+      'EXTRA_STOP'
+        ? 'FREE_POINT'
+        : 'PHARMACY',
+
     pharmacyId:
-      String(
-        row.pharmacy_id,
-      ),
+      row.pharmacy_id ===
+        null ||
+      row.pharmacy_id ===
+        undefined
+        ? null
+        : String(
+            row.pharmacy_id,
+          ),
 
     name:
       row.name,
@@ -2015,6 +2369,36 @@ function mapCancellationRequest(
     project:
       row.proyecto,
 
+    state:
+      row.estado,
+
+    lat:
+      toNullableNumber(
+        row.lat,
+      ),
+
+    lng:
+      toNullableNumber(
+        row.lng,
+      ),
+
+    googlePlaceId:
+      row.google_place_id ??
+      null,
+
+    activityCategory:
+      row.activity_category ??
+      null,
+
+    additionReason:
+      row.addition_reason ??
+      null,
+
+    estimatedMinutes:
+      toNullableNumber(
+        row.estimated_minutes,
+      ),
+
     scheduledDate:
       normalizeDateValue(
         row.scheduled_date,
@@ -2027,6 +2411,27 @@ function mapCancellationRequest(
       Boolean(
         row.required,
       ),
+
+    status:
+      row.status,
+
+    source:
+      row.source,
+
+    executorRole:
+      row.executor_role ??
+      null,
+
+    requestedBy:
+      row.cancellation_requested_by,
+
+    requesterName:
+      row.requester_name ??
+      null,
+
+    requesterRole:
+      row.requester_role ??
+      null,
 
     requestReason:
       row.cancellation_request_reason,

@@ -23,7 +23,7 @@ router.use(
 )
 
 router.use(
-  loadManagerProfile,
+  loadApprovalProfile,
 )
 
 router.post(
@@ -99,7 +99,7 @@ router.post(
   },
 )
 
-async function loadManagerProfile(
+async function loadApprovalProfile(
   req,
   res,
   next,
@@ -158,12 +158,24 @@ async function loadManagerProfile(
         })
     }
 
-    if (
+    const area =
       String(
-        profile.area,
+        profile.area ??
+        '',
       )
         .trim()
-        .toUpperCase() !==
+        .toUpperCase()
+
+    const role =
+      String(
+        profile.rol ??
+        '',
+      )
+        .trim()
+        .toUpperCase()
+
+    if (
+      area !==
       'FARMACIAS'
     ) {
       return res
@@ -181,41 +193,29 @@ async function loadManagerProfile(
       ![
         'DIRECTOR',
         'GERENTE',
+        'COORDINADOR',
       ].includes(
-        String(
-          profile.rol,
-        )
-          .trim()
-          .toUpperCase(),
+        role,
       )
     ) {
       return res
         .status(403)
         .json({
           error:
-            'Esta operación está disponible únicamente para gerentes',
+            'Esta operación está disponible únicamente para roles de aprobación',
 
           code:
-            'MANAGER_ROLE_REQUIRED',
+            'APPROVAL_ROLE_REQUIRED',
         })
     }
 
     req.profile = {
       ...profile,
 
-      area:
-        String(
-          profile.area,
-        )
-          .trim()
-          .toUpperCase(),
+      area,
 
       rol:
-        String(
-          profile.rol,
-        )
-          .trim()
-          .toUpperCase(),
+        role,
     }
 
     return next()

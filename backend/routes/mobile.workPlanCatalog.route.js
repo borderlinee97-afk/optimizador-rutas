@@ -32,7 +32,7 @@ router.use(
 )
 
 router.use(
-  requireSupervisor,
+  requirePlanOwner,
 )
 
 /**
@@ -61,10 +61,13 @@ router.get(
     res,
   ) => {
     const scopeMode =
-      normalizePharmacyScopeMode(
-        req.profile
-          .pharmacy_scope_mode,
-      )
+      req.profile?.rol ===
+        'COORDINADOR'
+        ? 'ALL'
+        : normalizePharmacyScopeMode(
+            req.profile
+              .pharmacy_scope_mode,
+          )
 
     try {
       const result =
@@ -326,10 +329,13 @@ router.get(
       )
 
     const scopeMode =
-      normalizePharmacyScopeMode(
-        req.profile
-          .pharmacy_scope_mode,
-      )
+      req.profile?.rol ===
+        'COORDINADOR'
+        ? 'ALL'
+        : normalizePharmacyScopeMode(
+            req.profile
+              .pharmacy_scope_mode,
+          )
 
     if (
       search &&
@@ -908,24 +914,26 @@ async function loadFarmaciasProfile(
  * ============================================================
  */
 
-function requireSupervisor(
+function requirePlanOwner(
   req,
   res,
   next,
 ) {
   if (
-    req.profile?.rol !==
-    'SUPERVISOR'
+    ![
+      'SUPERVISOR',
+      'COORDINADOR',
+    ].includes(
+      req.profile?.rol,
+    )
   ) {
-    return res
-      .status(403)
-      .json({
-        error:
-          'Esta operación está disponible únicamente para supervisores',
+    return res.status(403).json({
+      error:
+        'Esta operación está disponible únicamente para Supervisores y Coordinadores',
 
-        code:
-          'SUPERVISOR_ROLE_REQUIRED',
-      })
+      code:
+        'WORK_PLAN_OWNER_ROLE_REQUIRED',
+    })
   }
 
   return next()

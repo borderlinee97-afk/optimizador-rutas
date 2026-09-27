@@ -20,6 +20,9 @@ import {
 import {
   usePlan,
 } from '../../src/context/PlanContext'
+import {
+  useAuth,
+} from '../../src/context/AuthContext'
 import type {
   MobilePlanItem,
   MobilePlanStatus,
@@ -29,6 +32,7 @@ type WorkOrigin =
   | 'ORDINARY'
   | 'EXTRAORDINARY'
   | 'EXTRA_STOP'
+  | 'HIERARCHY_ASSIGNED'
 
 const STATUS_CONFIG: Record<
   MobilePlanStatus,
@@ -99,6 +103,32 @@ export default function WorkScreen() {
     refresh,
   } = usePlan()
 
+  const {
+    profile,
+  } = useAuth()
+
+  const isSupervisor =
+    profile?.rol ===
+    'SUPERVISOR'
+
+  const isCoordinator =
+    profile?.rol ===
+    'COORDINADOR'
+
+  /*
+   * Tanto Supervisor como Coordinador
+   * generan y administran su propio
+   * plan de trabajo.
+   */
+  const canManageOwnPlans =
+    isSupervisor ||
+    isCoordinator
+
+  const hierarchyAssignmentLabel =
+    isCoordinator
+      ? 'Asignada por Gerente'
+      : 'Asignada por Coordinador'
+
   const activeVisit =
     items.find(
       (item) =>
@@ -161,6 +191,13 @@ export default function WorkScreen() {
         'EXTRA_STOP',
     ).length
 
+  const hierarchyAssignedCount =
+    items.filter(
+      (item) =>
+        item.source ===
+        'HIERARCHY_ASSIGNED',
+    ).length
+
   function openItem(
     item: MobilePlanItem,
   ) {
@@ -189,6 +226,12 @@ export default function WorkScreen() {
   function openNewExtraStop() {
     router.push(
       '/extra-stop/new' as Href,
+    )
+  }
+
+  function openHierarchyAssignment() {
+    router.push(
+      '/hierarchy-assignment/new' as Href,
     )
   }
 
@@ -230,9 +273,9 @@ export default function WorkScreen() {
             </Text>
 
             <Text className="mt-2 text-base leading-6 text-slate-500">
-              Consulta todas las actividades
-              autorizadas para hoy y registra
-              su ejecución.
+              {isCoordinator
+                ? 'Consulta tu plan, las visitas que te fueron asignadas y registra su ejecución.'
+                : 'Consulta todas las actividades autorizadas para hoy y registra su ejecución.'}
             </Text>
           </View>
 
@@ -331,76 +374,161 @@ export default function WorkScreen() {
                     origin="EXTRA_STOP"
                   />
                 ) : null}
+
+                {hierarchyAssignedCount >
+                0 ? (
+                  <OriginSummaryBadge
+                    label="Asignadas"
+                    value={
+                      hierarchyAssignedCount
+                    }
+                    origin="HIERARCHY_ASSIGNED"
+                  />
+                ) : null}
               </View>
             </View>
           </>
         ) : null}
 
-        <Pressable
-          className="mt-5 flex-row items-center rounded-3xl border border-blue-200 bg-blue-50 p-5"
-          onPress={
-            openWorkPlans
-          }
-        >
-          <View className="h-12 w-12 items-center justify-center rounded-2xl bg-blue-600">
+        {/*
+         * SUPERVISOR Y COORDINADOR:
+         * ambos administran su propio
+         * plan de trabajo.
+         */}
+        {canManageOwnPlans ? (
+          <Pressable
+            className="mt-5 flex-row items-center rounded-3xl border border-blue-200 bg-blue-50 p-5"
+            onPress={
+              openWorkPlans
+            }
+          >
+            <View className="h-12 w-12 items-center justify-center rounded-2xl bg-blue-600">
+              <Ionicons
+                name="calendar-outline"
+                size={25}
+                color="#ffffff"
+              />
+            </View>
+
+            <View className="ml-4 flex-1">
+              <Text className="text-base font-bold text-blue-900">
+                Mis planes de trabajo
+              </Text>
+
+              <Text className="mt-1 text-sm leading-5 text-blue-700">
+                Crea borradores, consulta
+                aprobaciones y revisa los planes
+                rechazados.
+              </Text>
+            </View>
+
             <Ionicons
-              name="calendar-outline"
-              size={25}
-              color="#ffffff"
+              name="chevron-forward"
+              size={22}
+              color="#60a5fa"
             />
-          </View>
+          </Pressable>
+        ) : null}
 
-          <View className="ml-4 flex-1">
-            <Text className="text-base font-bold text-blue-900">
-              Mis planes de trabajo
-            </Text>
+        {/*
+         * La parada espontánea sigue siendo
+         * exclusiva del Supervisor.
+         */}
+        {isSupervisor ? (
+          <Pressable
+            className="mt-4 flex-row items-center rounded-3xl border border-primary-200 bg-primary-50 p-5"
+            onPress={
+              openNewExtraStop
+            }
+          >
+            <View className="h-12 w-12 items-center justify-center rounded-2xl bg-primary-600">
+              <Ionicons
+                name="add"
+                size={27}
+                color="#ffffff"
+              />
+            </View>
 
-            <Text className="mt-1 text-sm leading-5 text-blue-700">
-              Crea borradores, consulta
-              aprobaciones y revisa los planes
-              rechazados.
-            </Text>
-          </View>
+            <View className="ml-4 flex-1">
+              <Text className="text-base font-bold text-primary-900">
+                Agregar parada adicional
+              </Text>
 
-          <Ionicons
-            name="chevron-forward"
-            size={22}
-            color="#60a5fa"
-          />
-        </Pressable>
+              <Text className="mt-1 text-sm leading-5 text-primary-700">
+                Registra una entrega, pago,
+                trámite o actividad surgida
+                durante la ejecución.
+              </Text>
+            </View>
 
-        <Pressable
-          className="mt-4 flex-row items-center rounded-3xl border border-primary-200 bg-primary-50 p-5"
-          onPress={
-            openNewExtraStop
-          }
-        >
-          <View className="h-12 w-12 items-center justify-center rounded-2xl bg-primary-600">
             <Ionicons
-              name="add"
-              size={27}
-              color="#ffffff"
+              name="chevron-forward"
+              size={22}
+              color="#60a5fa"
             />
-          </View>
+          </Pressable>
+        ) : null}
 
-          <View className="ml-4 flex-1">
-            <Text className="text-base font-bold text-primary-900">
-              Agregar parada adicional
-            </Text>
+        {/*
+         * El Coordinador asigna instrucciones
+         * a sus Supervisores directos.
+         */}
+        {isCoordinator ? (
+          <>
+            <Pressable
+              className="mt-4 flex-row items-center rounded-3xl border border-indigo-200 bg-indigo-50 p-5"
+              onPress={
+                openHierarchyAssignment
+              }
+            >
+              <View className="h-12 w-12 items-center justify-center rounded-2xl bg-indigo-600">
+                <Ionicons
+                  name="person-add-outline"
+                  size={25}
+                  color="#ffffff"
+                />
+              </View>
 
-            <Text className="mt-1 text-sm leading-5 text-primary-700">
-              Registra una entrega, pago,
-              trámite o actividad surgida
-              durante la ejecución.
-            </Text>
-          </View>
+              <View className="ml-4 flex-1">
+                <Text className="text-base font-bold text-indigo-900">
+                  Asignar visita
+                </Text>
 
-          <Ionicons
-            name="chevron-forward"
-            size={22}
-            color="#60a5fa"
-          />
-        </Pressable>
+                <Text className="mt-1 text-sm leading-5 text-indigo-700">
+                  Asigna una visita a uno de tus
+                  Supervisores directos.
+                </Text>
+              </View>
+
+              <Ionicons
+                name="chevron-forward"
+                size={22}
+                color="#818cf8"
+              />
+            </Pressable>
+
+            <View className="mt-4 flex-row items-center rounded-3xl border border-indigo-200 bg-indigo-50 p-5">
+              <View className="h-12 w-12 items-center justify-center rounded-2xl bg-indigo-600">
+                <Ionicons
+                  name="briefcase-outline"
+                  size={25}
+                  color="#ffffff"
+                />
+              </View>
+
+              <View className="ml-4 flex-1">
+                <Text className="text-base font-bold text-indigo-900">
+                  Trabajo asignado
+                </Text>
+
+                <Text className="mt-1 text-sm leading-5 text-indigo-700">
+                  Aquí aparecerán las visitas que te
+                  asigne tu Gerente.
+                </Text>
+              </View>
+            </View>
+          </>
+        ) : null}
 
         {error ? (
           <View className="mt-5 rounded-2xl border border-amber-200 bg-amber-50 p-4">
@@ -493,6 +621,10 @@ export default function WorkScreen() {
                 origin ===
                 'EXTRAORDINARY'
 
+              const isHierarchyAssigned =
+                origin ===
+                'HIERARCHY_ASSIGNED'
+
               const isCancelled =
                 item.status ===
                 'CANCELLED'
@@ -512,11 +644,13 @@ export default function WorkScreen() {
                   className={`rounded-3xl border p-5 ${
                     isCancelled
                       ? 'border-rose-200 bg-rose-50'
-                      : isExtraordinary
-                        ? 'border-orange-200 bg-orange-50/40'
-                        : isExtraStop
-                          ? 'border-violet-200 bg-violet-50/40'
-                          : 'border-slate-200 bg-white'
+                      : isHierarchyAssigned
+                        ? 'border-indigo-200 bg-indigo-50/40'
+                        : isExtraordinary
+                          ? 'border-orange-200 bg-orange-50/40'
+                          : isExtraStop
+                            ? 'border-violet-200 bg-violet-50/40'
+                            : 'border-slate-200 bg-white'
                   } ${
                     blocked
                       ? 'opacity-50'
@@ -536,11 +670,13 @@ export default function WorkScreen() {
                       className={`mr-4 h-11 w-11 items-center justify-center rounded-2xl ${
                         isCancelled
                           ? 'bg-rose-100'
-                          : isExtraStop
-                            ? 'bg-violet-100'
-                            : isExtraordinary
-                              ? 'bg-orange-100'
-                              : 'bg-primary-50'
+                          : isHierarchyAssigned
+                            ? 'bg-indigo-100'
+                            : isExtraStop
+                              ? 'bg-violet-100'
+                              : isExtraordinary
+                                ? 'bg-orange-100'
+                                : 'bg-primary-50'
                       }`}
                     >
                       {isCancelled ? (
@@ -548,6 +684,12 @@ export default function WorkScreen() {
                           name="ban-outline"
                           size={22}
                           color="#be123c"
+                        />
+                      ) : isHierarchyAssigned ? (
+                        <Ionicons
+                          name="briefcase-outline"
+                          size={22}
+                          color="#4338ca"
                         />
                       ) : isExtraStop ? (
                         <Ionicons
@@ -573,6 +715,9 @@ export default function WorkScreen() {
                       <OriginBadge
                         origin={
                           origin
+                        }
+                        hierarchyLabel={
+                          hierarchyAssignmentLabel
                         }
                       />
 
@@ -768,10 +913,16 @@ function getWorkOrigin(
       }
     | null,
 ): WorkOrigin {
+  if (
+    item.source ===
+    'HIERARCHY_ASSIGNED'
+  ) {
+    return 'HIERARCHY_ASSIGNED'
+  }
+
   /*
    * Las paradas agregadas durante ejecución
-   * tienen prioridad sobre el tipo del plan
-   * al que quedaron asociadas.
+   * tienen prioridad sobre el tipo del plan.
    */
   if (
     item.itemType ===
@@ -784,14 +935,6 @@ function getWorkOrigin(
     return 'EXTRA_STOP'
   }
 
-  /*
-   * Si el plan principal es ORDINARY,
-   * los items pertenecientes a ese mismo
-   * plan son ordinarios.
-   *
-   * Cualquier farmacia de otro plan aprobado
-   * corresponde a un EXTRAORDINARY.
-   */
   if (
     plan?.planType ===
       'ORDINARY'
@@ -802,12 +945,6 @@ function getWorkOrigin(
       : 'EXTRAORDINARY'
   }
 
-  /*
-   * Si el plan principal ya es EXTRAORDINARY,
-   * significa que hoy no existe un ordinario
-   * aprobado activo y las farmacias visibles
-   * provienen de planes extraordinarios.
-   */
   if (
     plan?.planType ===
       'EXTRAORDINARY'
@@ -815,17 +952,35 @@ function getWorkOrigin(
     return 'EXTRAORDINARY'
   }
 
-  /*
-   * Fallback defensivo.
-   */
   return 'ORDINARY'
 }
 
 function OriginBadge({
   origin,
+  hierarchyLabel,
 }: {
   origin: WorkOrigin
+  hierarchyLabel: string
 }) {
+  if (
+    origin ===
+    'HIERARCHY_ASSIGNED'
+  ) {
+    return (
+      <View className="mb-2 self-start flex-row items-center rounded-full bg-indigo-100 px-3 py-1">
+        <Ionicons
+          name="briefcase-outline"
+          size={13}
+          color="#4338ca"
+        />
+
+        <Text className="ml-1 text-xs font-bold text-indigo-700">
+          {hierarchyLabel}
+        </Text>
+      </View>
+    )
+  }
+
   if (
     origin ===
     'EXTRA_STOP'
@@ -890,27 +1045,39 @@ function OriginSummaryBadge({
 }) {
   const config =
     origin ===
-    'EXTRA_STOP'
+    'HIERARCHY_ASSIGNED'
       ? {
           container:
-            'bg-violet-100',
+            'bg-indigo-100',
+
           text:
-            'text-violet-700',
+            'text-indigo-700',
         }
       : origin ===
-          'EXTRAORDINARY'
+          'EXTRA_STOP'
         ? {
             container:
-              'bg-orange-100',
+              'bg-violet-100',
+
             text:
-              'text-orange-700',
+              'text-violet-700',
           }
-        : {
-            container:
-              'bg-blue-100',
-            text:
-              'text-blue-700',
-          }
+        : origin ===
+            'EXTRAORDINARY'
+          ? {
+              container:
+                'bg-orange-100',
+
+              text:
+                'text-orange-700',
+            }
+          : {
+              container:
+                'bg-blue-100',
+
+              text:
+                'text-blue-700',
+            }
 
   return (
     <View

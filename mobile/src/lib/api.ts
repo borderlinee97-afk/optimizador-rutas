@@ -113,6 +113,10 @@ export async function apiRequest<T>(
   }
 
   let response: Response
+  const controller = normalizedPath.startsWith('/api/mobile/evidence/')
+    ? new AbortController()
+    : null
+  const timeout = controller ? setTimeout(() => controller.abort(), 30_000) : null
 
   try {
     response =
@@ -121,6 +125,7 @@ export async function apiRequest<T>(
         {
           ...options,
           headers,
+          ...(controller ? { signal: controller.signal } : {}),
         },
       )
   } catch (error) {
@@ -134,6 +139,8 @@ export async function apiRequest<T>(
       0,
       'NETWORK_ERROR',
     )
+  } finally {
+    if (timeout) clearTimeout(timeout)
   }
 
   const payload =
