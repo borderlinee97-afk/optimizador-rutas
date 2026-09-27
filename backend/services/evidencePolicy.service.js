@@ -2,41 +2,104 @@ import {
   getSupabaseAdmin,
 } from '../lib/supabaseAdmin.js'
 
-const EVIDENCE_READ_URL_TTL_SECONDS = 300
+const EVIDENCE_READ_URL_TTL_SECONDS =
+  300
+
+const DEFAULT_EVIDENCE_MAX_BYTES =
+  6 *
+  1024 *
+  1024
 
 export async function addSignedEvidenceReadUrl(
   row,
-  getAdmin = getSupabaseAdmin,
+  getAdmin =
+    getSupabaseAdmin,
 ) {
   const {
-    storage_bucket: storageBucket,
-    storage_path: storagePath,
+    storage_bucket:
+      storageBucket,
+
+    storage_path:
+      storagePath,
+
     ...safeEvidence
-  } = row
+  } =
+    row
 
   if (
-    row.status !== 'READY' ||
+    row.status !==
+      'READY' ||
     !storagePath
   ) {
     return {
       ...safeEvidence,
-      signedUrl: null,
-      signedUrlExpiresIn: null,
+
+      signedUrl:
+        null,
+
+      signedUrlExpiresIn:
+        null,
     }
   }
 
-  const admin = getAdmin()
-  const { data, error } =
+  const admin =
+    getAdmin()
+
+  const {
+    data,
+    error,
+  } =
     await admin.storage
       .from(
-        storageBucket || 'visit-evidence',
+        storageBucket ||
+          'visit-evidence',
       )
       .createSignedUrl(
         storagePath,
         EVIDENCE_READ_URL_TTL_SECONDS,
       )
 
-  if (error || !data?.signedUrl) {
+  if (
+    error ||
+    !data?.signedUrl
+  ) {
+    console.error(
+      '[evidence-storage][SIGNED_READ_URL_FAILED]',
+      {
+        evidenceId:
+          row.id,
+
+        bucket:
+          storageBucket ||
+          'visit-evidence',
+
+        storagePath,
+
+        supabaseError: {
+          name:
+            error?.name ??
+            null,
+
+          message:
+            error?.message ??
+            null,
+
+          status:
+            error?.status ??
+            error?.statusCode ??
+            null,
+
+          statusCode:
+            error?.statusCode ??
+            null,
+
+          code:
+            error?.code ??
+            null,
+        },
+      },
+    )
+
     const storageError =
       new Error(
         'No fue posible preparar la visualización de la evidencia',
@@ -53,7 +116,10 @@ export async function addSignedEvidenceReadUrl(
 
   return {
     ...safeEvidence,
-    signedUrl: data.signedUrl,
+
+    signedUrl:
+      data.signedUrl,
+
     signedUrlExpiresIn:
       EVIDENCE_READ_URL_TTL_SECONDS,
   }
@@ -62,19 +128,27 @@ export async function addSignedEvidenceReadUrl(
 export async function attachEvidenceToPlanItems(
   db,
   items,
-  signEvidence = addSignedEvidenceReadUrl,
+  signEvidence =
+    addSignedEvidenceReadUrl,
 ) {
   const normalized =
-    Array.isArray(items)
+    Array.isArray(
+      items,
+    )
       ? items
       : []
 
-  if (!normalized.length) {
+  if (
+    !normalized.length
+  ) {
     return normalized
   }
 
   const itemIds =
-    normalized.map(item => item.id)
+    normalized.map(
+      item =>
+        item.id,
+    )
 
   const result =
     await db.query(
@@ -99,37 +173,65 @@ export async function attachEvidenceToPlanItems(
       FROM public.visit_evidence
       WHERE plan_item_id = ANY($1::uuid[])
         AND status = 'READY'
-      ORDER BY captured_at ASC, created_at ASC, id ASC
+      ORDER BY
+        captured_at ASC,
+        created_at ASC,
+        id ASC
       `,
-      [itemIds],
+      [
+        itemIds,
+      ],
     )
 
   const signedEvidence =
     await Promise.all(
       result.rows.map(
-        row => signEvidence(row),
+        row =>
+          signEvidence(
+            row,
+          ),
       ),
     )
 
   const grouped =
     new Map()
 
-  for (const evidence of signedEvidence) {
+  for (
+    const evidence of
+      signedEvidence
+  ) {
     const key =
-      String(evidence.plan_item_id)
+      String(
+        evidence.plan_item_id,
+      )
 
     const current =
-      grouped.get(key) ?? []
+      grouped.get(
+        key,
+      ) ??
+      []
 
-    current.push(evidence)
-    grouped.set(key, current)
+    current.push(
+      evidence,
+    )
+
+    grouped.set(
+      key,
+      current,
+    )
   }
 
   return normalized.map(
     item => ({
       ...item,
+
       evidence:
-        grouped.get(String(item.id)) ?? [],
+        grouped.get(
+          String(
+            item.id,
+          ),
+        ) ??
+        [],
     }),
   )
 }
@@ -157,9 +259,7 @@ export function getEvidencePolicy() {
     maxBytes:
       positiveInteger(
         process.env.EVIDENCE_MAX_BYTES,
-        6 *
-          1024 *
-          1024,
+        DEFAULT_EVIDENCE_MAX_BYTES,
       ),
 
     maxPerActivity:
@@ -196,7 +296,8 @@ export async function hasReadyActivityEvidence(
   const result =
     await db.query(
       `
-      SELECT 1
+      SELECT
+        1
       FROM public.visit_evidence
       WHERE plan_item_id = $1::uuid
         AND activity_id = $2::uuid
@@ -209,8 +310,10 @@ export async function hasReadyActivityEvidence(
       ],
     )
 
-  return result.rowCount >
+  return (
+    result.rowCount >
     0
+  )
 }
 
 export async function hasReadyItemEvidence(
@@ -220,7 +323,8 @@ export async function hasReadyItemEvidence(
   const result =
     await db.query(
       `
-      SELECT 1
+      SELECT
+        1
       FROM public.visit_evidence
       WHERE plan_item_id = $1::uuid
         AND status = 'READY'
@@ -231,8 +335,10 @@ export async function hasReadyItemEvidence(
       ],
     )
 
-  return result.rowCount >
+  return (
+    result.rowCount >
     0
+  )
 }
 
 function parseBoolean(
@@ -276,13 +382,15 @@ function positiveInteger(
       10,
     )
 
-  return Number.isInteger(
-    parsed,
-  ) &&
+  return (
+    Number.isInteger(
+      parsed,
+    ) &&
     parsed >
       0
-    ? parsed
-    : fallback
+      ? parsed
+      : fallback
+  )
 }
 
 function positiveNumber(
@@ -294,11 +402,13 @@ function positiveNumber(
       value,
     )
 
-  return Number.isFinite(
-    parsed,
-  ) &&
+  return (
+    Number.isFinite(
+      parsed,
+    ) &&
     parsed >
       0
-    ? parsed
-    : fallback
+      ? parsed
+      : fallback
+  )
 }

@@ -1,10 +1,6 @@
-import {
-  Router,
-} from 'express'
+import { Router } from 'express'
 
-import {
-  pool,
-} from '../db/pool.js'
+import { pool } from '../db/pool.js'
 
 import {
   getSupabaseAdmin,
@@ -43,6 +39,17 @@ const ALLOWED_MIME_TYPES =
 const EVIDENCE_BUCKET =
   'visit-evidence'
 
+const DEFAULT_MAX_BYTES =
+  6 *
+  1024 *
+  1024
+
+const DEFAULT_PENDING_UPLOAD_TTL_MINUTES =
+  120
+
+const STALE_PENDING_UPLOAD_REASON =
+  'Carga incompleta expirada antes de completarse.'
+
 router.get(
   '/policy',
   (
@@ -73,8 +80,12 @@ router.post(
 
       if (!target.ok) {
         return res
-          .status(target.status)
-          .json(target.body)
+          .status(
+            target.status,
+          )
+          .json(
+            target.body,
+          )
       }
 
       return await createUploadTicket(
@@ -112,6 +123,30 @@ router.post(
     next,
   ) => {
     try {
+      const taskId =
+        String(
+          req.params.taskId ??
+          '',
+        ).trim()
+
+      if (
+        !UUID_PATTERN.test(
+          taskId,
+        )
+      ) {
+        return res
+          .status(
+            400,
+          )
+          .json({
+            error:
+              'El identificador de tarea no es válido',
+
+            code:
+              'INVALID_TASK_ID',
+          })
+      }
+
       const result =
         await pool.query(
           `
@@ -123,7 +158,7 @@ router.post(
           LIMIT 1
           `,
           [
-            req.params.taskId,
+            taskId,
           ],
         )
 
@@ -136,7 +171,9 @@ router.post(
           req.identityProfile.id
       ) {
         return res
-          .status(404)
+          .status(
+            404,
+          )
           .json({
             error:
               'La tarea no existe o no pertenece al usuario autenticado',
@@ -180,8 +217,32 @@ router.post(
     res,
     next,
   ) => {
+    const evidenceId =
+      String(
+        req.params.evidenceId ??
+        '',
+      ).trim()
+
+    if (
+      !UUID_PATTERN.test(
+        evidenceId,
+      )
+    ) {
+      return res
+        .status(
+          400,
+        )
+        .json({
+          error:
+            'El identificador de evidencia no es válido',
+
+          code:
+            'INVALID_EVIDENCE_ID',
+        })
+    }
+
     try {
-      const result =
+      const initialResult =
         await pool.query(
           `
           SELECT *
@@ -191,17 +252,21 @@ router.post(
           LIMIT 1
           `,
           [
-            req.params.evidenceId,
+            evidenceId,
             req.identityProfile.id,
           ],
         )
 
-      const evidence =
-        result.rows[0]
+      const initialEvidence =
+        initialResult.rows[0]
 
-      if (!evidence) {
+      if (
+        !initialEvidence
+      ) {
         return res
-          .status(404)
+          .status(
+            404,
+          )
           .json({
             error:
               'La evidencia no existe o no pertenece al usuario autenticado',
@@ -212,7 +277,7 @@ router.post(
       }
 
       if (
-        evidence.status ===
+        initialEvidence.status ===
         'READY'
       ) {
         return res.json({
@@ -221,19 +286,38 @@ router.post(
 
           evidence:
             mapEvidence(
-              evidence,
+              initialEvidence,
             ),
         })
       }
 
+      if (
+        initialEvidence.status !==
+        'PENDING_UPLOAD'
+      ) {
+        return res
+          .status(
+            409,
+          )
+          .json({
+            error:
+              'La evidencia ya no está disponible para completar la carga',
+
+            code:
+              'EVIDENCE_NOT_PENDING_UPLOAD',
+          })
+      }
+
       const exists =
         await storageObjectExists(
-          evidence.storage_path,
+          initialEvidence.storage_path,
         )
 
       if (!exists) {
         return res
-          .status(409)
+          .status(
+            409,
+          )
           .json({
             error:
               'El archivo de evidencia aún no está disponible',
@@ -243,61 +327,179 @@ router.post(
           })
       }
 
-      const updateResult =
-        await pool.query(
-          `
-          UPDATE public.visit_evidence
-          SET
-            status = 'READY',
-            uploaded_at = COALESCE(uploaded_at, NOW()),
-            rejection_reason = NULL,
-            updated_at = NOW()
-          WHERE id = $1::uuid
-          RETURNING *
-          `,
-          [
-            evidence.id,
-          ],
+      const client =
+        await pool.connect()
+
+      try {
+        await client.query(
+          'BEGIN',
         )
 
-      if (
-        evidence.task_id
-      ) {
-        await pool.query(
-          `
-          INSERT INTO public.operational_task_event (
-            task_id,
-            actor_id,
-            event_type,
-            metadata
+        const updateResult =
+          await client.query(
+            `
+            UPDATE public.visit_evidence
+            SET
+              status = 'READY',
+              uploaded_at = COALESCE(
+                uploaded_at,
+                NOW()
+              ),
+              rejection_reason = NULL,
+              updated_at = NOW()
+            WHERE id = $1::uuid
+              AND supervisor_id = $2::uuid
+              AND status = 'PENDING_UPLOAD'
+            RETURNING *
+            `,
+            [
+              initialEvidence.id,
+              req.identityProfile.id,
+            ],
           )
-          VALUES (
-            $1::uuid,
-            $2::uuid,
-            'EVIDENCE_ADDED',
-            jsonb_build_object(
-              'evidenceId',
-              $3::uuid
+
+        let updatedEvidence =
+          updateResult.rows[0]
+
+        /*
+         * Puede ocurrir que dos solicitudes de confirmación
+         * lleguen prácticamente al mismo tiempo.
+         *
+         * Sólo una debe realizar la transición
+         * PENDING_UPLOAD -> READY y registrar el evento.
+         */
+        if (
+          !updatedEvidence
+        ) {
+          const currentResult =
+            await client.query(
+              `
+              SELECT *
+              FROM public.visit_evidence
+              WHERE id = $1::uuid
+                AND supervisor_id = $2::uuid
+              LIMIT 1
+              `,
+              [
+                initialEvidence.id,
+                req.identityProfile.id,
+              ],
             )
+
+          updatedEvidence =
+            currentResult.rows[0]
+
+          if (
+            !updatedEvidence
+          ) {
+            await client.query(
+              'ROLLBACK',
+            )
+
+            return res
+              .status(
+                404,
+              )
+              .json({
+                error:
+                  'La evidencia no existe o no pertenece al usuario autenticado',
+
+                code:
+                  'EVIDENCE_NOT_FOUND',
+              })
+          }
+
+          if (
+            updatedEvidence.status ===
+            'READY'
+          ) {
+            await client.query(
+              'COMMIT',
+            )
+
+            return res.json({
+              ok:
+                true,
+
+              evidence:
+                mapEvidence(
+                  updatedEvidence,
+                ),
+            })
+          }
+
+          await client.query(
+            'ROLLBACK',
           )
-          `,
-          [
-            evidence.task_id,
-            req.identityProfile.id,
-            evidence.id,
-          ],
+
+          return res
+            .status(
+              409,
+            )
+            .json({
+              error:
+                'La evidencia ya no está disponible para completar la carga',
+
+              code:
+                'EVIDENCE_NOT_PENDING_UPLOAD',
+            })
+        }
+
+        if (
+          updatedEvidence.task_id
+        ) {
+          await client.query(
+            `
+            INSERT INTO public.operational_task_event (
+              task_id,
+              actor_id,
+              event_type,
+              metadata
+            )
+            VALUES (
+              $1::uuid,
+              $2::uuid,
+              'EVIDENCE_ADDED',
+              jsonb_build_object(
+                'evidenceId',
+                $3::uuid
+              )
+            )
+            `,
+            [
+              updatedEvidence.task_id,
+              req.identityProfile.id,
+              updatedEvidence.id,
+            ],
+          )
+        }
+
+        await client.query(
+          'COMMIT',
         )
+
+        return res.json({
+          ok:
+            true,
+
+          evidence:
+            mapEvidence(
+              updatedEvidence,
+            ),
+        })
+      } catch (
+        error
+      ) {
+        await client.query(
+          'ROLLBACK',
+        ).catch(
+          () => {},
+        )
+
+        throw error
+      } finally {
+        client.release()
       }
-
-      return res.json({
-        ok:
-          true,
-
-        evidence:
-          mapEvidence(
-            updateResult.rows[0],
-          ),
-      })
     } catch (
       error
     ) {
@@ -316,6 +518,30 @@ router.get(
     next,
   ) => {
     try {
+      const itemId =
+        String(
+          req.params.itemId ??
+          '',
+        ).trim()
+
+      if (
+        !UUID_PATTERN.test(
+          itemId,
+        )
+      ) {
+        return res
+          .status(
+            400,
+          )
+          .json({
+            error:
+              'El identificador de visita no es válido',
+
+            code:
+              'INVALID_PLAN_ITEM_ID',
+          })
+      }
+
       const itemResult =
         await pool.query(
           `
@@ -329,7 +555,7 @@ router.get(
           LIMIT 1
           `,
           [
-            req.params.itemId,
+            itemId,
           ],
         )
 
@@ -344,7 +570,9 @@ router.get(
         )
       ) {
         return res
-          .status(404)
+          .status(
+            404,
+          )
           .json({
             error:
               'La visita no existe o no está dentro del ámbito autorizado',
@@ -361,7 +589,9 @@ router.get(
           FROM public.visit_evidence
           WHERE plan_item_id = $1::uuid
             AND status = 'READY'
-          ORDER BY captured_at ASC, created_at ASC
+          ORDER BY
+            captured_at ASC,
+            created_at ASC
           `,
           [
             item.id,
@@ -393,19 +623,20 @@ async function loadOwnedVisitTarget(
   profile,
   rawActivityId,
 ) {
+  const normalizedItemId =
+    String(
+      itemId ??
+      '',
+    ).trim()
+
   if (
     !UUID_PATTERN.test(
-      String(
-        itemId ??
-        '',
-      ),
+      normalizedItemId,
     )
   ) {
     return invalidTarget(
       400,
-
       'INVALID_PLAN_ITEM_ID',
-
       'El identificador de visita no es válido',
     )
   }
@@ -438,9 +669,7 @@ async function loadOwnedVisitTarget(
   ) {
     return invalidTarget(
       403,
-
       'ROLE_NOT_ALLOWED',
-
       'El perfil no tiene permisos para registrar evidencia de esta visita',
     )
   }
@@ -450,57 +679,35 @@ async function loadOwnedVisitTarget(
       `
       SELECT
         wpi.id,
-
-        wpi.item_type::text
-          AS item_type,
-
-        wpi.source::text
-          AS source,
-
+        wpi.item_type::text AS item_type,
+        wpi.source::text AS source,
         wp.supervisor_id
-
       FROM public.work_plan_item wpi
-
       INNER JOIN public.work_plan wp
-        ON wp.id =
-          wpi.plan_id
-
-      WHERE wpi.id =
-          $1::uuid
-
-        AND wp.supervisor_id =
-          $2::uuid
-
-        AND wp.status =
-          'APPROVED'
-
-        AND wp.archived_at
-          IS NULL
-
-        AND wpi.removed_at
-          IS NULL
-
+        ON wp.id = wpi.plan_id
+      WHERE wpi.id = $1::uuid
+        AND wp.supervisor_id = $2::uuid
+        AND wp.status = 'APPROVED'
+        AND wp.archived_at IS NULL
+        AND wpi.removed_at IS NULL
         AND (
-          $3::text =
-            'SUPERVISOR'
-
+          $3::text = 'SUPERVISOR'
           OR (
-            $3::text =
-              'COORDINADOR'
-
-            AND wpi.source::text IN ('PLAN', 'HIERARCHY_ASSIGNED')
-
+            $3::text = 'COORDINADOR'
+            AND wpi.source::text IN (
+              'PLAN',
+              'HIERARCHY_ASSIGNED'
+            )
             AND wpi.item_type::text IN (
               'PHARMACY',
               'EXTRA_STOP'
             )
           )
         )
-
       LIMIT 1
       `,
       [
-        itemId,
+        normalizedItemId,
         profile.id,
         role,
       ],
@@ -509,12 +716,12 @@ async function loadOwnedVisitTarget(
   const item =
     itemResult.rows[0]
 
-  if (!item) {
+  if (
+    !item
+  ) {
     return invalidTarget(
       404,
-
       'PLAN_ITEM_NOT_FOUND',
-
       'La visita no existe o no pertenece al usuario autenticado',
     )
   }
@@ -527,7 +734,7 @@ async function loadOwnedVisitTarget(
       ? null
       : String(
           rawActivityId,
-        )
+        ).trim()
 
   if (
     activityId &&
@@ -537,28 +744,22 @@ async function loadOwnedVisitTarget(
   ) {
     return invalidTarget(
       400,
-
       'INVALID_ACTIVITY_ID',
-
       'El identificador de actividad no es válido',
     )
   }
 
-  if (activityId) {
+  if (
+    activityId
+  ) {
     const activityResult =
       await pool.query(
         `
         SELECT
           id
-
         FROM public.pharmacy_activity
-
-        WHERE id =
-            $1::uuid
-
-          AND plan_item_id =
-            $2::uuid
-
+        WHERE id = $1::uuid
+          AND plan_item_id = $2::uuid
         LIMIT 1
         `,
         [
@@ -573,9 +774,7 @@ async function loadOwnedVisitTarget(
     ) {
       return invalidTarget(
         404,
-
         'VISIT_ACTIVITY_NOT_FOUND',
-
         'La actividad no pertenece a esta visita',
       )
     }
@@ -601,10 +800,16 @@ async function createUploadTicket(
       req.body,
     )
 
-  if (!parsed.ok) {
+  if (
+    !parsed.ok
+  ) {
     return res
-      .status(400)
-      .json(parsed.body)
+      .status(
+        400,
+      )
+      .json(
+        parsed.body,
+      )
   }
 
   const maxPerItem =
@@ -619,12 +824,39 @@ async function createUploadTicket(
       3,
     )
 
+  const pendingUploadTtlMinutes =
+    positiveInteger(
+      process.env.EVIDENCE_PENDING_UPLOAD_TTL_MINUTES,
+      DEFAULT_PENDING_UPLOAD_TTL_MINUTES,
+    )
+
   const client =
     await pool.connect()
 
   try {
     await client.query(
       'BEGIN',
+    )
+
+    /*
+     * Serializa la creación de evidencias para una misma
+     * visita/tarea. Evita que dos requests simultáneos
+     * superen el límite antes de que alguno haga COMMIT.
+     */
+    await lockEvidenceTarget(
+      client,
+      target,
+    )
+
+    /*
+     * Las cargas que permanecieron PENDING_UPLOAD por más
+     * tiempo que la vida útil configurada dejan de ocupar
+     * para siempre un lugar del límite.
+     */
+    await expireStalePendingUploads(
+      client,
+      target,
+      pendingUploadTtlMinutes,
     )
 
     const existingResult =
@@ -644,7 +876,12 @@ async function createUploadTicket(
     let evidence =
       existingResult.rows[0]
 
-    if (evidence) {
+    let created =
+      false
+
+    if (
+      evidence
+    ) {
       if (
         evidence.supervisor_id !==
           target.ownerId ||
@@ -660,7 +897,9 @@ async function createUploadTicket(
         )
 
         return res
-          .status(409)
+          .status(
+            409,
+          )
           .json({
             error:
               'La clave de idempotencia ya pertenece a otra evidencia',
@@ -691,73 +930,92 @@ async function createUploadTicket(
             null,
         })
       }
-    } else {
+
+      /*
+       * Una evidencia que fue rechazada exclusivamente porque
+       * su PENDING_UPLOAD expiró puede reactivarse si el mismo
+       * teléfono conserva la misma idempotency key.
+       */
       if (
-        target.planItemId
+        evidence.status ===
+        'REJECTED'
       ) {
-        const countResult =
+        if (
+          evidence.rejection_reason !==
+          STALE_PENDING_UPLOAD_REASON
+        ) {
+          await client.query(
+            'ROLLBACK',
+          )
+
+          return res
+            .status(
+              409,
+            )
+            .json({
+              error:
+                'La evidencia fue rechazada y no puede reactivarse con la misma clave',
+
+              code:
+                'EVIDENCE_REJECTED',
+            })
+        }
+
+        await enforceEvidenceLimits(
+          client,
+          target,
+          maxPerItem,
+          maxPerActivity,
+          evidence.id,
+        )
+
+        const reactivatedResult =
           await client.query(
             `
-            SELECT
-              COUNT(*)::integer AS item_count,
-              COUNT(*) FILTER (
-                WHERE activity_id IS NOT DISTINCT FROM $2::uuid
-              )::integer AS activity_count
-            FROM public.visit_evidence
-            WHERE plan_item_id = $1::uuid
-              AND status <> 'REJECTED'
+            UPDATE public.visit_evidence
+            SET
+              status = 'PENDING_UPLOAD',
+              rejection_reason = NULL,
+              uploaded_at = NULL,
+              updated_at = NOW()
+            WHERE id = $1::uuid
+            RETURNING *
             `,
             [
-              target.planItemId,
-              target.activityId,
+              evidence.id,
             ],
           )
 
-        if (
-          Number(
-            countResult.rows[0]
-              .item_count,
-          ) >=
-          maxPerItem
-        ) {
-          await client.query(
-            'ROLLBACK',
+        evidence =
+          reactivatedResult.rows[0]
+      } else if (
+        evidence.status !==
+        'PENDING_UPLOAD'
+      ) {
+        await client.query(
+          'ROLLBACK',
+        )
+
+        return res
+          .status(
+            409,
           )
+          .json({
+            error:
+              'La evidencia se encuentra en un estado que no permite reintentar la carga',
 
-          return res
-            .status(409)
-            .json({
-              error:
-                `La visita admite como máximo ${maxPerItem} evidencias`,
-
-              code:
-                'EVIDENCE_ITEM_LIMIT_REACHED',
-            })
-        }
-
-        if (
-          target.activityId &&
-          Number(
-            countResult.rows[0]
-              .activity_count,
-          ) >=
-          maxPerActivity
-        ) {
-          await client.query(
-            'ROLLBACK',
-          )
-
-          return res
-            .status(409)
-            .json({
-              error:
-                `La actividad admite como máximo ${maxPerActivity} evidencias`,
-
-              code:
-                'EVIDENCE_ACTIVITY_LIMIT_REACHED',
-            })
-        }
+            code:
+              'EVIDENCE_STATE_CONFLICT',
+          })
       }
+    } else {
+      await enforceEvidenceLimits(
+        client,
+        target,
+        maxPerItem,
+        maxPerActivity,
+        null,
+      )
 
       const extension =
         ALLOWED_MIME_TYPES.get(
@@ -835,8 +1093,19 @@ async function createUploadTicket(
 
       evidence =
         insertResult.rows[0]
+
+      created =
+        true
     }
 
+    /*
+     * Se crea el ticket antes del COMMIT.
+     *
+     * Si Supabase Storage devuelve error, hacemos rollback.
+     * Por tanto una creación nueva NO deja otra fila
+     * PENDING_UPLOAD huérfana solamente porque falló
+     * createSignedUploadUrl().
+     */
     const uploadTicket =
       await createSignedUploadTicket(
         evidence.storage_path,
@@ -848,10 +1117,9 @@ async function createUploadTicket(
 
     return res
       .status(
-        existingResult.rowCount >
-          0
-          ? 200
-          : 201,
+        created
+          ? 201
+          : 200,
       )
       .json({
         ok:
@@ -882,6 +1150,212 @@ async function createUploadTicket(
     throw error
   } finally {
     client.release()
+  }
+}
+
+async function lockEvidenceTarget(
+  client,
+  target,
+) {
+  if (
+    target.planItemId
+  ) {
+    await client.query(
+      `
+      SELECT
+        id
+      FROM public.work_plan_item
+      WHERE id = $1::uuid
+      FOR UPDATE
+      `,
+      [
+        target.planItemId,
+      ],
+    )
+
+    return
+  }
+
+  if (
+    target.taskId
+  ) {
+    await client.query(
+      `
+      SELECT
+        id
+      FROM public.operational_task
+      WHERE id = $1::uuid
+      FOR UPDATE
+      `,
+      [
+        target.taskId,
+      ],
+    )
+  }
+}
+
+async function enforceEvidenceLimits(
+  client,
+  target,
+  maxPerItem,
+  maxPerActivity,
+  excludeEvidenceId,
+) {
+  /*
+   * Las tareas no utilizaban límite por visita/actividad
+   * en la implementación original.
+   */
+  if (
+    !target.planItemId
+  ) {
+    return
+  }
+
+  const countResult =
+    await client.query(
+      `
+      SELECT
+        COUNT(*)::integer
+          AS item_count,
+
+        COUNT(*) FILTER (
+          WHERE activity_id
+            IS NOT DISTINCT FROM
+            $2::uuid
+        )::integer
+          AS activity_count
+
+      FROM public.visit_evidence
+
+      WHERE plan_item_id =
+          $1::uuid
+
+        AND status IN (
+          'PENDING_UPLOAD',
+          'READY'
+        )
+
+        AND (
+          $3::uuid IS NULL
+          OR id <> $3::uuid
+        )
+      `,
+      [
+        target.planItemId,
+        target.activityId,
+        excludeEvidenceId,
+      ],
+    )
+
+  const itemCount =
+    Number(
+      countResult.rows[0]
+        ?.item_count ??
+      0,
+    )
+
+  const activityCount =
+    Number(
+      countResult.rows[0]
+        ?.activity_count ??
+      0,
+    )
+
+  if (
+    itemCount >=
+    maxPerItem
+  ) {
+    throw new EvidenceLimitError(
+      `La visita admite como máximo ${maxPerItem} evidencias`,
+      'EVIDENCE_ITEM_LIMIT_REACHED',
+    )
+  }
+
+  if (
+    target.activityId &&
+    activityCount >=
+      maxPerActivity
+  ) {
+    throw new EvidenceLimitError(
+      `La actividad admite como máximo ${maxPerActivity} evidencias`,
+      'EVIDENCE_ACTIVITY_LIMIT_REACHED',
+    )
+  }
+}
+
+async function expireStalePendingUploads(
+  client,
+  target,
+  ttlMinutes,
+) {
+  const result =
+    await client.query(
+      `
+      UPDATE public.visit_evidence
+
+      SET
+        status = 'REJECTED',
+        rejection_reason = $4,
+        updated_at = NOW()
+
+      WHERE status =
+          'PENDING_UPLOAD'
+
+        AND uploaded_at
+          IS NULL
+
+        AND updated_at <
+          NOW() -
+          (
+            $1::integer *
+            INTERVAL '1 minute'
+          )
+
+        AND (
+          (
+            $2::uuid
+              IS NOT NULL
+            AND plan_item_id =
+              $2::uuid
+          )
+          OR (
+            $3::uuid
+              IS NOT NULL
+            AND task_id =
+              $3::uuid
+          )
+        )
+
+      RETURNING
+        id
+      `,
+      [
+        ttlMinutes,
+        target.planItemId,
+        target.taskId,
+        STALE_PENDING_UPLOAD_REASON,
+      ],
+    )
+
+  if (
+    result.rowCount >
+    0
+  ) {
+    console.warn(
+      '[evidence-storage][STALE_PENDING_UPLOADS_EXPIRED]',
+      {
+        count:
+          result.rowCount,
+
+        planItemId:
+          target.planItemId,
+
+        taskId:
+          target.taskId,
+
+        ttlMinutes,
+      },
+    )
   }
 }
 
@@ -938,7 +1412,7 @@ function parseEvidencePayload(
 
   const mocked =
     body?.mocked ===
-      true
+    true
 
   const sha256 =
     body?.sha256 ==
@@ -955,9 +1429,7 @@ function parseEvidencePayload(
   const maxBytes =
     positiveInteger(
       process.env.EVIDENCE_MAX_BYTES,
-      6 *
-        1024 *
-        1024,
+      DEFAULT_MAX_BYTES,
     )
 
   const maxAccuracyM =
@@ -1045,7 +1517,9 @@ function parseEvidencePayload(
     )
   }
 
-  if (mocked) {
+  if (
+    mocked
+  ) {
     return invalidPayload(
       'EVIDENCE_MOCKED_LOCATION_REJECTED',
       'No se permite registrar evidencia con ubicación simulada',
@@ -1058,9 +1532,9 @@ function parseEvidencePayload(
     ) ||
     capturedAt.getTime() >
       Date.now() +
-        5 *
-          60 *
-          1000
+      5 *
+      60 *
+      1000
   ) {
     return invalidPayload(
       'EVIDENCE_CAPTURE_TIME_INVALID',
@@ -1093,8 +1567,10 @@ function parseEvidencePayload(
       longitude,
       accuracyM,
       mocked,
+
       capturedAt:
         capturedAt.toISOString(),
+
       sha256,
     },
   }
@@ -1126,6 +1602,42 @@ async function createSignedUploadTicket(
     error ||
     !data?.token
   ) {
+    /*
+     * AQUÍ estaba uno de los problemas de diagnóstico.
+     *
+     * Antes se descartaba por completo el error real de
+     * Supabase y solamente se devolvía:
+     *
+     * EVIDENCE_UPLOAD_TICKET_FAILED / 502
+     *
+     * Ahora Render conservará el detalle técnico real.
+     *
+     * NO se imprime:
+     * - SUPABASE_SECRET_KEY
+     * - access token
+     * - upload token
+     */
+    logStorageError(
+      'SIGNED_UPLOAD_TICKET_FAILED',
+      error,
+      {
+        bucket:
+          EVIDENCE_BUCKET,
+
+        storagePath,
+
+        hasData:
+          Boolean(
+            data,
+          ),
+
+        hasToken:
+          Boolean(
+            data?.token,
+          ),
+      },
+    )
+
     const storageError =
       new Error(
         'No fue posible preparar la carga de evidencia',
@@ -1140,27 +1652,64 @@ async function createSignedUploadTicket(
     throw storageError
   }
 
+  console.log(
+    '[evidence-storage][SIGNED_UPLOAD_TICKET_OK]',
+    {
+      bucket:
+        EVIDENCE_BUCKET,
+
+      storagePath,
+    },
+  )
+
   return data
 }
 
 async function storageObjectExists(
   storagePath,
 ) {
+  const normalizedPath =
+    String(
+      storagePath ??
+      '',
+    ).trim()
+
   const separatorIndex =
-    storagePath.lastIndexOf(
+    normalizedPath.lastIndexOf(
       '/',
     )
 
+  if (
+    separatorIndex <=
+      0 ||
+    separatorIndex ===
+      normalizedPath.length -
+      1
+  ) {
+    const storageError =
+      new Error(
+        'La ruta de almacenamiento de la evidencia no es válida',
+      )
+
+    storageError.code =
+      'EVIDENCE_STORAGE_PATH_INVALID'
+
+    storageError.status =
+      500
+
+    throw storageError
+  }
+
   const directory =
-    storagePath.slice(
+    normalizedPath.slice(
       0,
       separatorIndex,
     )
 
   const filename =
-    storagePath.slice(
+    normalizedPath.slice(
       separatorIndex +
-        1,
+      1,
     )
 
   const admin =
@@ -1178,14 +1727,29 @@ async function storageObjectExists(
         directory,
         {
           limit:
-            10,
+            100,
 
           search:
             filename,
         },
       )
 
-  if (error) {
+  if (
+    error
+  ) {
+    logStorageError(
+      'STORAGE_OBJECT_CHECK_FAILED',
+      error,
+      {
+        bucket:
+          EVIDENCE_BUCKET,
+
+        directory,
+
+        filename,
+      },
+    )
+
     const storageError =
       new Error(
         'No fue posible verificar la evidencia',
@@ -1200,10 +1764,15 @@ async function storageObjectExists(
     throw storageError
   }
 
-  return data.some(
-    object =>
-      object.name ===
-      filename,
+  return (
+    Array.isArray(
+      data,
+    ) &&
+    data.some(
+      object =>
+        object.name ===
+        filename,
+    )
   )
 }
 
@@ -1226,8 +1795,37 @@ async function addSignedReadUrl(
         300,
       )
 
-  if (error) {
-    throw error
+  if (
+    error ||
+    !data?.signedUrl
+  ) {
+    logStorageError(
+      'SIGNED_READ_URL_FAILED',
+      error,
+      {
+        bucket:
+          EVIDENCE_BUCKET,
+
+        storagePath:
+          row.storage_path,
+
+        evidenceId:
+          row.id,
+      },
+    )
+
+    const storageError =
+      new Error(
+        'No fue posible preparar la visualización de la evidencia',
+      )
+
+    storageError.code =
+      'EVIDENCE_READ_URL_FAILED'
+
+    storageError.status =
+      502
+
+    throw storageError
   }
 
   return {
@@ -1241,6 +1839,47 @@ async function addSignedReadUrl(
     signedUrlExpiresIn:
       300,
   }
+}
+
+function logStorageError(
+  event,
+  error,
+  context =
+    {},
+) {
+  console.error(
+    `[evidence-storage][${event}]`,
+    {
+      ...context,
+
+      supabaseError: {
+        name:
+          error?.name ??
+          null,
+
+        message:
+          error?.message ??
+          null,
+
+        status:
+          error?.status ??
+          error?.statusCode ??
+          null,
+
+        statusCode:
+          error?.statusCode ??
+          null,
+
+        code:
+          error?.code ??
+          null,
+
+        error:
+          error?.error ??
+          null,
+      },
+    },
+  )
 }
 
 function mapEvidence(
@@ -1307,7 +1946,9 @@ function invalidTarget(
   return {
     ok:
       false,
+
     status,
+
     body: {
       error,
       code,
@@ -1322,6 +1963,7 @@ function invalidPayload(
   return {
     ok:
       false,
+
     body: {
       error,
       code,
@@ -1342,13 +1984,15 @@ function positiveInteger(
       10,
     )
 
-  return Number.isInteger(
-    parsed,
-  ) &&
+  return (
+    Number.isInteger(
+      parsed,
+    ) &&
     parsed >
       0
-    ? parsed
-    : fallback
+      ? parsed
+      : fallback
+  )
 }
 
 function positiveNumber(
@@ -1360,13 +2004,36 @@ function positiveNumber(
       value,
     )
 
-  return Number.isFinite(
-    parsed,
-  ) &&
+  return (
+    Number.isFinite(
+      parsed,
+    ) &&
     parsed >
       0
-    ? parsed
-    : fallback
+      ? parsed
+      : fallback
+  )
+}
+
+class EvidenceLimitError
+  extends Error {
+  constructor(
+    message,
+    code,
+  ) {
+    super(
+      message,
+    )
+
+    this.name =
+      'EvidenceLimitError'
+
+    this.code =
+      code
+
+    this.status =
+      409
+  }
 }
 
 export default router
