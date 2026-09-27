@@ -39,6 +39,16 @@ type EvidenceQueueRow = {
   last_error: string | null
 }
 
+const MAX_EVIDENCE_BYTES = 6 * 1024 * 1024
+
+const PERMANENT_CONFLICT_CODES = new Set([
+  'EVIDENCE_ACTIVITY_LIMIT_REACHED',
+  'EVIDENCE_ITEM_LIMIT_REACHED',
+  'EVIDENCE_IDEMPOTENCY_CONFLICT',
+  'EVIDENCE_REJECTED',
+  'EVIDENCE_STATE_CONFLICT',
+])
+
 export function queueEvidence(
   evidence: Omit<
     LocalEvidence,
@@ -242,6 +252,25 @@ async function processPendingEvidence(
         row.evidence_id,
       )
 
+      stage = 'LOCAL_FILE'
+      const fileBody = Platform.OS === 'web'
+        ? await (await fetch(row.local_uri)).arrayBuffer()
+        : await new File(row.local_uri).arrayBuffer()
+      const actualByteSize = fileBody.byteLength
+      if (actualByteSize <= 0 || actualByteSize > MAX_EVIDENCE_BYTES) {
+        throw new ApiError('El archivo local no tiene un tamaño válido.', 422, 'LOCAL_FILE_INVALID')
+      }
+      if (actualByteSize !== row.byte_size) {
+        db.runSync(
+          `
+          UPDATE evidence_queue
+          SET byte_size = ?, updated_at = ?
+          WHERE evidence_id = ?
+          `,
+          [actualByteSize, Date.now(), row.evidence_id],
+        )
+      }
+
       const payload = {
         evidenceId:
           row.evidence_id,
@@ -261,7 +290,7 @@ async function processPendingEvidence(
         mimeType:
           row.mime_type,
         byteSize:
-          row.byte_size,
+          actualByteSize,
       }
 
       stage = 'TICKET'
@@ -284,14 +313,6 @@ async function processPendingEvidence(
             )
 
       if (ticket.upload) {
-        stage = 'LOCAL_FILE'
-        const fileBody = Platform.OS === 'web'
-          ? await (await fetch(row.local_uri)).arrayBuffer()
-          : await new File(row.local_uri).arrayBuffer()
-        if (fileBody.byteLength !== row.byte_size || fileBody.byteLength === 0) {
-          throw new ApiError('El archivo local no coincide con la evidencia guardada.', 422, 'LOCAL_FILE_INVALID')
-        }
-
         stage = 'STORAGE'
         const {
           error,
@@ -353,21 +374,7 @@ async function processPendingEvidence(
         // One refresh prepares the next explicit/foreground attempt; no retry loop.
         await supabase.auth.refreshSession().catch(() => undefined)
       }
-      const permanent =
-        error instanceof
-          ApiError &&
-        error.status >=
-          400 &&
-        error.status <
-          500 &&
-        ![
-          401,
-          408,
-          409,
-          429,
-        ].includes(
-          error.status,
-        )
+      const permanent = isPermanentEvidenceSyncError(error)
 
       const nextStatus =
         permanent || stage === 'LOCAL_FILE'
@@ -409,6 +416,12 @@ async function processPendingEvidence(
     pending,
     failed,
   }
+}
+
+function isPermanentEvidenceSyncError(error: unknown) {
+  if (!(error instanceof ApiError)) return false
+  if (error.status === 409) return PERMANENT_CONFLICT_CODES.has(error.code ?? '')
+  return error.status >= 400 && error.status < 500 && ![401, 408, 429].includes(error.status)
 }
 
 function markUploading(

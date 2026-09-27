@@ -890,7 +890,9 @@ async function createUploadTicket(
         evidence.activity_id !==
           target.activityId ||
         evidence.task_id !==
-          target.taskId
+          target.taskId ||
+        evidence.mime_type !==
+          parsed.value.mimeType
       ) {
         await client.query(
           'ROLLBACK',
@@ -1007,6 +1009,30 @@ async function createUploadTicket(
             code:
               'EVIDENCE_STATE_CONFLICT',
           })
+      }
+
+      if (
+        evidence.byte_size !==
+        parsed.value.byteSize
+      ) {
+        const reconciledResult =
+          await client.query(
+            `
+            UPDATE public.visit_evidence
+            SET byte_size = $2,
+                updated_at = NOW()
+            WHERE id = $1::uuid
+              AND status = 'PENDING_UPLOAD'
+            RETURNING *
+            `,
+            [
+              evidence.id,
+              parsed.value.byteSize,
+            ],
+          )
+
+        evidence =
+          reconciledResult.rows[0]
       }
     } else {
       await enforceEvidenceLimits(

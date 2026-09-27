@@ -210,23 +210,6 @@ export function EvidenceCapture({
         return
       }
 
-      const byteSize =
-        asset.fileSize ??
-        new File(asset.uri).size
-
-      if (
-        byteSize <
-          1 ||
-        byteSize >
-          MAX_BYTES
-      ) {
-        Alert.alert(
-          'Fotografía demasiado grande',
-          'La evidencia debe pesar como máximo 6 MB.',
-        )
-        return
-      }
-
       const mimeType =
         normalizeMimeType(
           asset.mimeType,
@@ -260,42 +243,73 @@ export function EvidenceCapture({
           mimeType,
         )}`
 
-      await FileSystem
-        .copyAsync({
-          from:
-            asset.uri,
-          to:
-            durableUri,
-        })
+      let queued = false
 
-      queueEvidence({
-        id:
-          evidenceId,
-        idempotencyKey:
-          evidenceId,
-        planItemId:
-          planItemId ??
-          null,
-        activityId:
-          activityId ??
-          null,
-        taskId:
-          taskId ??
-          null,
-        localUri:
-          durableUri,
-        mimeType,
-        byteSize,
-        capturedAt:
-          capturedAt,
-        latitude:
-          location.coords.latitude,
-        longitude:
-          location.coords.longitude,
-        accuracyM,
-        mocked:
-          false,
-      })
+      try {
+        await FileSystem
+          .copyAsync({
+            from:
+              asset.uri,
+            to:
+              durableUri,
+          })
+
+        const byteSize =
+          new File(durableUri).size
+
+        if (
+          !Number.isSafeInteger(byteSize) ||
+          byteSize < 1 ||
+          byteSize > MAX_BYTES
+        ) {
+          Alert.alert(
+            byteSize > MAX_BYTES
+              ? 'Fotografía demasiado grande'
+              : 'Fotografía inválida',
+            byteSize > MAX_BYTES
+              ? 'La evidencia debe pesar como máximo 6 MB.'
+              : 'No fue posible leer la fotografía guardada.',
+          )
+          return
+        }
+
+        queueEvidence({
+          id:
+            evidenceId,
+          idempotencyKey:
+            evidenceId,
+          planItemId:
+            planItemId ??
+            null,
+          activityId:
+            activityId ??
+            null,
+          taskId:
+            taskId ??
+            null,
+          localUri:
+            durableUri,
+          mimeType,
+          byteSize,
+          capturedAt:
+            capturedAt,
+          latitude:
+            location.coords.latitude,
+          longitude:
+            location.coords.longitude,
+          accuracyM,
+          mocked:
+            false,
+        })
+        queued = true
+      } finally {
+        if (!queued) {
+          await FileSystem.deleteAsync(
+            durableUri,
+            { idempotent: true },
+          ).catch(() => undefined)
+        }
+      }
 
       refresh()
 
