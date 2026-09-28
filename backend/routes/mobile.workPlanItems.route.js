@@ -125,18 +125,19 @@ router.post(
           'COORDINADOR'
           ? await getCoordinatorPlanPharmacyAccess(
               client,
-              pharmacyId,
+              payload.value.pharmacyId,
             )
           : await getPharmacyAccess(
               client,
               {
-                pharmacyId,
+                pharmacyId:
+                  payload.value.pharmacyId,
 
                 profile:
                   req.profile,
 
                 accessDate:
-                  scheduledDate,
+                  payload.value.scheduledDate,
               },
             )
 
@@ -488,18 +489,19 @@ router.patch(
           'COORDINADOR'
           ? await getCoordinatorPlanPharmacyAccess(
               client,
-              pharmacyId,
+              payload.value.pharmacyId,
             )
           : await getPharmacyAccess(
               client,
               {
-                pharmacyId,
+                pharmacyId:
+                  payload.value.pharmacyId,
 
                 profile:
                   req.profile,
 
                 accessDate:
-                  scheduledDate,
+                  payload.value.scheduledDate,
               },
             )
 
@@ -1386,32 +1388,20 @@ async function getCoordinatorPlanPharmacyAccess(
   client,
   pharmacyId,
 ) {
-  const result =
-    await client.query(
-      `
-      SELECT EXISTS (
-        SELECT 1
-
-        FROM public.farmacia
-
-        WHERE id = $1
-      ) AS exists
-      `,
-      [
-        pharmacyId,
-      ],
+  const pharmacy =
+    await getPharmacy(
+      client,
+      pharmacyId,
     )
 
   const exists =
-    Boolean(
-      result.rows[0]
-        ?.exists,
-    )
+    Boolean(pharmacy)
 
   return {
     exists,
     allowed:
       exists,
+    pharmacy,
   }
 }
 
