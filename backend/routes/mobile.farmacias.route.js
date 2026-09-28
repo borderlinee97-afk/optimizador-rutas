@@ -213,7 +213,7 @@ router.get(
             AND wp.archived_at
               IS NULL
 
-            AND CURRENT_DATE BETWEEN
+            AND (CURRENT_TIMESTAMP AT TIME ZONE 'America/Mexico_City')::date BETWEEN
               wp.period_start
               AND wp.period_end
 
@@ -235,7 +235,7 @@ router.get(
                       wp.id
 
                     AND scope_item.scheduled_date =
-                      CURRENT_DATE
+                      (CURRENT_TIMESTAMP AT TIME ZONE 'America/Mexico_City')::date
 
                     AND scope_item.removed_at
                       IS NULL
@@ -306,12 +306,12 @@ router.get(
             AND wp.archived_at
               IS NULL
 
-            AND CURRENT_DATE BETWEEN
+            AND (CURRENT_TIMESTAMP AT TIME ZONE 'America/Mexico_City')::date BETWEEN
               wp.period_start
               AND wp.period_end
 
             AND wpi.scheduled_date =
-              CURRENT_DATE
+              (CURRENT_TIMESTAMP AT TIME ZONE 'America/Mexico_City')::date
 
             AND wpi.removed_at
               IS NULL
@@ -1440,7 +1440,9 @@ router.post(
         await client.query(
           `
           SELECT
-            CURRENT_DATE::text
+            (
+              CURRENT_TIMESTAMP AT TIME ZONE 'America/Mexico_City'
+            )::date::text
               AS today
           `,
         )
@@ -2854,7 +2856,7 @@ async function getLockedOwnedItem(
 
         (
           wpi.scheduled_date =
-            CURRENT_DATE
+            (CURRENT_TIMESTAMP AT TIME ZONE 'America/Mexico_City')::date
         ) AS is_today
 
       FROM public.work_plan_item wpi
