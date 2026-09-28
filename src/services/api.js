@@ -560,6 +560,75 @@ export async function getWebWorkPlanDetail(
   )
 }
 
+/* Planes propios del Supervisor: reutilizan la API operativa existente. */
+const supervisorPlanUrl = planId =>
+  `${BASE_API}/mobile/work-plans/${encodeURIComponent(planId)}`
+
+export function getSupervisorWorkPlans() {
+  return fetchJSON(`${BASE_API}/mobile/work-plans/mine`, { method: 'GET' })
+}
+
+export function createSupervisorWorkPlan(payload) {
+  return fetchJSON(`${BASE_API}/mobile/work-plans`, {
+    method: 'POST', body: JSON.stringify(payload),
+  })
+}
+
+export function getSupervisorWorkPlan(planId) {
+  return fetchJSON(supervisorPlanUrl(planId), { method: 'GET' })
+}
+
+export function updateSupervisorWorkPlan(planId, payload) {
+  return fetchJSON(supervisorPlanUrl(planId), {
+    method: 'PATCH', body: JSON.stringify(payload),
+  })
+}
+
+export function submitSupervisorWorkPlan(planId) {
+  return fetchJSON(`${supervisorPlanUrl(planId)}/submit`, { method: 'POST' })
+}
+
+export function archiveSupervisorWorkPlan(planId) {
+  return fetchJSON(`${supervisorPlanUrl(planId)}/archive`, {
+    method: 'POST', body: JSON.stringify({ comment: null }),
+  })
+}
+
+export function getSupervisorWorkPlanPharmacyFilters() {
+  return fetchJSON(`${BASE_API}/mobile/work-plans/catalog/pharmacies/filters`, { method: 'GET' })
+}
+
+export function getSupervisorWorkPlanPharmacies(params = {}) {
+  return fetchJSON(
+    `${BASE_API}/mobile/work-plans/catalog/pharmacies${buildQS(params)}`,
+    { method: 'GET' },
+  )
+}
+
+export function addSupervisorWorkPlanItem(planId, payload) {
+  return fetchJSON(`${supervisorPlanUrl(planId)}/items`, {
+    method: 'POST', body: JSON.stringify(payload),
+  })
+}
+
+export function updateSupervisorWorkPlanItem(planId, itemId, payload) {
+  return fetchJSON(`${supervisorPlanUrl(planId)}/items/${encodeURIComponent(itemId)}`, {
+    method: 'PATCH', body: JSON.stringify(payload),
+  })
+}
+
+export function removeSupervisorWorkPlanItem(planId, itemId, reason = null) {
+  return fetchJSON(`${supervisorPlanUrl(planId)}/items/${encodeURIComponent(itemId)}/remove`, {
+    method: 'POST', body: JSON.stringify({ reason }),
+  })
+}
+
+export function reorderSupervisorWorkPlanItems(planId, payload) {
+  return fetchJSON(`${supervisorPlanUrl(planId)}/items/reorder`, {
+    method: 'POST', body: JSON.stringify(payload),
+  })
+}
+
 export async function getWebTasks(params = {}) {
   return fetchJSON(`${BASE_API}/web/tasks${buildWebQS(params)}`, { method: 'GET' })
 }

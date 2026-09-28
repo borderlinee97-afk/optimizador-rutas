@@ -1,5 +1,6 @@
 <template>
-  <main class="plans-page">
+  <SupervisorWorkPlansView v-if="isSupervisor" />
+  <main v-else class="plans-page">
     <div class="plans-container">
       <header class="plans-header">
         <div>
@@ -619,6 +620,7 @@ import {
 import {
   useAuth,
 } from '../../composables/useAuth.js'
+import SupervisorWorkPlansView from './SupervisorWorkPlansView.vue'
 
 const route =
   useRoute()
@@ -692,6 +694,10 @@ const normalizedRole =
         .trim()
         .toUpperCase()
   )
+
+const isSupervisor = computed(() =>
+  profile.value?.area === 'FARMACIAS' && normalizedRole.value === 'SUPERVISOR'
+)
 
 const pageKicker =
   computed(
@@ -987,9 +993,9 @@ const MetricCard =
     },
   })
 
-onMounted(
-  initialize
-)
+onMounted(() => {
+  if (!isSupervisor.value) void initialize()
+})
 
 async function initialize() {
   loading.value =

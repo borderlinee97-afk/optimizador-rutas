@@ -11,6 +11,8 @@ import WorkPlansView
 
 import WorkPlanDetailView
   from '../views/farmacias/WorkPlanDetailView.vue'
+import SupervisorWorkPlanEditorView
+  from '../views/farmacias/SupervisorWorkPlanEditorView.vue'
 
 import ApprovalsView
   from '../views/farmacias/ApprovalsView.vue'
@@ -101,6 +103,13 @@ const router =
             'SUPERVISOR',
           ],
         },
+      },
+
+      {
+        path: '/farmacias/planes/:planId/editar',
+        name: 'farmacias-supervisor-plan-editor',
+        component: SupervisorWorkPlanEditorView,
+        meta: { area: 'FARMACIAS', roles: ['SUPERVISOR'] },
       },
 
       {
