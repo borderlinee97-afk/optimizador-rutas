@@ -1,5 +1,35 @@
 # APP DE RUTAS — estado del proyecto
 
+## Reapertura offline y selector de CEDIS — publicación autorizada (2026-10-19)
+
+El usuario confirmó en la APK preview d2aa4937-6742-4484-b74c-16cc5295b317 que
+check-in, evidencias, actividades, check-out y sincronización funcionan. La versión
+77027a4 ya fue publicada en main/Render/Vercel. Reportó una nueva observación:
+salir y volver a entrar sin red; pidió además separar unidades y CEDIS al agregar visita.
+
+- Farmacias nativo: salir bloquea la aplicación y desmonta los datos de la cuenta,
+  conservando la sesión renovable del SDK y las colas existentes. No revoca la
+  sesión remota en esta salida local. Se exige el mismo correo y contraseña antes
+  de reabrir offline; el primer acceso después de actualizar debe ser online.
+  Se guarda sólo un verificador PBKDF2-SHA256 con sal aleatoria en SecureStore,
+  nunca la contraseña ni una segunda copia de tokens. Requiere sesión SDK y perfil
+  previamente autorizado de la misma cuenta; vencimiento de ocho días desde la
+  última validación online y bloqueo temporal tras cinco intentos incorrectos.
+  SDK refresh no desbloquea la pantalla de acceso. Revocaciones reales eliminan
+  el verificador y bloquean el perfil. Web y Operaciones conservan logout remoto.
+- Agregar/editar visita: botones Unidades asignadas y CEDIS, usando el catálogo
+  autorizado existente. Filtro opcional kind=UNITS/CEDIS aplicado antes de LIMIT;
+  ALMACENES identifica CEDIS. Sin kind se conserva el comportamiento anterior.
+  Las coberturas siguen disponibles; respuestas tardías no mezclan categorías.
+- Validación: 30 pruebas de autenticación/verificador, cuatro de catálogo y seis
+  de ejecución offline; TypeScript, compilación web, export Android con Metro y
+  revisión de diff. Sin cambios de esquema, datos, .env ni flujos de ejecución.
+- El usuario autorizó publicar únicamente estos cambios y compilar otra APK
+  Android preview. Se publica en el mismo backend de Render y rama main, con las
+  conexiones de Supabase/Render y firma de Android existentes. Sin migraciones,
+  modificaciones de datos, .env ni credenciales. Publicación/compilación en curso;
+  pendiente la prueba física de salir y reabrir en modo avión y del selector CEDIS.
+
 ## Publicación autorizada y APK preview (2026-10-19)
 
 El usuario autorizó commit, push y despliegue de lo validado, seguido de APK

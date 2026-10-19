@@ -1,6 +1,7 @@
 const test = require('node:test')
 const assert = require('node:assert/strict')
 const { loadTs, hooks } = require('./helpers/loadTs.cjs')
+const crypto = require('node:crypto')
 
 const A = '11111111-1111-1111-1111-111111111111'
 const B = '22222222-2222-2222-2222-222222222222'
@@ -9,12 +10,23 @@ const profileFor = id => ({ id: `persona-${id}`, nombre: id, area: 'FARMACIAS', 
 class ApiError extends Error { constructor(message, status, code) { super(message); this.status = status; this.code = code } }
 const network = () => new ApiError('offline', 0, 'NETWORK_ERROR')
 
-function harness({ storage = new Map(), stored = sessionFor(A), sdkNetworkError = false, initialError = null, refreshEmitsEvent = false,
+function harness({ storage = new Map(), secureStorage = new Map(), stored = sessionFor(A), sdkNetworkError = false, initialError = null, refreshEmitsEvent = false, platform = 'android', area = 'FARMACIAS',
   refreshError = null, recovery = async () => ({ copied: 0, retained: 0 }) } = {}) {
   const storageApi = { getItem: async key => storage.get(key) ?? null, setItem: async (key, value) => { storage.set(key, value) } }
   const cache = loadTs('src/services/profileCache.ts', { '@react-native-async-storage/async-storage': { default: storageApi } })
+  let disconnected = sdkNetworkError
+  const offlineLogin = loadTs('src/services/offlineLogin.ts', {
+    '@react-native-async-storage/async-storage': { default: storageApi },
+    'expo-secure-store': { WHEN_UNLOCKED_THIS_DEVICE_ONLY: 6,
+      getItemAsync: async key => secureStorage.get(key) ?? null,
+      setItemAsync: async (key, value) => { secureStorage.set(key, value) },
+      deleteItemAsync: async key => { secureStorage.delete(key) } },
+    'expo-crypto': { getRandomBytesAsync: async size => new Uint8Array(crypto.randomBytes(size)) },
+    '@noble/hashes/pbkdf2': { pbkdf2Async: async (_, input, salt, opts) => new Uint8Array(crypto.pbkdf2Sync(input, salt, opts.c, opts.dkLen, 'sha256')) },
+    '@noble/hashes/sha256': { sha256: {} }, 'react-native': { Platform: { OS: platform } },
+  })
   const runner = hooks()
-  let authCallback, sdkSession = stored, error = initialError, activeOwner = null, deferred = null
+  let authCallback, sdkSession = stored, error = initialError, activeOwner = null, deferred = null, profileOverride = null
   const calls = [], revoked = []
   const sdk = {
     onAuthStateChange(callback) { authCallback = callback; return { data: { subscription: { unsubscribe() {} } } } },
@@ -31,13 +43,14 @@ function harness({ storage = new Map(), stored = sessionFor(A), sdkNetworkError 
     },
     signInWithPassword: async () => {
       if (error?.code === 'NETWORK_ERROR') return { error }
-      sdkSession = sessionFor(A); authCallback('SIGNED_IN', sdkSession); return { error: null }
+      sdkSession = sessionFor(A); authCallback('SIGNED_IN', sdkSession); return { data: { session: sdkSession }, error: null }
     },
     signOut: async () => { sdkSession = null; authCallback('SIGNED_OUT', null); return { error: null } },
     resetPasswordForEmail: async () => ({ error: null }),
   }
   const exports = loadTs('src/context/AuthContext.tsx', {
     ...runner.modules,
+    '@react-native-community/netinfo': { default: { fetch: async () => ({ isConnected: !disconnected, isInternetReachable: !disconnected }) } },
     'react-native': { AppState: { currentState: 'active', addEventListener: () => ({ remove() {} }) } },
     '../lib/api': { ApiError, unregisterPushSession: async token => { revoked.push(token); if (sdkNetworkError) throw network() }, getCurrentProfile: async token => {
       calls.push(token)
@@ -45,18 +58,21 @@ function harness({ storage = new Map(), stored = sessionFor(A), sdkNetworkError 
       const failure = typeof error === 'function' ? error(token) : error
       if (failure) throw failure
       const id = token.slice('token-'.length, 'token-'.length + 36)
-      return { user: { id }, profile: profileFor(id) }
+      return { user: { id }, profile: profileOverride ?? { ...profileFor(id), area } }
     } },
-    '../lib/supabase': { supabase: { auth: sdk }, readPersistedAuthSession: async () => stored },
+    '../lib/supabase': { supabase: { auth: sdk }, readPersistedAuthSession: async () => sdkSession },
     '../../storage/db': {
       activateUserDatabase: id => { activeOwner = id }, deactivateUserDatabase: () => { activeOwner = null }, hasLegacyLocalData: () => false,
       isDatabaseActive: id => activeOwner === id,
     },
     '../services/profileCache': cache,
+    '../services/offlineLogin': offlineLogin,
     '../services/legacyRecovery': { recoverLegacyData: recovery },
   }, { setInterval: () => 0, clearInterval() {} })
   runner.mount(exports.AuthProvider)
-  return { runner, storage, cache, calls, revoked, get owner() { return activeOwner },
+  return { runner, storage, secureStorage, cache, calls, revoked, offlineLogin, get owner() { return activeOwner },
+    setDisconnected(value) { disconnected = value },
+    setProfile(value) { profileOverride = value },
     setError(value) { error = value }, defer(value) { deferred = value },
     changeUser(id) { sdkSession = sessionFor(id); authCallback('SIGNED_IN', sdkSession) },
     revokeSession() { sdkSession = null; authCallback('SIGNED_OUT', null) } }
@@ -135,13 +151,14 @@ test('J: inactive backend profile blocks offline reuse, including after another 
   assert.equal(offline.runner.value.profile, null); offline.runner.stop()
 })
 
-test('explicit logout blocks offline access but retains the stored snapshot as a denied record', async () => {
+test('local logout locks account access without discarding the authorized snapshot or SDK session', async () => {
   const h = harness(); await h.runner.flush()
   await h.runner.value.signOut(); await h.runner.flush()
   assert.equal(h.runner.value.profile, null); assert.equal(h.owner, null)
   assert.equal(h.runner.value.accessState, 'signed_out')
   assert.equal(h.runner.value.sessionEndReason, 'explicit_logout')
-  assert.equal(h.storage.size, 1); assert.ok(JSON.parse([...h.storage.values()][0]).blocked)
+  assert.ok(await h.cache.readProfileSnapshot(A))
+  assert.equal(await h.offlineLogin.isLocalLoginLocked(), true)
   h.runner.stop()
 })
 
@@ -217,12 +234,12 @@ test('a recovery result for A never appears in B after an account switch', async
 })
 
 
-test('Logout revokes current account push devices and still works offline without erasing profile snapshots', async () => {
+test('Logout unregisters push online and locks locally offline without erasing authorized snapshots', async () => {
  for(const sdkNetworkError of [false,true]) {
   const h=harness({sdkNetworkError});await h.runner.flush()
   const before=h.storage.get(`authorized-profile:v1:${A}`);await h.runner.value.signOut();await h.runner.flush()
-  assert.deepEqual(h.revoked,[sessionFor(A).access_token]);assert.equal(h.runner.value.session,null)
-  const after=JSON.parse(h.storage.get(`authorized-profile:v1:${A}`));assert.equal(after.blocked,true)
+  assert.deepEqual(h.revoked,sdkNetworkError?[]:[sessionFor(A).access_token]);assert.equal(h.runner.value.session,null)
+  const after=JSON.parse(h.storage.get(`authorized-profile:v1:${A}`));assert.equal(after.blocked,false)
   if(before)assert.deepEqual(after.profile,JSON.parse(before).profile);h.runner.stop()
  }
 })
@@ -261,5 +278,106 @@ test('Cold start with a cached profile, expired access token and offline refresh
   assert.equal(h.runner.value.accessState, 'offline')
   assert.equal(h.runner.value.profile.id, profileFor(A).id)
   assert.equal(h.runner.value.session.user.id, A)
+  h.runner.stop()
+})
+
+test('password-validated account can logout, restart locked, reopen offline and reconnect without losing its owner', async () => {
+  const first = harness({ stored: null }); await first.runner.flush()
+  await first.runner.value.signIn('user@example.test','correct-password'); await first.runner.flush()
+  first.setDisconnected(true); first.setError(network())
+  await first.runner.value.signOut(); await first.runner.flush()
+  assert.equal(first.runner.value.session,null)
+  first.changeUser(A); await first.runner.flush()
+  assert.equal(first.runner.value.session,null, 'SDK events cannot unlock the exited app')
+  first.runner.stop()
+  const h = harness({ storage:first.storage, secureStorage:first.secureStorage, sdkNetworkError:true, initialError:network() })
+  await h.runner.flush()
+  assert.equal(h.runner.value.session,null)
+  let result = await h.runner.value.signIn('user@example.test','wrong-password'); await h.runner.flush()
+  assert.match(result.error.message,/incorrectos/)
+  assert.equal(h.owner,null)
+  result = await h.runner.value.signIn('user@example.test','correct-password'); await h.runner.flush()
+  assert.equal(result.error,null)
+  assert.equal(h.runner.value.accessState,'offline')
+  assert.equal(h.owner,A)
+  h.setDisconnected(false); h.setError(null)
+  await h.runner.value.refreshProfile(); await h.runner.flush()
+  assert.equal(h.runner.value.accessState,'online')
+  assert.equal(h.owner,A)
+  h.runner.stop()
+})
+
+test('known account cannot reopen offline after a real server profile revocation', async () => {
+  const h = harness({stored:null}); await h.runner.flush()
+  await h.runner.value.signIn('user@example.test','correct'); await h.runner.flush()
+  h.setError(new ApiError('revoked',403,'PROFILE_INACTIVE'))
+  await h.runner.value.refreshProfile(); await h.runner.flush()
+  assert.equal(h.runner.value.accessState,'unauthorized')
+  assert.equal(h.secureStorage.size,0)
+  h.setDisconnected(true); h.setError(network())
+  await h.runner.value.signOut(); await h.runner.flush()
+  const result = await h.runner.value.signIn('user@example.test','correct')
+  assert.ok(result.error); assert.equal(h.owner,null)
+  h.runner.stop()
+})
+
+test('correct offline password never bypasses a profile from another or blocked account', async () => {
+  const h = harness({stored:null}); await h.runner.flush()
+  await h.runner.value.signIn('user@example.test','correct'); await h.runner.flush()
+  await h.runner.value.signOut(); await h.runner.flush()
+  await h.cache.blockProfileSnapshot(A)
+  h.setDisconnected(true); h.setError(network())
+  const result = await h.runner.value.signIn('user@example.test','correct')
+  assert.ok(result.error); assert.equal(h.runner.value.session,null); assert.equal(h.owner,null)
+  h.runner.stop()
+})
+
+test('an in-flight online validation cannot reopen an account after the user exits', async () => {
+  const h = harness({stored:null}); await h.runner.flush()
+  await h.runner.value.signIn('user@example.test','correct'); await h.runner.flush()
+  let resolve
+  h.defer(new Promise(done => { resolve = done }))
+  const late = h.runner.value.refreshProfile()
+  await h.runner.value.signOut(); await h.runner.flush()
+  resolve({user:{id:A},profile:profileFor(A)})
+  await late; await h.runner.flush()
+  assert.equal(h.runner.value.session,null); assert.equal(h.owner,null)
+  h.runner.stop()
+})
+
+test('repeated local exit does not revoke the retained session, and another account cannot unlock it', async () => {
+  const h=harness({stored:null});await h.runner.flush()
+  await h.runner.value.signIn('user@example.test','correct');await h.runner.flush()
+  await h.runner.value.signOut();await h.runner.flush()
+  await h.runner.value.signOut();await h.runner.flush()
+  h.setDisconnected(true);h.setError(network())
+  assert.ok((await h.runner.value.signIn('other@example.test','correct')).error)
+  assert.equal(h.runner.value.session,null)
+  assert.equal((await h.runner.value.signIn('user@example.test','correct')).error,null)
+  await h.runner.flush();assert.equal(h.owner,A);h.runner.stop()
+})
+
+test('web and Operations retain their server logout and online login behavior', async () => {
+  for (const options of [{platform:'web'},{area:'OPERACIONES'}]) {
+    const h=harness(options);await h.runner.flush()
+    await h.runner.value.signOut();await h.runner.flush()
+    assert.equal(h.runner.value.session,null)
+    assert.equal((await h.runner.value.signIn('user@example.test','correct')).error,null)
+    await h.runner.flush()
+    assert.equal(h.runner.value.accessState,'online')
+    assert.equal(h.secureStorage.size,0)
+    h.runner.stop()
+  }
+})
+
+test('an inactive backend profile returned during password login revokes the previous offline verifier', async () => {
+  const h=harness({stored:null});await h.runner.flush()
+  await h.runner.value.signIn('user@example.test','correct');await h.runner.flush()
+  await h.runner.value.signOut();await h.runner.flush()
+  h.setProfile({...profileFor(A),activo:false})
+  assert.ok((await h.runner.value.signIn('user@example.test','correct')).error)
+  assert.equal(h.secureStorage.size,0)
+  assert.equal(await h.cache.readProfileSnapshot(A),null)
+  assert.equal(h.runner.value.session,null)
   h.runner.stop()
 })

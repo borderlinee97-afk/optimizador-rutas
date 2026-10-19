@@ -1,5 +1,6 @@
 import type { AuthError, Session, User } from '@supabase/supabase-js'
 import { AppState } from 'react-native'
+import NetInfo from '@react-native-community/netinfo'
 import { createContext, type PropsWithChildren, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 
 import { ApiError, getCurrentProfile, unregisterPushSession } from '../lib/api'
@@ -9,8 +10,9 @@ import { blockProfileSnapshot, isAuthorizationFailure, isNetworkFailure, readPro
 import type { AuthProfile } from '../types/auth'
 import { recoverLegacyData, type LegacyRecoveryResult } from '../services/legacyRecovery'
 import { isDatabaseActive } from '../../storage/db'
+import { supportsOfflineLogin, isLocalLoginLocked, setLocalLoginLocked, saveOfflineLogin, verifyOfflineLogin, forgetOfflineLogin, renewOfflineLogin } from '../services/offlineLogin'
 
-type AuthResult = { error: AuthError | null }
+type AuthResult = { error: Pick<AuthError, 'message'> | null }
 export type AccessState = 'signed_out' | 'validating' | 'online' | 'offline' | 'unauthorized' | 'unavailable'
 type Access = { owner: string; profile: AuthProfile | null; state: AccessState; validatedAt: number | null }
 type AuthContextValue = {
@@ -48,6 +50,13 @@ export function AuthProvider({ children }: PropsWithChildren) {
   const currentAccess = useRef<Access | null>(null)
   const requestSequence = useRef(0)
   const tokenRefreshAttempted = useRef(false)
+  const localLocked = useRef(true)
+  const lockReady = useRef(false)
+  const signingIn = useRef(false)
+  const authOperation = useRef(0)
+  const serverInvalidated = useRef(false)
+  const observedSession = useRef<Session | null>(null)
+  const acceptSessionRef = useRef<(next: Session | null) => void>(() => undefined)
 
   const publishAccess = useCallback((value: Access | null) => {
     currentAccess.current = value
@@ -72,6 +81,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
       setSession(next)
       setSessionReady(true)
     }
+    acceptSessionRef.current = acceptSession
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, next) => {
       if (!mounted) return
       // INITIAL_SESSION can be null when offline renewal fails. The getSession
@@ -79,9 +89,17 @@ export function AuthProvider({ children }: PropsWithChildren) {
       if (event === 'INITIAL_SESSION' && !next) return
       ++eventSequence
       if (event === 'SIGNED_OUT') {
-        const previousUser = currentSession.current?.user.id
+        ++authOperation.current
+        const previousUser = observedSession.current?.user.id ?? currentSession.current?.user.id
         if (previousUser) void blockProfileSnapshot(previousUser).catch(console.error)
+        void forgetOfflineLogin(previousUser).catch(console.error)
+        serverInvalidated.current = !explicitSignOut.current
+        localLocked.current = true
+        void setLocalLoginLocked(true).catch(console.error)
       }
+      observedSession.current = next
+      // SDK refresh events must not reopen an explicitly locked application.
+      if (event !== 'SIGNED_OUT' && (!lockReady.current || (supportsOfflineLogin && localLocked.current) || signingIn.current)) return
       acceptSession(next)
       if (event === 'SIGNED_OUT') {
         setSessionEndReason(explicitSignOut.current ? 'explicit_logout' : 'server_invalidated')
@@ -91,7 +109,16 @@ export function AuthProvider({ children }: PropsWithChildren) {
     async function restoreSession() {
       const revision = eventSequence
       const stored = await readPersistedAuthSession()
+      const locked = await isLocalLoginLocked()
       if (!mounted) return
+      localLocked.current = locked || serverInvalidated.current
+      lockReady.current = true
+      if (!observedSession.current) observedSession.current = stored
+      if (localLocked.current) {
+        acceptSession(null)
+        setSessionEndReason(serverInvalidated.current ? 'server_invalidated' : 'explicit_logout')
+        return
+      }
       if (revision === eventSequence) acceptSession(stored)
       const checkRevision = eventSequence
       try {
@@ -109,17 +136,19 @@ export function AuthProvider({ children }: PropsWithChildren) {
       }
     }
     void restoreSession()
-    return () => { mounted = false; ++requestSequence.current; subscription.unsubscribe() }
+    return () => { mounted = false; ++requestSequence.current; ++authOperation.current; subscription.unsubscribe() }
   }, [publishAccess])
 
   const invalidateProfile = useCallback(async (message: string) => {
     const userId = currentSession.current?.user.id
     if (!userId) return
+    ++authOperation.current
     ++requestSequence.current
     deactivateUserDatabase()
     publishAccess({ owner: userId, profile: null, state: 'unauthorized', validatedAt: null })
     setProfileError(message)
     await blockProfileSnapshot(userId)
+    await forgetOfflineLogin(userId)
   }, [publishAccess])
 
   const recoverLegacy = useCallback(async () => {
@@ -193,6 +222,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
       setProfileError(null)
       try {
         await saveProfileSnapshot(userId, response.profile)
+        await renewOfflineLogin(userId)
       } catch {
         if (isCurrent()) setProfileError('Perfil validado en línea. No fue posible guardar el perfil para el próximo inicio sin conexión.')
       }
@@ -250,10 +280,110 @@ export function AuthProvider({ children }: PropsWithChildren) {
   }, [session?.user.id, refreshProfile])
 
   async function signIn(email: string, password: string): Promise<AuthResult> {
-    const { error } = await supabase.auth.signInWithPassword({ email: email.trim().toLowerCase(), password })
-    return { error }
+    const normalizedEmail = email.trim().toLowerCase()
+    if (!supportsOfflineLogin) {
+      const { error } = await supabase.auth.signInWithPassword({ email: normalizedEmail, password })
+      return { error }
+    }
+    if (signingIn.current) return { error: new Error('Ya hay un inicio de sesión en curso.') }
+    signingIn.current = true
+    const operation = ++authOperation.current
+    const isCurrent = () => operation === authOperation.current
+    async function openOffline() {
+      const stored = await readPersistedAuthSession()
+      const cached = stored ? await readProfileSnapshot(stored.user.id) : null
+      if (!stored || !cached || cached.profile.area !== 'FARMACIAS') {
+        throw new Error('Inicia sesión con internet una vez para habilitar el acceso sin conexión en este dispositivo.')
+      }
+      await verifyOfflineLogin(stored.user.id, normalizedEmail, password)
+      if (!isCurrent()) throw new Error('El acceso cambió durante la validación. Intenta nuevamente.')
+      await setLocalLoginLocked(false)
+      if (!isCurrent()) throw new Error('La sesión dejó de estar autorizada.')
+      localLocked.current = false
+      serverInvalidated.current = false
+      observedSession.current = stored
+      acceptSessionRef.current(stored)
+      activateUserDatabase(stored.user.id)
+      publishAccess({ owner: stored.user.id, profile: cached.profile, state: 'offline', validatedAt: cached.validatedAt })
+      setProfileError('SIN CONEXIÓN. Mostrando el último perfil validado en este dispositivo.')
+    }
+    try {
+      const connection = await NetInfo.fetch()
+      if (connection.isConnected === false || connection.isInternetReachable === false) {
+        await openOffline()
+        return { error: null }
+      }
+      // Keep SDK events hidden until the password AND current backend profile
+      // have been validated. A remembered account alone is never sufficient.
+      localLocked.current = true
+      await setLocalLoginLocked(true)
+      const { data, error } = await supabase.auth.signInWithPassword({ email: normalizedEmail, password })
+      if (error) {
+        if (isNetworkFailure(error)) { await openOffline(); return { error: null } }
+        return { error }
+      }
+      const next = data.session
+      if (!next || !isCurrent()) throw new Error('No fue posible validar la sesión.')
+      let response
+      try { response = await getCurrentProfile(next.access_token) } catch (error) {
+        if (isAuthorizationFailure(error)) {
+          await blockProfileSnapshot(next.user.id)
+          await forgetOfflineLogin(next.user.id)
+        }
+        throw error
+      }
+      if (!isCurrent()) throw new Error('El acceso cambió durante la validación.')
+      if (response.user.id !== next.user.id || response.profile.activo !== true) {
+        await blockProfileSnapshot(next.user.id)
+        await forgetOfflineLogin(next.user.id)
+        throw new ApiError('El perfil no está autorizado.', 403, 'PROFILE_INACTIVE')
+      }
+      await saveProfileSnapshot(next.user.id, response.profile)
+      if (!isCurrent()) throw new Error('El acceso cambió durante la validación.')
+      if (response.profile.area === 'FARMACIAS') await saveOfflineLogin(next.user.id, normalizedEmail, password)
+      else await forgetOfflineLogin()
+      if (!isCurrent()) {
+        await forgetOfflineLogin(next.user.id)
+        throw new Error('El acceso cambió durante la validación.')
+      }
+      await setLocalLoginLocked(false)
+      if (!isCurrent()) throw new Error('La sesión dejó de estar autorizada.')
+      localLocked.current = false
+      serverInvalidated.current = false
+      observedSession.current = next
+      acceptSessionRef.current(next)
+      activateUserDatabase(next.user.id)
+      publishAccess({ owner: next.user.id, profile: response.profile, state: 'online', validatedAt: Date.now() })
+      setProfileError(null)
+      return { error: null }
+    } catch (error) {
+      if (isNetworkFailure(error) && isCurrent()) {
+        try { await openOffline(); return { error: null } } catch (offlineError) {
+          return { error: offlineError instanceof Error ? offlineError : new Error('No fue posible abrir el acceso sin conexión.') }
+        }
+      }
+      return { error: error instanceof Error ? error : new Error('No fue posible iniciar sesión.') }
+    } finally { signingIn.current = false }
   }
   async function signOut(): Promise<AuthResult> {
+    ++authOperation.current
+    const endingSession = currentSession.current
+    if (!endingSession) return { error: null }
+    if (supportsOfflineLogin && currentAccess.current?.profile?.area === 'FARMACIAS') {
+      localLocked.current = true
+      acceptSessionRef.current(null)
+      setSessionEndReason('explicit_logout')
+      try {
+        await setLocalLoginLocked(true)
+        const connection = await NetInfo.fetch()
+        if (connection.isConnected !== false && connection.isInternetReachable !== false && endingSession?.access_token) {
+          try { await unregisterPushSession(endingSession.access_token) } catch { /* Local exit never discards pending work. */ }
+        }
+        // Preserve the SDK's renewable session; it stays inaccessible until a
+        // password check. Revoking it here would prevent offline work from syncing.
+        return { error: null }
+      } catch { return { error: new Error('No fue posible guardar el cierre local de sesión. Intenta nuevamente.') } }
+    }
     explicitSignOut.current = true
     try {
       if (session?.access_token && currentAccess.current?.profile?.area === 'FARMACIAS') {

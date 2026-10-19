@@ -272,6 +272,7 @@ router.get(
  * - project
  * - state
  * - status
+ * - kind (UNITS o CEDIS, opcional; conserva el catálogo mixto si se omite)
  * - limit
  * - offset
  *
@@ -313,6 +314,11 @@ router.get(
       normalizeOptionalText(
         req.query.status,
       )
+
+    const kind = normalizeOptionalText(req.query.kind)?.toUpperCase() ?? null
+    if (kind && !['UNITS', 'CEDIS'].includes(kind)) {
+      return res.status(400).json({ error: 'Tipo de unidad inválido', code: 'PHARMACY_KIND_INVALID' })
+    }
 
     const limit =
       parseBoundedInteger(
@@ -661,6 +667,12 @@ router.get(
               $5::text
           )
 
+          AND (
+            $10::text IS NULL
+            OR ($10::text = 'CEDIS' AND UPPER(BTRIM(COALESCE(farmacia.lugar_farmacia, ''))) = 'ALMACENES')
+            OR ($10::text = 'UNITS' AND UPPER(BTRIM(COALESCE(farmacia.lugar_farmacia, ''))) <> 'ALMACENES')
+          )
+
           ORDER BY
             /*
              * Coberturas activas primero.
@@ -706,6 +718,7 @@ router.get(
             offset,
             req.profile.id,
             scopeMode,
+            kind,
           ],
         )
 

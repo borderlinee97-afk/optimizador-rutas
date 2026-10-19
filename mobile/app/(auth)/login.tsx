@@ -81,6 +81,7 @@ export default function LoginScreen() {
                 Accede a tus rutas, planes de trabajo y
                 actividades asignadas.
                 {'\n'}El primer acceso requiere conexión a internet.
+                {'\n'}Después puedes salir y volver a entrar sin conexión con la misma cuenta y contraseña en este dispositivo.
               </Text>
             </View>
 

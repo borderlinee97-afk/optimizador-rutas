@@ -12,6 +12,7 @@ import {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from 'react'
 
@@ -295,6 +296,9 @@ export default function WorkPlanDetailScreen() {
     useState(
       false,
     )
+
+  const [catalogKind, setCatalogKind] = useState<'UNITS' | 'CEDIS'>('UNITS')
+  const catalogRequest = useRef(0)
 
   const [
     selectedPharmacy,
@@ -665,6 +669,8 @@ export default function WorkPlanDetailScreen() {
           return
         }
 
+        const request = ++catalogRequest.current
+
         setCatalogLoading(
           true,
         )
@@ -673,6 +679,7 @@ export default function WorkPlanDetailScreen() {
           const response =
             await getPharmacyCatalog(
               {
+                kind: catalogKind,
                 search:
                   searchValue
                     .trim() ||
@@ -687,12 +694,14 @@ export default function WorkPlanDetailScreen() {
               accessToken,
             )
 
+          if (request !== catalogRequest.current) return
           setCatalog(
             response.pharmacies,
           )
         } catch (
           requestError
         ) {
+          if (request !== catalogRequest.current) return
           setCatalog(
             [],
           )
@@ -706,13 +715,12 @@ export default function WorkPlanDetailScreen() {
             ),
           )
         } finally {
-          setCatalogLoading(
-            false,
-          )
+          if (request === catalogRequest.current) setCatalogLoading(false)
         }
       },
       [
         accessToken,
+        catalogKind,
       ],
     )
 
@@ -778,6 +786,8 @@ export default function WorkPlanDetailScreen() {
     setVisitModalMode(
       'ADD',
     )
+    ++catalogRequest.current
+    setCatalogKind('UNITS')
 
     setEditingItem(
       null,
@@ -832,6 +842,8 @@ export default function WorkPlanDetailScreen() {
     setVisitModalMode(
       'EDIT',
     )
+    ++catalogRequest.current
+    setCatalogKind(item.locationName?.trim().toUpperCase() === 'ALMACENES' ? 'CEDIS' : 'UNITS')
 
     setEditingItem(
       item,
@@ -969,6 +981,7 @@ export default function WorkPlanDetailScreen() {
     ) {
       return
     }
+    ++catalogRequest.current
 
     setVisitModalVisible(
       false,
@@ -2305,8 +2318,30 @@ export default function WorkPlanDetailScreen() {
                 </Pressable>
               </View>
 
-              <Text className="mt-6 text-sm font-bold text-slate-700">
-                Buscar farmacia
+              <View className="mt-5 flex-row gap-2">
+                {([{ kind: 'UNITS', label: 'Unidades asignadas' }, { kind: 'CEDIS', label: 'CEDIS' }] as const).map(option => (
+                  <Pressable
+                    key={option.kind}
+                    accessibilityRole="button"
+                    accessibilityState={{ selected: catalogKind === option.kind }}
+                    className={`flex-1 items-center rounded-2xl border px-3 py-3 ${catalogKind === option.kind ? 'border-primary-600 bg-primary-600' : 'border-slate-200 bg-slate-50'}`}
+                    onPress={() => {
+                      if (catalogKind === option.kind) return
+                      ++catalogRequest.current
+                      setCatalogKind(option.kind)
+                      setCatalog([])
+                      setSelectedPharmacy(null)
+                      setSearch('')
+                      setCatalogLoading(true)
+                    }}
+                  >
+                    <Text className={`text-sm font-bold ${catalogKind === option.kind ? 'text-white' : 'text-slate-700'}`}>{option.label}</Text>
+                  </Pressable>
+                ))}
+              </View>
+
+              <Text className="mt-4 text-sm font-bold text-slate-700">
+                {catalogKind === 'CEDIS' ? 'Buscar CEDIS' : 'Buscar unidad'}
               </Text>
 
               <View className="mt-2 flex-row items-center rounded-2xl border border-slate-200 bg-slate-50 px-4">
@@ -2324,7 +2359,7 @@ export default function WorkPlanDetailScreen() {
                   onChangeText={
                     setSearch
                   }
-                  placeholder="Nombre, CLUES, región, proyecto..."
+                  placeholder={catalogKind === 'CEDIS' ? 'Nombre o referencia del almacén...' : 'Nombre, CLUES, región, proyecto...'}
                   placeholderTextColor="#94a3b8"
                   autoCapitalize="none"
                   autoCorrect={
@@ -2449,6 +2484,11 @@ export default function WorkPlanDetailScreen() {
                 </View>
               ) : (
                 <View className="mt-4 gap-3">
+                  {catalog.length === 0 && !selectedPharmacy ? (
+                    <Text className="py-4 text-center text-sm text-slate-500">
+                      {catalogKind === 'CEDIS' ? 'No hay CEDIS disponibles para tu cuenta con esta búsqueda.' : 'No hay unidades disponibles con esta búsqueda.'}
+                    </Text>
+                  ) : null}
                   {(selectedPharmacy
                     ? catalog.filter(
                         pharmacy =>

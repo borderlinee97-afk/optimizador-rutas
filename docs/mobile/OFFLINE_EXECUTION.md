@@ -3,6 +3,8 @@
 ## Uso
 
 1. Iniciar sesión con internet con un perfil activo de Supervisor o Coordinador.
+   Después de instalar la actualización de reapertura offline, hacerlo una vez
+   introduciendo correo y contraseña para preparar el verificador local seguro.
 2. Descargar la semana de planes aprobados y comprobar sus visitas/actividades.
 3. Sin red: mantener habilitado GPS, registrar check-in, tomar y guardar fotos,
    resolver actividades (realizada/no realizada con motivo) y registrar check-out.
@@ -10,6 +12,27 @@
 5. Al recuperar internet con la app abierta: sincronización automática. En Mi trabajo
    y en cada visita se ven pendientes/errores y se puede reintentar. Las fotos y
    las acciones no se eliminan si falla la conexión o el servidor rechaza algo.
+
+## Salir y volver a entrar sin red
+
+En Farmacias nativo, Cerrar sesión cierra el acceso local y conserva las colas y
+la sesión renovable del SDK. No equivale a revocar remotamente esa sesión. El
+bloqueo se conserva al reiniciar y los eventos del SDK no pueden reabrirlo.
+Introducir el mismo correo/contraseña permite reabrir únicamente la cuenta
+previamente validada en ese dispositivo; no permite el primer acceso offline ni
+cambiar a una cuenta que no esté preparada. Sólo se recuerda la última cuenta.
+
+Se verifica PBKDF2-SHA256 (600,000 iteraciones, sal aleatoria de 32 bytes) en
+SecureStore; no se guarda contraseña ni otra copia de tokens. Cinco fallos
+bloquean la reapertura durante cinco minutos. La autorización offline vence a los
+ocho días sin validación del backend; una revocación conocida bloquea el perfil y
+elimina el verificador. Al conectar se mantienen las verificaciones existentes del
+servidor antes de sincronizar. Web/Operaciones mantienen su cierre remoto normal.
+
+Validado automáticamente: salida, reinicio bloqueado, credenciales erróneas,
+reapertura offline, conexión posterior, revocación y aislamiento por cuenta. Falta
+la prueba física de esta nueva reapertura en Android; el usuario ya comprobó el
+flujo completo de visitas/sincronización de la APK anterior.
 
 ## Garantías y límites técnicos
 
