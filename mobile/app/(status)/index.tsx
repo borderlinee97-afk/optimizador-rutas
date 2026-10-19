@@ -14,6 +14,7 @@ export default function AccountStatusScreen() {
     profileError,
     refreshProfile,
     signOut,
+    accessState,
   } = useAuth()
 
   const [retrying, setRetrying] = useState(false)
@@ -47,7 +48,7 @@ export default function AccountStatusScreen() {
           </View>
 
           <Text className="text-2xl font-bold text-slate-900">
-            Acceso pendiente
+            {accessState === 'offline' ? 'SIN CONEXIÓN' : accessState === 'unauthorized' ? 'Acceso no autorizado' : 'Acceso pendiente'}
           </Text>
 
           <Text className="mt-3 text-base leading-6 text-slate-500">

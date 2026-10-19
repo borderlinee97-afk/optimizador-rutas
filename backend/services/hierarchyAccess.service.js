@@ -31,7 +31,7 @@ export async function canAccessPersona(
           person.id,
           person.superior_id
         FROM public.personas person
-        WHERE person.superior_id = $1::uuid
+        WHERE (person.superior_id = $1::uuid OR public.puebla_shared_supervisor($1::uuid, person.id))
           AND person.activo = TRUE
 
         UNION ALL

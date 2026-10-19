@@ -1,5 +1,179 @@
 # APP DE RUTAS — estado del proyecto
 
+## Publicación autorizada y APK preview (2026-10-19)
+
+El usuario autorizó commit, push y despliegue de lo validado, seguido de APK
+preview. Tras su aviso de espera se corrigió y probó la ejecución completa offline
+y se aplicó la columna estado solicitada; se retoma la publicación del alcance
+acordado. Objetivo Render confirmado: My Workspace, optimizador-rutas-api,
+srv-d79i0m6dqaus73dgq3sg, rama main; se conserva configuración y conexiones.
+Firebase cliente y FCM V1 están verificados en EAS preview, firma existente intacta.
+Ningún archivo .env, configuración Firebase local o clave privada entra en Git.
+La verificación final en Android físico se hará con la nueva APK de pruebas.
+
+## Ejecución completa offline y columna estado (2026-10-19)
+
+- El usuario confirmó prueba en APK instalada y solicitó check-in, actividades,
+  fotos y check-out sin internet, con sincronización al recuperar la conexión.
+  Se implementó cola transaccional sobre execution_outbox existente y progreso
+  local por cuenta. Guardar la foto offline no espera llamadas de red. La UI
+  distingue progreso local provisional, pendientes y errores del servidor.
+- Backend: endpoint Farmacias /offline-execution, sólo perfil activo propietario,
+  plan aprobado y no archivado, fecha de captura, geocerca/GPS/asignaciones y
+  evidencia READY antes de cerrar actividades/visita. Conserva hora capturada
+  y registra hora de recepción; ventana de envío de ocho días. Usa work_plan_event
+  como recibo idempotente, sin tablas nuevas. Un bloqueo por persona serializa
+  inicios online/offline. No duplica visitas al reintentar ni repone caché sobre
+  avance local aún pendiente. Los conflictos conservan los datos para revisión.
+- Cliente: la conexión normal conserva sus endpoints. Al estar offline o existir
+  ejecución pendiente se usa la cola, incluso para las visitas siguientes. Al
+  reconectar procesa check-in → fotos → actividades → check-out, con confirmación
+  del servidor, aislamiento de cuenta y reintento manual de errores definitivos.
+  No se habilitan reprogramaciones, cancelaciones ni altas nuevas offline.
+- Validado con SQLite real: dos visitas completas y fotos, reinicio de servicios,
+  reintentos, errores, GPS, solapamiento, evidencia y cambio de cuenta. PostgreSQL
+  aislado comprobó las mismas transiciones, horas/duración, transacciones,
+  duplicados concurrentes y rechazos. TypeScript y pruebas relacionadas aprobados.
+  Falta comprobar el comportamiento en Android físico con una APK nueva.
+- Solicitud adicional explícita: aplicada 20261019160000_personas_estado.sql,
+  previa prueba PostgreSQL aislada y dry-run que mostró sólo esa migración.
+  public.personas.estado identifica 25 supervisores activos de Jalisco y 5 de
+  Puebla según ámbitos existentes. No crea Auth ni modifica auth_user_id:
+  siguen sin enlace 22 de Jalisco y 5 de Puebla. El usuario hará sus cuentas/enlaces.
+  La columna es informativa; los permisos siguen basados en person_state_scope.
+
+## Revisión offline previa a publicación (2026-10-19)
+
+El usuario detuvo la publicación antes de commit/push/despliegue y antes de una
+nueva APK: reporta pérdida de sesión y check-in sin conexión bloqueado. Se mantiene
+esa pausa. Confirmado que check-in/out y resolución de actividades actuales llaman
+al servidor; P0.1 sólo cubre lectura/caché, evidencia pendiente y tareas, por lo que
+no constituye ejecución completa de visitas offline. No se presenta como resuelto.
+
+Reproducido con prueba fallida: una respuesta 401 de token vencido seguida de
+AuthRetryableFetchError durante refresh marcaba unauthorized y bloqueaba el perfil
+descargado. Corregido localmente para conservar el perfil previamente validado
+de esa misma cuenta cuando falla la red al renovar. Un rechazo real del refresh,
+un 403 o un 401 persistente con sesión renovada siguen bloqueando la reutilización.
+20 pruebas de autenticación y TypeScript móvil aprobados; incluye arranque en frío
+con token vencido y red caída. El usuario confirmó APK y flujo completo; su implementación posterior está descrita
+en la sección anterior. Falta la prueba física en modo avión con una APK nueva.
+
+## Aprobación de planes y notificaciones Android (2026-10-19)
+
+- Corregida la autorización de planes: coordinador directo/compartido Puebla o gerente de la estructura pueden revisar planes de supervisor; sólo gerente directo revisa planes de coordinador. La misma función SQL gobierna acciones, bandejas y capacidades web/móvil. Se conservan permisos de cancelaciones y el paso de lectura del Director; el servicio no le permite aprobar planes.
+- OfflineStatus usa conectividad real de NetInfo y no muestra el banner por caché/recuperación heredada cuando hay internet. Mis planes conserva acceso a recuperación.
+- Preparadas notificaciones Expo Android para envío/aprobación y notificación local de sincronización completa. Colas aisladas por cuenta, drenaje concurrente deduplicado, reintentos/recibos y desactivación de tokens inválidos; errores de push no revierten planes. Los pendientes fallidos/ejecuciones heredadas impiden anunciar finalización.
+- Dependencias compatibles SDK 54: expo-notifications, expo-device y NetInfo; plugin Expo y ruta opcional GOOGLE_SERVICES_JSON, sin modificar .env/conexiones.
+- Migración aditiva `20261019140000_plan_approvals_notifications.sql`: probada en PostgreSQL aislado; inicialmente la revisión automática bloqueó su aplicación. Posteriormente el usuario confirmó haber ejecutado el SQL en Supabase. Se verificaron función, columnas, restricciones, índices, RLS y permisos; se registró exclusivamente la versión como aplicada con migration repair, sin repetir DDL ni modificar planes/personas. Historial alineado con el repositorio.
+- Firebase: el usuario entregó google-services.json del proyecto appderutas; paquete mx.appderutas.supervision validado. Instalado como mobile/google-services.json, ignorado por Git. app.config.js permite usarlo localmente y prioriza GOOGLE_SERVICES_JSON para EAS. Prueba de configuración local/remota aprobada. Tras autorización explícita del usuario, se subió a @borderline97/app-de-rutas en Expo/EAS exclusivamente al entorno preview como variable de tipo archivo, visibilidad secret, nombre GOOGLE_SERVICES_JSON. Creación y presencia en preview verificadas; no se modificó production. FCM V1: tras la carga del usuario, EAS credentials (perfil preview) confirmó la credencial de cuenta de servicio del proyecto Firebase appderutas asociada al identificador mx.appderutas.supervision. No se descargó la clave privada ni se alteró la firma existente. Faltan backend actualizado, nueva APK y prueba real de recepción; instrucciones y prueba Android en docs/mobile/NOTIFICATIONS.md. No se envió push real, no se compiló otra APK, no hubo commit/push/despliegue.
+- Verificación: compilación web y TypeScript móvil aprobados; pruebas focalizadas de permisos, offline, aislamiento de cuentas y notificaciones; integración PostgreSQL con aprobación transaccional y proveedor de push simulado. Falta verificación física de Android con FCM.
+
+## Almacén compartido de Jalisco (2026-10-19)
+
+Registrado en Supabase `CEDIS METROPOLITANO AEROPUERTO` como `ALMACENES`,
+referencia existente `CMAE`, unidad 3213, estado Jalisco/proyecto JALISCO.
+Coordenadas solicitadas conservadas en coordenadas_raw; campos geográficos
+20.4979202, -103.2754570 (precisión del esquema), con geometría validada.
+Se aplicó sólo `20261019120000_shared_plan_warehouse.sql`, tras prueba PostgreSQL
+local aislada y dry-run. La tabla aditiva pharmacy_shared_plan_access habilita
+el almacén a los 25 supervisores activos con ámbito explícito Jalisco y a los
+futuros supervisores que cumplan esa regla. No crea titularidad exclusiva ni
+modifica las asignaciones o el CEDIS de Operaciones.
+Código local: catálogo/filtros, alta/edición, detalle y envío de planes ordinarios
+y extraordinarios reconocen el acceso compartido. Web y móvil lo identifican
+como Almacén con referencia CMAE. Build web, TypeScript, ocho pruebas de edición,
+sintaxis y flujos reales contra PostgreSQL temporal aprobados. La carga de datos
+se probó dos veces sin duplicar. Se comprobó rechazo para otros estados, perfiles
+inactivos, otros roles y permisos revocados.
+Pendiente desplegar el código backend/web y compilar una APK que incluya estas
+últimas etiquetas; la compilación enviada antes de este cambio no las incorpora.
+No hubo commit, push, despliegue, cambio de .env ni una segunda compilación Expo.
+
+## APK interna de pruebas (2026-10-19)
+
+Compilación solicitada y enviada en Expo EAS con perfil `preview` (Android APK,
+distribución interna), conservando la firma existente y las variables del entorno
+preview: Render `https://optimizador-rutas-api.onrender.com` y Supabase
+`sgmezyynqhahzmfrehou`. No se modificaron conexiones, cuentas ni servicios.
+Build: `528890b2-3635-4a37-b662-fc5c8fced7e1`, pendiente en cola de Expo.
+Incluye los cambios locales móviles; no despliega los cambios locales del backend.
+No hubo commit, push, publicación en tiendas ni cambios de `.env`.
+
+## Puebla y descarga semanal (2026-10-18)
+
+Bloque implementado en `prod-hotfix`, rama `hotfix/coordinator-web-production`,
+sobre HEAD `8c84431`, conservando los cambios offline P0.1 que ya estaban pendientes.
+
+- Se aplicó exclusivamente la migración aditiva
+  `20261018120000_puebla_shared_reporting_availability.sql`, con RLS y sin acceso
+  directo de anon/authenticated a las tablas nuevas. La simulación propuso sólo
+  esa migración. Se validó antes en una base PostgreSQL local aislada, eliminada
+  al terminar; la base local `rutas` no se utilizó para ensayar escrituras.
+- Supabase: creados cinco perfiles SUPERVISOR y dos COORDINADOR del Excel
+  DISTRIBUCIÓN SUPERVISORES APP.xlsx. No se crearon cuentas de autenticación;
+  sus auth_user_id están vacíos. Ambos coordinadores dependen del perfil existente
+  de DAMARIS RODRIGUEZ PATRICIO. Los cinco supervisores conservan un padre canónico
+  (Antonio) por compatibilidad y diez relaciones explícitas habilitan a Antonio
+  y Juan Alejandro como coordinadores inmediatos compartidos, sólo en Puebla.
+- Los 37 CLUES del Excel existen y quedaron asignados 7/9/9/7/5 a José Luis,
+  Juan Antonio, Alejandro, Guillermo y Julián. Su proyecto ya era PUEBLA pero
+  estado decía Chiapas: se corrigió únicamente estado a Puebla, con autorización
+  expresa. No se cambiaron nombres, coordenadas ni datos de otros proyectos.
+  La carga fue transaccional, auditada e idempotente; no reemplaza otros titulares.
+- Vacaciones: petición del supervisor y revisión por cualquiera de los dos
+  coordinadores autorizados, con fechas, comentario, estados y revisor. Se impiden
+  cruces de fechas y doble revisión concurrente. No se desactivan cuentas ni se
+  modifican planes aprobados. Panel disponible en Planes web/móvil y aprobaciones
+  móviles; el resto de estados conserva sus permisos.
+- Planes: Supervisor envía al coordinador; Coordinador envía al gerente.
+  Toda cobertura registrada por coordinador o gerente se aprueba automáticamente,
+  incluso si las visitas las hace un supervisor, manteniendo validación de ámbito.
+  Las asignaciones permanentes conservan su flujo de aprobación existente.
+- Descarga semanal móvil: consulta con scope=week, lunes a domingo en zona México;
+  el endpoint sin parámetro sigue sirviendo el día para versiones anteriores.
+  SQLite conserva la semana y filtra el día local, con refresco al volver al primer
+  plano y cambio de fecha. Se conservan aislamiento por cuenta, actividades,
+  evidencias, recuperación heredada y protección de pendientes.
+- Comprobaciones: build web y TypeScript móvil aprobados; permisos de aprobación,
+  SQLite semanal y fallos de red comprobados. PostgreSQL aislado verificó carga
+  repetida sin duplicados, Jalisco intacto, vacaciones concurrentes y coberturas.
+  Falta la prueba con cuentas reales y un teléfono en modo avión, y desplegar
+  backend/web más generar manualmente la compilación móvil para activar el código.
+- Sin cambios de .env, autenticación, Operaciones ni Calculador CEDIS. Sin commit,
+  push ni despliegue de código; sin compilación Expo/EAS.
+
+## Offline móvil P0.1 (2026-10-16)
+
+Implementada recuperación offline del perfil validado por backend y del plan de
+la misma cuenta. Supabase conserva la propiedad de la sesión; NETWORK_ERROR no
+borra la caché ni las colas. SQLite se aísla por ID de Supabase y los callbacks
+asíncronos no escriben en el espacio de otra cuenta. Logout y denegación real del
+servidor ocultan datos, conservando pendientes. La UI informa SIN CONEXIÓN,
+última sincronización y falta de datos descargados.
+
+El reemplazo del plan se aplaza si afectaría evidencias/ejecuciones pendientes.
+Ticket, Storage y confirmación de evidencias conservan su funcionamiento.
+Se añadió recuperación explícita online desde `local.db`, previa validación de
+perfil y propiedad exacta mediante endpoints existentes. La fuente y las fotos
+se conservan sin migrar, mover ni borrar. Un journal separado reserva tabla/ID/
+hash a una sola identidad; transacciones y recibos permiten reanudar sin duplicar
+operaciones consumidas ni reasignar registros tras cambiar de cuenta. Visitas
+huérfanas se reconstruyen sólo desde planes del propietario exacto. El historial
+recuperado sobrevive a sincronizaciones sin sustituir un plan actual. La copia
+no sube evidencias ni ejecuta pendientes. Tareas mutables no demuestran autoría:
+pendientes de Agenda sin prueba permanecen conservados sin asignarse; comentarios
+ya confirmados se registran SYNCED. No se accedió a datos físicos del piloto.
+No se modificó backend, WebApp, módulo Operaciones ni esquema remoto.
+No se inició P0.2/P0.3 ni se ejecutaron commit, push o deploy.
+
+Pruebas y reproducción nativa: [OFFLINE_P0_1.md](mobile/OFFLINE_P0_1.md).
+Validación local: 71/71 pruebas automatizadas aprobadas, TypeScript sin emisión
+aprobado y `git diff --check` sin errores. Sigue pendiente la prueba Android/iOS
+de actualización conservando datos, recuperación interrumpida, fotos físicas,
+modo avión y reintento real. Los registros sin autor demostrable siguen retenidos
+por política; nunca se atribuyen a la cuenta actual por inferencia.
+
 ## Agenda Operativa (2026-09-18)
 
 Se completó el bloque funcional de Agenda reutilizando `operational_task`,

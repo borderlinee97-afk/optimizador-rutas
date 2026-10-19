@@ -1,7 +1,86 @@
 import * as SQLite from 'expo-sqlite'
 
-export const db =
-  SQLite.openDatabaseSync('local.db')
+// The pilot database has no reliable owner metadata. Keep it intact and never
+// silently assign its records or pending uploads to the next account.
+const legacyDb = SQLite.openDatabaseSync('local.db')
+// No readable default database before an authorized account is selected.
+export let db: SQLite.SQLiteDatabase
+const userDatabases = new Map<string, SQLite.SQLiteDatabase>()
+const owners = new WeakMap<SQLite.SQLiteDatabase, string>()
+const initialized = new WeakSet<SQLite.SQLiteDatabase>()
+const recoveryLocks = new WeakSet<SQLite.SQLiteDatabase>()
+let recoveryJournal: SQLite.SQLiteDatabase | null = null
+let activeUserId: string | null = null
+
+export function activateUserDatabase(userId: string) {
+  if (!/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i.test(userId)) {
+    throw new Error('El identificador de la cuenta no es válido.')
+  }
+  let database = userDatabases.get(userId)
+  if (!database) {
+    database = SQLite.openDatabaseSync(`user-${userId}.db`)
+    userDatabases.set(userId, database)
+    owners.set(database, userId)
+  }
+  db = database
+  activeUserId = userId
+  initDB()
+}
+
+export function deactivateUserDatabase() {
+  // Retain open handles for writes that were started by their original owner.
+  activeUserId = null
+}
+
+export function getDatabaseUserId(database = db) {
+  return owners.get(database) ?? null
+}
+
+export function isDatabaseActive(userId: string) {
+  return activeUserId === userId && getDatabaseUserId() === userId
+}
+
+export function setLegacyRecoveryActive(database: SQLite.SQLiteDatabase, active: boolean) {
+  if (active) recoveryLocks.add(database)
+  else recoveryLocks.delete(database)
+}
+
+export function isLegacyRecoveryActive(database = db) {
+  return recoveryLocks.has(database)
+}
+
+export function hasLegacyLocalData() {
+  return ['plan_items', 'plan_item_activities', 'plan_cache', 'evidence_queue', 'execution_outbox',
+    'operational_task_cache', 'operational_task_outbox'].some(table => {
+    const exists = legacyDb.getFirstSync('SELECT name FROM sqlite_master WHERE type = ? AND name = ?', ['table', table])
+    return Boolean(exists && legacyDb.getFirstSync(`SELECT 1 FROM ${table} LIMIT 1`))
+  })
+}
+
+export const legacyTables = ['plan_items', 'plan_item_activities', 'plan_cache', 'evidence_queue',
+  'execution_outbox', 'operational_task_cache', 'operational_task_outbox'] as const
+export type LegacyTable = typeof legacyTables[number]
+export type LegacyRow = Record<string, SQLite.SQLiteBindValue>
+
+export function readLegacyRows(table: LegacyTable): LegacyRow[] {
+  if (!legacyTables.includes(table)) throw new Error('Tabla de recuperación no permitida.')
+  const exists = legacyDb.getFirstSync('SELECT name FROM sqlite_master WHERE type = ? AND name = ?', ['table', table])
+  return exists ? legacyDb.getAllSync<LegacyRow>(`SELECT * FROM "${table}"`) : []
+}
+
+export function getLegacyRecoveryJournal() {
+  if (!recoveryJournal) {
+    const journal = SQLite.openDatabaseSync('legacy-recovery.db')
+    journal.execSync(`PRAGMA synchronous = FULL;
+    CREATE TABLE IF NOT EXISTS recovery_claims (
+      source_table TEXT NOT NULL, source_id TEXT NOT NULL, source_hash TEXT NOT NULL,
+      auth_user_id TEXT NOT NULL, profile_id TEXT NOT NULL, state TEXT NOT NULL,
+      verified_at INTEGER NOT NULL, PRIMARY KEY (source_table, source_id)
+    )`)
+    recoveryJournal = journal
+  }
+  return recoveryJournal
+}
 
 type TableColumn = {
   name: string
@@ -12,6 +91,8 @@ type MigrationRow = {
 }
 
 export function initDB() {
+  if (!activeUserId) throw new Error('Inicia sesión antes de abrir información local.')
+  if (initialized.has(db)) return
   db.execSync(`
     PRAGMA journal_mode = WAL;
     PRAGMA foreign_keys = ON;
@@ -128,6 +209,13 @@ export function initDB() {
         ON DELETE CASCADE
     );
 
+    CREATE TABLE IF NOT EXISTS plan_download_window (
+      cache_key TEXT PRIMARY KEY NOT NULL,
+      start_date TEXT NOT NULL,
+      end_date TEXT NOT NULL,
+      plans_json TEXT NOT NULL
+    );
+
     CREATE TABLE IF NOT EXISTS plan_cache (
       cache_key TEXT PRIMARY KEY NOT NULL,
       plan_id TEXT,
@@ -141,6 +229,13 @@ export function initDB() {
     CREATE TABLE IF NOT EXISTS local_migrations (
       name TEXT PRIMARY KEY NOT NULL,
       applied_at INTEGER NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS legacy_recovery_receipts (
+      source_table TEXT NOT NULL, source_id TEXT NOT NULL, source_hash TEXT NOT NULL,
+      auth_user_id TEXT NOT NULL, profile_id TEXT NOT NULL, outcome TEXT NOT NULL,
+      hidden_from_today INTEGER NOT NULL DEFAULT 0, recovered_at INTEGER NOT NULL,
+      PRIMARY KEY (source_table, source_id)
     );
 
     CREATE TABLE IF NOT EXISTS evidence_queue (
@@ -564,6 +659,7 @@ export function initDB() {
   removeDevelopmentSeedOnce()
   normalizeExtraStopMetadataOnce()
   normalizeCancellationMetadataOnce()
+  initialized.add(db)
 }
 
 function ensurePlanItemColumn(

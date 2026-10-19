@@ -11,6 +11,7 @@ function harness(options = {}) {
   class ApiError extends Error { constructor(message, status, code) { super(message); this.status = status; this.code = code } }
   const ticket = { ok: true, evidence: { id: 'e1', status: 'READY' }, upload: { path: 'p', token: 'signed' } }
   const db = {
+    getFirstSync: () => options.pendingCheckIn ? {id:'pending-check-in'} : null,
     getAllSync: (_sql, args) => row.status !== 'FAILED' || args?.[0] ? [row] : [],
     runSync(sql, args) {
       if (sql.includes("status = 'UPLOADING'")) row.status = 'UPLOADING'
@@ -21,9 +22,10 @@ function harness(options = {}) {
       }
     },
   }
-  const session = { access_token: 'fresh', expires_at: Date.now() / 1000 + (options.expired ? -10 : 3600) }
+  const session = { user: { id: options.sessionOwner ?? 'owner' }, access_token: 'fresh', expires_at: Date.now() / 1000 + (options.expired ? -10 : 3600) }
+  const dbModule = { db, getDatabaseUserId: () => 'owner' }
   const modules = {
-    '../../storage/db': { db }, 'react-native': { Platform: { OS: 'android' } },
+    '../../storage/db': dbModule, 'react-native': { Platform: { OS: 'android' } },
     'expo-file-system': { File: class { async arrayBuffer() {
       calls.push('file'); if (options.missing) throw new Error('missing')
       return new Uint8Array(options.fileBytes ?? [1, 2, 3]).buffer
@@ -31,6 +33,7 @@ function harness(options = {}) {
     '../lib/api': { ApiError,
       createVisitEvidenceTicket: async (_id, payload, token) => {
         calls.push(token); calls.push({ ticketByteSize: payload.byteSize })
+        if (options.changeAccountDuringTicket) dbModule.db = { runSync: () => { throw new Error('must not write to the new account database') } }
         if (options.http) throw new ApiError('denied', options.http, options.code)
         if (options.networkError) throw new Error('NETWORK_ERROR')
         return ticket
@@ -127,4 +130,20 @@ test('manual retry processes FAILED; restart resumes UPLOADING', async () => {
   for (const status of ['FAILED', 'UPLOADING']) {
     const h = harness({ status }); await h.sync('token', status === 'FAILED'); assert.equal(h.row.status, 'READY')
   }
+})
+
+test('another account cannot upload evidence from the original owner', async () => {
+  const h = harness({ sessionOwner: 'other-account' }); await h.sync('old-token')
+  assert.equal(h.row.status, 'PENDING'); assert.equal(h.row.attempts, 0)
+  assert.deepEqual(h.calls, [])
+})
+
+test('an upload already in progress retains the original database through an account change', async () => {
+  const h = harness({ changeAccountDuringTicket: true }); await h.sync('old-token')
+  assert.equal(h.row.status, 'READY'); assert.equal(h.row.local_uri, 'file:///documents/photo.jpg')
+})
+
+test('Evidence waits for the queued check-in before requesting a ticket', async () => {
+ const h=harness({pendingCheckIn:true});const result=await h.sync('token')
+ assert.equal(h.row.status,'PENDING');assert.equal(result.pending,1);assert.deepEqual(h.calls,[])
 })

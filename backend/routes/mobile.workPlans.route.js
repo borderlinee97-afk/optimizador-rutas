@@ -1,3 +1,4 @@
+import { queuePlanNotifications } from '../services/planNotifications.service.js'
 import {
   Router,
 } from 'express'
@@ -535,6 +536,7 @@ router.get(
             farmacia.region_sanitaria,
             farmacia.proyecto,
             farmacia.estado,
+            farmacia.lugar_farmacia,
 
             farmacia.estatus::text
               AS pharmacy_status,
@@ -620,6 +622,9 @@ router.get(
             CASE
               WHEN wpi.item_type::text =
                 'EXTRA_STOP'
+              THEN 'ALL'
+
+              WHEN public.has_shared_plan_pharmacy_access($2::uuid, wpi.pharmacy_id)
               THEN 'ALL'
 
               WHEN permanent_assignment.id
@@ -1821,6 +1826,8 @@ router.post(
         },
       )
 
+      await queuePlanNotifications(client, planId, 'PLAN_SUBMITTED')
+
       await client.query(
         'COMMIT',
       )
@@ -2676,6 +2683,9 @@ function mapPlanItem(
 
     pharmacyStatus:
       row.pharmacy_status,
+
+    locationName:
+      row.lugar_farmacia ?? null,
 
     lat:
       toNullableNumber(

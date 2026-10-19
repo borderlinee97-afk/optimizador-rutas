@@ -1,4 +1,5 @@
 import {
+  ApiError,
   getTodayPlan,
 } from '../lib/api'
 import type {
@@ -13,9 +14,14 @@ import type {
 import {
   db,
   initDB,
+  getDatabaseUserId,
+  isDatabaseActive,
+  isLegacyRecoveryActive,
 } from '../../storage/db'
 
 export type CachedPlanSnapshot = {
+  downloadWindow?: { startDate: string; endDate: string }
+
   plan:
     MobileWorkPlan | null
 
@@ -213,10 +219,16 @@ type CachedItemRow = {
 export async function syncTodayPlan(
   accessToken: string,
 ): Promise<TodayPlanResponse> {
+  const owner = getDatabaseUserId()
+  if (!owner || !isDatabaseActive(owner)) throw new Error('No hay una cuenta local autorizada.')
   const response =
     await getTodayPlan(
       accessToken,
     )
+
+  // A response for a signed-out/replaced account must never enter another cache.
+  if (!isDatabaseActive(owner)) throw new Error('La cuenta cambió durante la sincronización.')
+  if (isLegacyRecoveryActive()) throw new ApiError('La recuperación local está en curso. Intenta sincronizar al terminar.', 409, 'LOCAL_RECOVERY_IN_PROGRESS')
 
   initDB()
 
@@ -225,24 +237,27 @@ export async function syncTodayPlan(
 
   db.withTransactionSync(
     () => {
+      if (hasPendingPlanOperations(response.items.map(item => item.id))) {
+        throw new ApiError('Hay evidencias u operaciones locales pendientes. Se conservó el plan descargado hasta resolverlas.', 409, 'LOCAL_PENDING_OPERATIONS')
+      }
       db.runSync(`
         DELETE FROM plan_item_activities
+        WHERE plan_item_id IN (SELECT id FROM plan_items WHERE NOT EXISTS (
+          SELECT 1 FROM legacy_recovery_receipts r WHERE r.source_table = 'plan_items' AND r.source_id = plan_items.id
+        ))
       `)
 
       db.runSync(`
         DELETE FROM plan_items
+        WHERE NOT EXISTS (SELECT 1 FROM legacy_recovery_receipts r
+          WHERE r.source_table = 'plan_items' AND r.source_id = plan_items.id)
       `)
+      db.runSync("UPDATE legacy_recovery_receipts SET hidden_from_today = 1 WHERE source_table = 'plan_items'")
 
       db.runSync(`
         DELETE FROM plan_cache
         WHERE cache_key = 'today'
       `)
-
-      if (
-        !response.plan
-      ) {
-        return
-      }
 
       db.runSync(
         `
@@ -266,19 +281,26 @@ export async function syncTodayPlan(
         )
         `,
         [
-          response.plan.id,
-          response.plan.status,
-          response.plan.planType,
-          response.plan.periodStart,
-          response.plan.periodEnd,
+          response.plan?.id ?? null,
+          response.plan?.status ?? null,
+          response.plan?.planType ?? null,
+          response.plan?.periodStart ?? null,
+          response.plan?.periodEnd ?? null,
           syncedAt,
         ],
       )
+
+      db.runSync("DELETE FROM plan_download_window WHERE cache_key = 'today'")
+      if (response.downloadWindow?.scope === 'week') {
+        db.runSync("INSERT INTO plan_download_window (cache_key, start_date, end_date, plans_json) VALUES ('today', ?, ?, ?)", [response.downloadWindow.startDate, response.downloadWindow.endDate, JSON.stringify(response.plans ?? (response.plan ? [response.plan] : []))])
+      }
 
       for (
         const item
         of response.items
       ) {
+        // A recovered historical visit may reappear in today's authoritative response.
+        db.runSync('DELETE FROM plan_items WHERE id = ?', [item.id])
         insertPlanItem(
           item,
           syncedAt,
@@ -290,6 +312,7 @@ export async function syncTodayPlan(
             [],
           syncedAt,
         )
+        db.runSync("UPDATE legacy_recovery_receipts SET hidden_from_today = 0 WHERE source_table = 'plan_items' AND source_id = ?", [item.id])
       }
     },
   )
@@ -297,7 +320,7 @@ export async function syncTodayPlan(
   return response
 }
 
-export function readCachedTodayPlan():
+export function readCachedTodayPlan(date = mexicoPlanDate()):
   CachedPlanSnapshot {
   initDB()
 
@@ -321,6 +344,8 @@ export function readCachedTodayPlan():
       `,
     ) as
       CachedPlanRow | null
+
+  const window = db.getFirstSync("SELECT start_date, end_date, plans_json FROM plan_download_window WHERE cache_key = 'today'") as { start_date: string; end_date: string; plans_json: string } | null
 
   const cachedItems =
     db.getAllSync(
@@ -401,11 +426,15 @@ export function readCachedTodayPlan():
         cancelled_by
 
       FROM plan_items
+      WHERE (NOT EXISTS (SELECT 1 FROM plan_download_window WHERE cache_key = 'today') OR scheduled_date = ?)
+      AND NOT EXISTS (SELECT 1 FROM legacy_recovery_receipts r
+        WHERE r.source_table = 'plan_items' AND r.source_id = plan_items.id AND r.hidden_from_today = 1)
 
       ORDER BY
         scheduled_time ASC,
         ord ASC
       `,
+      [date],
     ) as CachedItemRow[]
 
   const plan:
@@ -433,8 +462,12 @@ export function readCachedTodayPlan():
         }
       : null
 
+  const plans: MobileWorkPlan[] = window ? JSON.parse(window.plans_json) : []
+  const selected = window ? (plans.find(p => cachedItems.some(item => item.plan_id === p.id)) ?? plans.find(p => p.periodStart.slice(0, 10) <= date && p.periodEnd.slice(0, 10) >= date) ?? null) : plan
+
   return {
-    plan,
+    downloadWindow: window ? { startDate: window.start_date, endDate: window.end_date } : undefined,
+    plan: selected,
 
     items:
       cachedItems.map(
@@ -681,22 +714,66 @@ export function replaceCachedVisitActivities(
 
 export function clearCachedPlan() {
   initDB()
+  if (hasPendingPlanOperations()) throw new Error('Se conservaron las operaciones locales pendientes.')
 
   db.withTransactionSync(
     () => {
       db.runSync(`
         DELETE FROM plan_item_activities
+        WHERE plan_item_id IN (SELECT id FROM plan_items WHERE NOT EXISTS (
+          SELECT 1 FROM legacy_recovery_receipts r WHERE r.source_table = 'plan_items' AND r.source_id = plan_items.id
+        ))
       `)
 
       db.runSync(`
         DELETE FROM plan_items
+        WHERE NOT EXISTS (SELECT 1 FROM legacy_recovery_receipts r
+          WHERE r.source_table = 'plan_items' AND r.source_id = plan_items.id)
       `)
+      db.runSync("UPDATE legacy_recovery_receipts SET hidden_from_today = 1 WHERE source_table = 'plan_items'")
 
+      db.runSync("DELETE FROM plan_download_window WHERE cache_key = 'today'")
       db.runSync(`
         DELETE FROM plan_cache
       `)
     },
   )
+}
+
+/** Rebuild an orphan's parent from an exact-owner backend response, as history. */
+export function archiveVerifiedRecoveryVisit(item: MobilePlanItem, userId: string, profileId: string) {
+  if (!isDatabaseActive(userId)) throw new Error('La cuenta cambió durante la recuperación.')
+  db.withTransactionSync(() => {
+    const existing = db.getFirstSync<{ plan_id: string | null }>('SELECT plan_id FROM plan_items WHERE id = ?', [item.id])
+    if (existing && existing.plan_id !== item.planId) throw new Error('La visita de destino tiene otro plan.')
+    if (!existing) {
+      insertPlanItem(item, Date.now())
+    }
+    for (const activity of item.activities ?? []) {
+      const cached = db.getFirstSync<{ plan_item_id: string }>('SELECT plan_item_id FROM plan_item_activities WHERE id = ?', [activity.id])
+      if (cached && cached.plan_item_id !== item.id) throw new Error('La actividad de destino tiene otra visita.')
+      if (!cached) insertPlanItemActivities(item.id, [activity], Date.now())
+    }
+    db.runSync(`INSERT INTO legacy_recovery_receipts
+      (source_table, source_id, source_hash, auth_user_id, profile_id, outcome, hidden_from_today, recovered_at)
+      VALUES ('plan_items', ?, ?, ?, ?, 'SERVER_PARENT', ?, ?) ON CONFLICT(source_table, source_id) DO NOTHING`,
+      [item.id, `server:${item.planId}:${item.id}`, userId, profileId, existing ? 0 : 1, Date.now()])
+  })
+}
+
+function hasPendingPlanOperations(incomingIds: string[] = []) {
+  const incoming = new Set(incomingIds)
+  return db.getAllSync<{ plan_item_id: string | null; archived: number }>(`
+    SELECT plan_item_id, EXISTS (
+      SELECT 1 FROM legacy_recovery_receipts r WHERE r.source_table = 'plan_items'
+        AND r.source_id = evidence_queue.plan_item_id AND r.hidden_from_today = 1) AS archived
+    FROM evidence_queue WHERE status <> 'READY'
+    UNION ALL
+    SELECT plan_item_id, EXISTS (
+      SELECT 1 FROM legacy_recovery_receipts r WHERE r.source_table = 'plan_items'
+        AND r.source_id = execution_outbox.plan_item_id AND r.hidden_from_today = 1) AS archived
+    FROM execution_outbox WHERE status <> 'SYNCED'
+  `).some(row => !row.archived || incoming.has(row.plan_item_id ?? ''))
 }
 
 function insertPlanItem(
@@ -1286,4 +1363,10 @@ function timestampToIso(
   }
 
   return date.toISOString()
+}
+
+export function mexicoPlanDate(now = new Date()) {
+  const parts = new Intl.DateTimeFormat('en', { timeZone: 'America/Mexico_City', year: 'numeric', month: '2-digit', day: '2-digit' }).formatToParts(now)
+  const value = (key: string) => parts.find(part => part.type === key)!.value
+  return `${value('year')}-${value('month')}-${value('day')}`
 }

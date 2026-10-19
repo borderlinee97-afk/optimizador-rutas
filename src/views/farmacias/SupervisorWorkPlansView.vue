@@ -12,6 +12,7 @@
         </button>
       </header>
 
+      <AvailabilityPanel />
       <p v-if="error" class="notice error" role="alert">{{ error }}</p>
 
       <section v-if="showCreate" class="card create-card">
@@ -60,6 +61,7 @@
 </template>
 
 <script setup>
+import AvailabilityPanel from '../../components/AvailabilityPanel.vue'
 import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuth } from '../../composables/useAuth.js'

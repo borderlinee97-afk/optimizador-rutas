@@ -1,3 +1,4 @@
+import { AvailabilityPanel } from '../../src/components/AvailabilityPanel'
 import { Ionicons } from '@expo/vector-icons'
 import {
   type Href,
@@ -63,7 +64,7 @@ const STATUS_CONFIG: Record<
   PENDING_APPROVAL: {
     label: 'Pendiente de aprobación',
     description:
-      'El plan está bloqueado mientras el gerente lo revisa.',
+      'El plan está bloqueado mientras se revisa para su aprobación.',
     icon: 'hourglass-outline',
     iconColor: '#b45309',
     badgeClass: 'bg-amber-100',
@@ -105,6 +106,7 @@ export default function WorkPlansScreen() {
   const {
     session,
     profile,
+    legacyDataPreserved,
   } = useAuth()
 
   const accessToken =
@@ -569,6 +571,8 @@ export default function WorkPlansScreen() {
           />
         }
       >
+        <AvailabilityPanel />
+        {legacyDataPreserved ? <Pressable onPress={() => router.push('/legacy-recovery' as Href)}><Text className="my-3 text-sm text-primary-700">Recuperar datos anteriores</Text></Pressable> : null}
         <View className="flex-row items-start justify-between">
           <View className="mr-4 flex-1">
             <Text className="text-3xl font-bold text-slate-900">

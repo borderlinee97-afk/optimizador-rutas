@@ -137,6 +137,7 @@ export type MobilePlanItem = {
 }
 
 export type TodayPlanResponse = {
+  downloadWindow?: { scope: 'day' | 'week'; startDate: string; endDate: string }
   plan: MobileWorkPlan | null
 
   /*

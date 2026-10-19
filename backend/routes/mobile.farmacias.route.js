@@ -1,3 +1,5 @@
+import { applyOfflineVisitEvent } from '../services/offlineVisitExecution.service.js'
+import { planDownloadWindow } from '../services/planDownloadWindow.js'
 import { Router } from 'express'
 
 import { pool } from '../db/pool.js'
@@ -178,6 +180,18 @@ const PLAN_ITEM_SELECT = `
 router.use(requireAuth)
 router.use(loadFieldExecutorProfile)
 
+router.post('/offline-execution', async (req, res) => {
+  try {
+    return res.json(await applyOfflineVisitEvent({ profile:req.profile, authUserId:req.auth.user.id, input:req.body,
+      helpers:{getLockedOwnedItem,getCompletePlanItem,mapPlanItem} }))
+  } catch (error) {
+    const status=[400,403,404,409,422].includes(error.status)?error.status:500
+    if(status===500)console.error('[offline-visit][sync]',error.code??error.name)
+    return res.status(status).json({error:status===500?'No fue posible sincronizar la visita.':error.message,
+      code:error.code??'OFFLINE_VISIT_SYNC_FAILED'})
+  }
+})
+
 /**
  * GET /api/mobile/farmacias/my-plan/today
  *
@@ -192,6 +206,7 @@ router.get(
   '/my-plan/today',
   async (req, res) => {
     try {
+      const downloadWindow = planDownloadWindow(req.query.scope ?? 'day')
       const plansResult =
         await pool.query(
           `
@@ -213,9 +228,8 @@ router.get(
             AND wp.archived_at
               IS NULL
 
-            AND (CURRENT_TIMESTAMP AT TIME ZONE 'America/Mexico_City')::date BETWEEN
-              wp.period_start
-              AND wp.period_end
+            AND wp.period_start <= $4::date
+            AND wp.period_end >= $3::date
 
             AND (
               $2::text =
@@ -234,8 +248,7 @@ router.get(
                   WHERE scope_item.plan_id =
                       wp.id
 
-                    AND scope_item.scheduled_date =
-                      (CURRENT_TIMESTAMP AT TIME ZONE 'America/Mexico_City')::date
+                    AND scope_item.scheduled_date BETWEEN $3::date AND $4::date
 
                     AND scope_item.removed_at
                       IS NULL
@@ -268,6 +281,8 @@ router.get(
           [
             req.profile.id,
             req.profile.rol,
+            downloadWindow.startDate,
+            downloadWindow.endDate,
           ],
         )
 
@@ -276,6 +291,7 @@ router.get(
         0
       ) {
         return res.json({
+          downloadWindow,
           plan: null,
           plans: [],
           items: [],
@@ -306,12 +322,10 @@ router.get(
             AND wp.archived_at
               IS NULL
 
-            AND (CURRENT_TIMESTAMP AT TIME ZONE 'America/Mexico_City')::date BETWEEN
-              wp.period_start
-              AND wp.period_end
+            AND wp.period_start <= $4::date
+            AND wp.period_end >= $3::date
 
-            AND wpi.scheduled_date =
-              (CURRENT_TIMESTAMP AT TIME ZONE 'America/Mexico_City')::date
+            AND wpi.scheduled_date BETWEEN $3::date AND $4::date
 
             AND wpi.removed_at
               IS NULL
@@ -357,6 +371,8 @@ router.get(
           [
             req.profile.id,
             req.profile.rol,
+            downloadWindow.startDate,
+            downloadWindow.endDate,
           ],
         )
 
@@ -381,6 +397,7 @@ router.get(
         )
 
       return res.json({
+        downloadWindow,
         plan: {
           id:
             primaryPlan.id,
@@ -416,7 +433,7 @@ router.get(
         error,
       )
 
-      return res.status(500).json({
+      return res.status(error.status === 400 ? 400 : 500).json({
         error:
           'No fue posible obtener el trabajo del día',
 
@@ -466,6 +483,8 @@ router.post(
       await client.query(
         'BEGIN',
       )
+
+      await client.query("SELECT pg_advisory_xact_lock(hashtext('visit-execution:' || $1::text))", [req.profile.id])
 
       const item =
         await getLockedOwnedItem(

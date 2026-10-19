@@ -1795,6 +1795,7 @@ async function getCompletePlanItem(
         f.region_sanitaria,
         f.proyecto,
         f.estado,
+        f.lugar_farmacia,
 
         f.estatus::text
           AS pharmacy_status,
@@ -2689,6 +2690,9 @@ function mapPlanItem(
 
     pharmacyStatus:
       row.pharmacy_status,
+
+    locationName:
+      row.lugar_farmacia ?? null,
 
     lat:
       toNullableNumber(

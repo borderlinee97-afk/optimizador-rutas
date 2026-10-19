@@ -155,29 +155,8 @@ router.get(
             AND supervisor.activo =
               TRUE
 
-            AND (
-              (
-                $1::text =
-                  'COORDINADOR'
-                AND supervisor.rol::text = 'SUPERVISOR'
-                AND supervisor.superior_id =
-                  $2
-              )
-
-              OR (
-                $1::text IN (
-                  'GERENTE',
-                  'DIRECTOR'
-                )
-
-                AND (
-                  supervisor.superior_id =
-                    $2
-
-                  OR ($1::text = 'DIRECTOR' AND coordinator.superior_id = $2)
-                )
-              )
-            )
+        AND $1::text IN ('COORDINADOR', 'GERENTE')
+        AND public.can_review_farmacias_plan($2::uuid, supervisor.id)
 
           GROUP BY
             wp.id,
@@ -435,8 +414,7 @@ router.get(
                 AND requester.rol =
                   'SUPERVISOR'
 
-                AND requester.superior_id =
-                  $2
+                AND (requester.superior_id = $2 OR public.puebla_shared_supervisor($2, requester.id))
 
                 AND owner.id =
                   requester.id
@@ -451,8 +429,7 @@ router.get(
                     requester.rol =
                       'COORDINADOR'
 
-                    AND requester.superior_id =
-                      $2
+                    AND (requester.superior_id = $2 OR public.puebla_shared_supervisor($2, requester.id))
 
                     AND owner.id =
                       requester.id
@@ -462,8 +439,7 @@ router.get(
                     requester.rol =
                       'SUPERVISOR'
 
-                    AND requester.superior_id =
-                      $2
+                    AND (requester.superior_id = $2 OR public.puebla_shared_supervisor($2, requester.id))
 
                     AND owner.id =
                       requester.id
@@ -597,29 +573,8 @@ router.get(
             AND supervisor.activo =
               TRUE
 
-            AND (
-              (
-                $2::text =
-                  'COORDINADOR'
-                AND supervisor.rol::text = 'SUPERVISOR'
-                AND supervisor.superior_id =
-                  $3
-              )
-
-              OR (
-                $2::text IN (
-                  'GERENTE',
-                  'DIRECTOR'
-                )
-
-                AND (
-                  supervisor.superior_id =
-                    $3
-
-                  OR ($2::text = 'DIRECTOR' AND coordinator.superior_id = $3)
-                )
-              )
-            )
+        AND $2::text IN ('COORDINADOR', 'GERENTE')
+        AND public.can_review_farmacias_plan($3::uuid, supervisor.id)
 
           LIMIT 1
           `,
@@ -1817,8 +1772,7 @@ async function lockCancellationRequestForActor(
             AND requester.rol =
               'SUPERVISOR'
 
-            AND requester.superior_id =
-              $3
+            AND (requester.superior_id = $3 OR public.puebla_shared_supervisor($3, requester.id))
 
             AND owner.id =
               requester.id
@@ -1833,8 +1787,7 @@ async function lockCancellationRequestForActor(
                 requester.rol =
                   'COORDINADOR'
 
-                AND requester.superior_id =
-                  $3
+                AND (requester.superior_id = $3 OR public.puebla_shared_supervisor($3, requester.id))
 
                 AND owner.id =
                   requester.id
@@ -1844,8 +1797,7 @@ async function lockCancellationRequestForActor(
                 requester.rol =
                   'SUPERVISOR'
 
-                AND requester.superior_id =
-                  $3
+                AND (requester.superior_id = $3 OR public.puebla_shared_supervisor($3, requester.id))
 
                 AND owner.id =
                   requester.id
@@ -2193,29 +2145,8 @@ async function lockApprovalPlan(
         AND supervisor.activo =
           TRUE
 
-        AND (
-          (
-            $2::text =
-              'COORDINADOR'
-                AND supervisor.rol::text = 'SUPERVISOR'
-                AND supervisor.superior_id =
-              $3
-          )
-
-          OR (
-            $2::text IN (
-              'GERENTE',
-              'DIRECTOR'
-            )
-
-            AND (
-              supervisor.superior_id =
-                $3
-
-              OR ($2::text = 'DIRECTOR' AND coordinator.superior_id = $3)
-            )
-          )
-        )
+        AND $2::text IN ('COORDINADOR', 'GERENTE')
+        AND public.can_review_farmacias_plan($3::uuid, supervisor.id)
 
       FOR UPDATE OF wp
       `,

@@ -1,3 +1,4 @@
+import { syncVisitExecution } from '../services/executionSync'
 import {
   AppState,
   type AppStateStatus,
@@ -9,13 +10,14 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from 'react'
 
 import { useAuth } from './AuthContext'
 import { ApiError } from '../lib/api'
+import { supabase } from '../lib/supabase'
 import {
-  clearCachedPlan,
   readCachedTodayPlan,
   syncTodayPlan,
   updateCachedExecution,
@@ -23,6 +25,8 @@ import {
 import {
   syncPendingEvidence,
 } from '../services/evidenceSync'
+import { isDatabaseActive } from '../../storage/db'
+import { isAuthorizationFailure, isNetworkFailure } from '../services/profileCache'
 import type {
   MobilePlanItem,
   MobileWorkPlan,
@@ -35,6 +39,8 @@ type PlanContextValue = {
   syncing: boolean
   error: string | null
   lastSyncedAt: number | null
+  offline: boolean
+  downloadWindow: { startDate: string; endDate: string } | null
   refresh: () => Promise<void>
   reloadFromCache: () => void
   applyExecutionItem: (
@@ -54,7 +60,14 @@ export function PlanProvider({
     session,
     profile,
     loading: authLoading,
+    accessState,
+    refreshProfile,
+    invalidateProfile,
   } = useAuth()
+  const userId = session?.user.id
+  const activeRefresh = useRef(false)
+  const [offline, setOffline] = useState(false)
+  const [downloadWindow, setDownloadWindow] = useState<{ startDate: string; endDate: string } | null>(null)
 
   const [plan, setPlan] =
     useState<
@@ -88,12 +101,16 @@ export function PlanProvider({
     profile?.area ===
       'FARMACIAS' &&
     ['SUPERVISOR', 'COORDINADOR'].includes(profile?.rol ?? '')
+  const currentPlanAccess = useRef({ userId, allowed: isSupervisor })
+  currentPlanAccess.current = { userId, allowed: isSupervisor }
 
   const reloadFromCache =
     useCallback(() => {
+      if (!userId || !isDatabaseActive(userId) || !currentPlanAccess.current.allowed) return
       const snapshot =
         readCachedTodayPlan()
 
+      setDownloadWindow(snapshot.downloadWindow ?? null)
       setPlan(
         snapshot.plan,
       )
@@ -105,7 +122,7 @@ export function PlanProvider({
       setLastSyncedAt(
         snapshot.syncedAt,
       )
-    }, [])
+    }, [userId])
 
   const refresh =
     useCallback(async () => {
@@ -115,30 +132,51 @@ export function PlanProvider({
       if (
         !accessToken ||
         !isSupervisor
+        || !userId || !isDatabaseActive(userId) || activeRefresh.current
       ) {
+        return
+      }
+      if (accessState !== 'online') {
+        await refreshProfile()
         return
       }
 
       try {
+        activeRefresh.current = true
         setSyncing(true)
         setError(null)
 
+        await syncVisitExecution(userId)
+        if (!isDatabaseActive(userId) || !currentPlanAccess.current.allowed) return
         await syncPendingEvidence(
           accessToken,
         )
+        if (!isDatabaseActive(userId) || !currentPlanAccess.current.allowed) return
+        const current = await supabase.auth.getSession()
+        if (current.error) throw current.error
+        if (!current.data.session) throw new ApiError('La sesión dejó de ser válida.', 401)
+        if (current.data.session.user.id !== userId || !isDatabaseActive(userId) || !currentPlanAccess.current.allowed) return
 
         await syncTodayPlan(
-          accessToken,
+          current.data.session.access_token,
         )
 
         reloadFromCache()
+        setOffline(false)
       } catch (refreshError) {
+        if (!isDatabaseActive(userId) || !currentPlanAccess.current.allowed) return
+        if (isAuthorizationFailure(refreshError)) {
+          await invalidateProfile(getPlanErrorMessage(refreshError))
+          return
+        }
         console.error(
           'Error sincronizando el plan global:',
           refreshError,
         )
 
         reloadFromCache()
+        setOffline(isNetworkFailure(refreshError))
+        if (isNetworkFailure(refreshError)) void refreshProfile()
 
         setError(
           getPlanErrorMessage(
@@ -146,6 +184,7 @@ export function PlanProvider({
           ),
         )
       } finally {
+        activeRefresh.current = false
         setSyncing(false)
         setReady(true)
       }
@@ -153,6 +192,10 @@ export function PlanProvider({
       session?.access_token,
       isSupervisor,
       reloadFromCache,
+      userId,
+      accessState,
+      refreshProfile,
+      invalidateProfile,
     ])
 
   const applyExecutionItem =
@@ -161,10 +204,10 @@ export function PlanProvider({
         updatedItem:
           MobilePlanItem,
       ) => {
+        if (!userId || !isDatabaseActive(userId) || !currentPlanAccess.current.allowed) return
         updateCachedExecution(
           updatedItem,
         )
-
         setItems(
           (
             currentItems,
@@ -288,11 +331,8 @@ export function PlanProvider({
             ),
         )
 
-        setLastSyncedAt(
-          Date.now(),
-        )
       },
-      [],
+      [userId],
     )
 
   useEffect(() => {
@@ -306,12 +346,12 @@ export function PlanProvider({
       !profile ||
       !isSupervisor
     ) {
-      clearCachedPlan()
-
+      setDownloadWindow(null)
       setPlan(null)
       setItems([])
       setError(null)
       setLastSyncedAt(null)
+      setOffline(false)
       setReady(true)
 
       return
@@ -319,8 +359,9 @@ export function PlanProvider({
 
     reloadFromCache()
     setReady(true)
+    setOffline(accessState === 'offline')
 
-    void refresh()
+    if (accessState === 'online') void refresh()
   }, [
     authLoading,
     session?.user.id,
@@ -328,6 +369,7 @@ export function PlanProvider({
     isSupervisor,
     reloadFromCache,
     refresh,
+    accessState,
   ])
 
   useEffect(() => {
@@ -343,6 +385,7 @@ export function PlanProvider({
         state ===
         'active'
       ) {
+        reloadFromCache()
         void refresh()
       }
     }
@@ -361,6 +404,11 @@ export function PlanProvider({
     refresh,
   ])
 
+  useEffect(() => {
+    const timer = setInterval(reloadFromCache, 60_000)
+    return () => clearInterval(timer)
+  }, [reloadFromCache])
+
   const value =
     useMemo<
       PlanContextValue
@@ -372,6 +420,8 @@ export function PlanProvider({
         syncing,
         error,
         lastSyncedAt,
+        offline,
+        downloadWindow,
         refresh,
         reloadFromCache,
         applyExecutionItem,
@@ -383,6 +433,8 @@ export function PlanProvider({
         syncing,
         error,
         lastSyncedAt,
+        offline,
+        downloadWindow,
         refresh,
         reloadFromCache,
         applyExecutionItem,

@@ -84,6 +84,8 @@ router.get(
               $2::text =
                 'ALL'
 
+              OR public.has_shared_plan_pharmacy_access($1::uuid, farmacia.id)
+
               OR EXISTS (
                 SELECT 1
 
@@ -361,6 +363,8 @@ router.get(
             SELECT
               farmacia.*,
 
+              public.has_shared_plan_pharmacy_access($8::uuid, farmacia.id) AS shared_plan_access,
+
               active_assignment.id
                 AS active_assignment_id,
 
@@ -525,6 +529,8 @@ router.get(
               $9::text =
                 'ALL'
 
+              OR public.has_shared_plan_pharmacy_access($8::uuid, farmacia.id)
+
               OR active_assignment.supervisor_id =
                 $8::uuid
 
@@ -557,6 +563,8 @@ router.get(
             farmacia.estado,
 
             farmacia.proyecto,
+
+            farmacia.shared_plan_access,
 
             farmacia.active_assignment_id,
 
@@ -976,7 +984,7 @@ function mapPharmacy(
       'TEMPORARY_COVERAGE'
   } else if (
     scopeMode ===
-    'ALL'
+    'ALL' || row.shared_plan_access === true
   ) {
     accessType =
       'ALL'

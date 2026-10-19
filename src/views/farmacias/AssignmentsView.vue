@@ -902,7 +902,7 @@
           v-if="
             canManageSelectedUnit &&
             (
-              context.canManageDirectly ||
+              canCreateCoverageDirect ||
               context.canRequestChanges
             )
           "
@@ -914,7 +914,7 @@
 
           <strong>
             {{
-              context.canManageDirectly
+              canCreateCoverageDirect
                 ? 'Crear cobertura directa'
                 : 'Solicitar cobertura'
             }}
@@ -922,27 +922,27 @@
 
           <p>
             {{
-              context.canManageDirectly
+              canCreateCoverageDirect
                 ? 'La cobertura quedará autorizada inmediatamente.'
-                : 'La solicitud será enviada al gerente para aprobación.'
+                : 'La cobertura requiere autorización antes de entrar en vigor.'
             }}
           </p>
 
           <button
             type="button"
             class="coverage-action-button"
-            :disabled="drawerSupervisors.length === 0"
+            :disabled="drawerSupervisors.length === 0 && eligibleCoverageLeaders.length === 0"
             @click="openCoverageModal"
           >
             {{
-              context.canManageDirectly
+              canCreateCoverageDirect
                 ? 'Crear cobertura temporal'
                 : 'Solicitar cobertura temporal'
             }}
           </button>
 
           <small
-            v-if="drawerSupervisors.length === 0"
+            v-if="drawerSupervisors.length === 0 && eligibleCoverageLeaders.length === 0"
           >
             No existe otro supervisor activo dentro
             de esta coordinación.
@@ -1386,7 +1386,7 @@
 
         <h2>
           {{
-            context.canManageDirectly
+            canCreateCoverageDirect
               ? 'Crear cobertura directa'
               : 'Solicitar cobertura'
           }}
@@ -1399,7 +1399,7 @@
         <div class="coverage-explanation">
           <strong>
             {{
-              context.canManageDirectly
+              canCreateCoverageDirect
                 ? 'Autorización inmediata'
                 : 'Requiere aprobación'
             }}
@@ -1407,16 +1407,16 @@
 
           <span>
             {{
-              context.canManageDirectly
+              canCreateCoverageDirect
                 ? 'La cobertura quedará aprobada y disponible durante el periodo indicado.'
-                : 'El gerente deberá revisar y aprobar la solicitud antes de que entre en vigor.'
+                : 'La cobertura requiere autorización antes de entrar en vigor.'
             }}
           </span>
         </div>
 
         <label class="modal-field">
           <span>
-            Supervisor de cobertura *
+            Persona de cobertura *
           </span>
 
           <select
@@ -1424,7 +1424,7 @@
             :disabled="coverageLoading"
           >
             <option value="">
-              Selecciona un supervisor
+              Selecciona quién hará la cobertura
             </option>
 
             <option
@@ -1437,6 +1437,7 @@
               {{ supervisor.assignedUnitsCount }}
               unidades titulares
             </option>
+            <option v-for="person in eligibleCoverageLeaders" :key="person.id" :value="person.id">{{ person.name }} · {{ person.role === 'GERENTE' ? 'Gerente' : 'Coordinador' }}</option>
           </select>
         </label>
 
@@ -1517,7 +1518,7 @@
             {{
               coverageLoading
                 ? 'Procesando...'
-                : context.canManageDirectly
+                : canCreateCoverageDirect
                   ? 'Crear y autorizar'
                   : 'Enviar solicitud'
             }}
@@ -1663,6 +1664,10 @@ const response =
 
 const coverageResponse =
   ref(null)
+
+const canCreateCoverageDirect = computed(
+  () => coverageResponse.value?.context?.canCreateDirect === true
+)
 
 // ============================================================
 // FILTROS
@@ -2118,6 +2123,11 @@ const availableSupervisors =
       )
     }
   )
+
+const eligibleCoverageLeaders = computed(() => (response.value?.coverageCandidates ?? []).filter(person =>
+  person.role === 'GERENTE' || person.id === selectedUnit.value?.coordinatorId ||
+  (String(selectedUnit.value?.state ?? selectedState.value ?? '').trim().toUpperCase() === 'PUEBLA')
+))
 
 const drawerSupervisors =
   computed(

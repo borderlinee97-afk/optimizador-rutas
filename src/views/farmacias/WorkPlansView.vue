@@ -2,6 +2,7 @@
   <SupervisorWorkPlansView v-if="isSupervisor" />
   <main v-else class="plans-page">
     <div class="plans-container">
+      <AvailabilityPanel />
       <header class="plans-header">
         <div>
           <span class="plans-kicker">
@@ -598,6 +599,7 @@
 </template>
 
 <script setup>
+import AvailabilityPanel from '../../components/AvailabilityPanel.vue'
 import {
   computed,
   defineComponent,

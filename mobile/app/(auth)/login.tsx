@@ -14,7 +14,7 @@ import { SafeAreaView } from 'react-native-safe-area-context'
 import { useAuth } from '../../src/context/AuthContext'
 
 export default function LoginScreen() {
-  const { signIn } = useAuth()
+  const { signIn, sessionEndReason, profileError } = useAuth()
 
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -80,10 +80,14 @@ export default function LoginScreen() {
               <Text className="mt-2 text-base leading-6 text-slate-500">
                 Accede a tus rutas, planes de trabajo y
                 actividades asignadas.
+                {'\n'}El primer acceso requiere conexión a internet.
               </Text>
             </View>
 
             <View className="rounded-3xl border border-slate-200 bg-white p-5">
+              {sessionEndReason === 'server_invalidated' ? (
+                <Text className="mb-4 text-sm text-danger">{profileError || 'La sesión dejó de ser válida. Vuelve a iniciar sesión.'}</Text>
+              ) : null}
               <View className="mb-5">
                 <Text className="mb-2 text-sm font-semibold text-slate-700">
                   Correo electrónico

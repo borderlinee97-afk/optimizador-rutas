@@ -6,6 +6,7 @@ import { SafeAreaView } from 'react-native-safe-area-context'
 
 import { EvidenceCapture } from '../../src/components/EvidenceCapture'
 import { useAuth } from '../../src/context/AuthContext'
+import { db } from '../../storage/db'
 import { addOperationalTaskComment, createOperationalTask, getOperationalTaskDetail, updateOperationalTaskStatus } from '../../src/lib/api'
 import {
   createTaskMutationKey,
@@ -84,7 +85,7 @@ export default function TasksScreen() {
     setLoading(true)
 
     try {
-      const result = await syncAgenda(token, mode, status, priority)
+      const result = await syncAgenda(token, mode, status, priority, session.user.id)
       setTasks(result.response.tasks)
       setSyncedAt(result.syncedAt)
       setFailedMutations(result.outbox.failed)
@@ -156,6 +157,7 @@ export default function TasksScreen() {
   }
 
   async function changeStatus(task: OperationalTask, next: OperationalTaskStatus) {
+    const database = db
     const token = session?.access_token
     if (!token || busyId) return
 
@@ -172,7 +174,7 @@ export default function TasksScreen() {
           error instanceof Error ? error.message : 'La operación fue rechazada.',
         )
       } else {
-        enqueueTaskStatus(task.id, next, idempotencyKey)
+        enqueueTaskStatus(task.id, next, idempotencyKey, database)
 
         setTasks(current =>
           current.map(item =>
@@ -195,6 +197,7 @@ export default function TasksScreen() {
   }
 
   async function submitComment() {
+    const database = db
     const token = session?.access_token
     const body = comment.trim()
 
@@ -225,6 +228,7 @@ export default function TasksScreen() {
           detail.task.id,
           body,
           idempotencyKey,
+          database,
         )
 
         setComment('')

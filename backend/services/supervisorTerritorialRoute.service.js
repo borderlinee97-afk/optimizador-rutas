@@ -51,7 +51,7 @@ export async function listTerritorialSupervisors(db, actor, { includeUnits = fal
     WHERE s.activo = TRUE AND s.area::text = 'FARMACIAS' AND s.rol::text = 'SUPERVISOR'
       AND ($5::uuid IS NULL OR s.id = $5::uuid)
       AND (($2 = 'SUPERVISOR' AND s.id = $1)
-        OR ($2 = 'COORDINADOR' AND s.superior_id = $1)
+        OR ($2 = 'COORDINADOR' AND (s.superior_id = $1 OR public.puebla_shared_supervisor($1, s.id)))
         OR ($2 = 'GERENTE' AND (s.superior_id = $1 OR
           (c.superior_id = $1 AND c.activo = TRUE AND c.area::text = 'FARMACIAS' AND c.rol::text = 'COORDINADOR')))
         OR $3 = TRUE)
@@ -70,7 +70,7 @@ export async function listTerritorialSupervisors(db, actor, { includeUnits = fal
             WHERE ps.persona_id = s.id AND ps.revoked_at IS NULL AND upper(btrim(ps.estado)) = upper(btrim(f.estado)))
           OR ($2 = 'COORDINADOR' AND $3 = FALSE AND NOT EXISTS (
             SELECT 1 FROM public.pharmacy_coordinator_assignment ca
-            WHERE ca.pharmacy_id = f.id AND ca.coordinator_id = $1 AND ca.revoked_at IS NULL))
+            WHERE ca.pharmacy_id = f.id AND (ca.coordinator_id = $1 OR public.puebla_shared_pharmacy($1, f.id)) AND ca.revoked_at IS NULL))
           OR ($2 = 'GERENTE' AND $3 = FALSE AND EXISTS (
             SELECT 1 FROM public.pharmacy_coordinator_assignment ca
             JOIN public.personas coordinator ON coordinator.id = ca.coordinator_id

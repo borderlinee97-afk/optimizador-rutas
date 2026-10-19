@@ -257,8 +257,7 @@ export async function listPharmacyCoverages({
             $3::text =
               'COORDINADOR'
 
-            AND coverage.coordinator_id =
-              $2::uuid
+            AND (coverage.coordinator_id = $2::uuid OR public.puebla_shared_pharmacy($2::uuid, farmacia.id))
           )
         )
 
@@ -307,12 +306,10 @@ export async function listPharmacyCoverages({
         'GERENTE',
 
       canCreateDirect:
-        actor.rol ===
-        'GERENTE',
+        ['COORDINADOR', 'GERENTE'].includes(actor.rol),
 
       canRequest:
-        actor.rol ===
-        'COORDINADOR',
+        false,
     },
 
     totals:
@@ -397,7 +394,8 @@ export async function createPharmacyCoverage({
         unit.estado,
       )
 
-    validateCoveringSupervisor({
+    await validateCoveringSupervisor({
+      client,
       supervisor:
         coveringSupervisor,
 
@@ -456,12 +454,11 @@ export async function createPharmacyCoverage({
       )
     }
 
-    const isManagerDirect =
-      actor.rol ===
-      'GERENTE'
+    const isManagerDirect = actor.rol === 'GERENTE'
+    const isDirect = ['COORDINADOR', 'GERENTE'].includes(actor.rol)
 
     const status =
-      isManagerDirect
+      isDirect
         ? 'APPROVED'
         : 'PENDING_APPROVAL'
 
@@ -534,7 +531,7 @@ export async function createPharmacyCoverage({
             WHEN $7::text =
               'APPROVED'
             THEN
-              'Cobertura autorizada directamente por gerencia.'::text
+              'Cobertura autorizada directamente por perfil de coordinación o gerencia.'::text
             ELSE NULL::text
           END
         )
@@ -608,12 +605,12 @@ export async function createPharmacyCoverage({
           requestSource,
 
           directApproval:
-            isManagerDirect,
+            isDirect,
         },
       },
     )
 
-    if (isManagerDirect) {
+    if (isDirect) {
       await appendCoverageEvent(
         client,
         {
@@ -625,7 +622,7 @@ export async function createPharmacyCoverage({
           actor,
 
           comment:
-            'Cobertura autorizada directamente por gerencia.',
+            'Cobertura autorizada directamente por perfil de coordinación o gerencia.',
 
           beforeData: {
             id:
@@ -701,7 +698,7 @@ export async function createPharmacyCoverage({
         true,
 
       action:
-        isManagerDirect
+        isDirect
           ? 'CREATED_AND_APPROVED'
           : 'REQUESTED',
 
@@ -1916,8 +1913,8 @@ async function validateUnitForActor({
   if (
     actor.rol ===
       'COORDINADOR' &&
-    unit.coordinator_id !==
-      actor.id
+    unit.coordinator_id !== actor.id &&
+    !await sharedUnitAccess(client, actor.id, unit)
   ) {
     throw new PharmacyCoverageError(
       'La unidad no pertenece al territorio del coordinador',
@@ -1998,7 +1995,8 @@ async function validateUnitForActor({
   }
 }
 
-function validateCoveringSupervisor({
+async function validateCoveringSupervisor({
+  client,
   supervisor,
   unit,
 }) {
@@ -2029,10 +2027,8 @@ function validateCoveringSupervisor({
   }
 
   if (
-    supervisor.supervisor_area !==
-      'FARMACIAS' ||
-    supervisor.supervisor_role !==
-      'SUPERVISOR'
+    supervisor.supervisor_area !== 'FARMACIAS' ||
+    !['SUPERVISOR', 'COORDINADOR', 'GERENTE'].includes(supervisor.supervisor_role)
   ) {
     throw new PharmacyCoverageError(
       'La persona seleccionada no es supervisor de Farmacias',
@@ -2046,9 +2042,17 @@ function validateCoveringSupervisor({
     )
   }
 
+  if (['COORDINADOR', 'GERENTE'].includes(supervisor.supervisor_role)) {
+    const valid = supervisor.supervisor_role === 'COORDINADOR'
+      ? supervisor.id === unit.coordinator_id || await sharedUnitAccess(client, supervisor.id, unit)
+      : supervisor.id === unit.coordinator_manager_id
+    if (!valid || !supervisor.has_state_scope) throw new PharmacyCoverageError('El perfil de cobertura no tiene autoridad y ámbito sobre esta unidad.', { status: 403, code: 'COVERING_PROFILE_OUTSIDE_TERRITORY' })
+    return
+  }
+
   if (
-    supervisor.superior_id !==
-    unit.coordinator_id
+    supervisor.superior_id !== unit.coordinator_id &&
+    !(String(unit.estado ?? '').trim().toUpperCase() === 'PUEBLA' && (await client.query('SELECT public.puebla_shared_supervisor($1::uuid, $2::uuid) AS allowed', [unit.coordinator_id, supervisor.id])).rows[0]?.allowed)
   ) {
     throw new PharmacyCoverageError(
       'El supervisor de cobertura debe pertenecer al coordinador territorial de la unidad',
@@ -2971,4 +2975,9 @@ async function rollbackSafely(
       rollbackError,
     )
   }
+}
+async function sharedUnitAccess(client, actorId, unit) {
+  if (String(unit.estado ?? '').trim().toUpperCase() !== 'PUEBLA') return false
+  const result = await client.query('SELECT public.puebla_shared_pharmacy($1::uuid, $2::bigint) AS allowed', [actorId, unit.id ?? unit.pharmacy_id])
+  return result.rows[0]?.allowed === true
 }

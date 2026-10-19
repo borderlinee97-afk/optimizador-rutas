@@ -468,8 +468,7 @@ router.get(
            AND supervisor_assignment.revoked_at
                IS NULL
 
-          WHERE territory.coordinator_id =
-                $1
+          WHERE (territory.coordinator_id = $1 OR public.puebla_shared_pharmacy($1, territory.pharmacy_id))
 
             AND territory.revoked_at
                 IS NULL
@@ -1085,25 +1084,29 @@ async function sendManagerStructure(
 
       supervisor_counts AS (
         SELECT
-          supervisor.superior_id
-            AS coordinator_id,
+          reporting.coordinator_id AS coordinator_id,
 
           COUNT(
             DISTINCT supervisor.id
           ) AS supervisors_count
 
         FROM scoped_supervisors supervisor
+        CROSS JOIN LATERAL (
+          SELECT supervisor.superior_id AS coordinator_id
+          UNION SELECT link.coordinator_id FROM public.puebla_supervisor_coordinator link
+            WHERE link.supervisor_id=supervisor.id AND public.puebla_shared_supervisor(link.coordinator_id,supervisor.id)
+        ) reporting
 
         WHERE supervisor.superior_id
               IS NOT NULL
 
         GROUP BY
-          supervisor.superior_id
+          reporting.coordinator_id
       ),
 
       territory_counts AS (
         SELECT
-          territory.coordinator_id,
+          reporting.coordinator_id,
 
           COUNT(
             DISTINCT farmacia.id
@@ -1150,11 +1153,17 @@ async function sendManagerStructure(
          AND supervisor_assignment.revoked_at
              IS NULL
 
+        CROSS JOIN LATERAL (
+          SELECT territory.coordinator_id
+          UNION SELECT link.coordinator_id FROM public.puebla_supervisor_coordinator link
+            WHERE link.supervisor_id=supervisor_assignment.supervisor_id AND public.puebla_shared_pharmacy(link.coordinator_id,farmacia.id)
+        ) reporting
+
         WHERE territory.revoked_at
               IS NULL
 
         GROUP BY
-          territory.coordinator_id
+          reporting.coordinator_id
       )
 
       SELECT
@@ -1572,8 +1581,7 @@ async function sendCoordinatorStructure(
        AND supervisor_assignment.revoked_at
            IS NULL
 
-      WHERE territory.coordinator_id =
-            $1
+      WHERE (territory.coordinator_id = $1 OR public.puebla_shared_pharmacy($1, territory.pharmacy_id))
 
         AND territory.revoked_at
             IS NULL
@@ -1812,8 +1820,7 @@ async function getDirectSupervisors(
         AND supervisor.activo =
             TRUE
 
-        AND supervisor.superior_id =
-            $1
+        AND (supervisor.superior_id = $1 OR public.puebla_shared_supervisor($1, supervisor.id))
 
       GROUP BY
         supervisor.id,
@@ -2132,8 +2139,7 @@ async function getAuthorizedUnits({
           WHERE territory_filter.pharmacy_id =
                 farmacia.id
 
-            AND territory_filter.coordinator_id =
-                $${params.length}
+            AND (territory_filter.coordinator_id = $${params.length} OR public.puebla_shared_pharmacy($${params.length}, territory_filter.pharmacy_id))
 
             AND territory_filter.revoked_at
                 IS NULL
@@ -2291,8 +2297,7 @@ async function getAuthorizedUnits({
           WHERE territory_filter.pharmacy_id =
                 farmacia.id
 
-            AND territory_filter.coordinator_id =
-                $${params.length}
+            AND (territory_filter.coordinator_id = $${params.length} OR public.puebla_shared_pharmacy($${params.length}, territory_filter.pharmacy_id))
 
             AND territory_filter.revoked_at
                 IS NULL
@@ -2443,8 +2448,7 @@ async function getAuthorizedUnits({
         WHERE territory_filter.pharmacy_id =
               farmacia.id
 
-          AND territory_filter.coordinator_id =
-              $${params.length}
+          AND (territory_filter.coordinator_id = $${params.length} OR public.puebla_shared_pharmacy($${params.length}, territory_filter.pharmacy_id))
 
           AND territory_filter.revoked_at
               IS NULL
@@ -2723,8 +2727,7 @@ async function managerCanAccessSupervisor(
             TRUE
 
         AND (
-          supervisor.superior_id =
-            $1
+          (supervisor.superior_id = $1 OR public.puebla_shared_supervisor($1, supervisor.id))
 
           OR coordinator.superior_id =
              $1
@@ -2785,8 +2788,7 @@ async function coordinatorCanAccessSupervisor(
       WHERE supervisor.id =
             $2
 
-        AND supervisor.superior_id =
-            $1
+        AND (supervisor.superior_id = $1 OR public.puebla_shared_supervisor($1, supervisor.id))
 
         AND supervisor.area =
             'FARMACIAS'

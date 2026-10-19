@@ -113,8 +113,7 @@ router.get(
             AND activo =
               TRUE
 
-            AND superior_id =
-              $2::uuid
+            AND (superior_id = $2::uuid OR public.puebla_shared_supervisor($2::uuid, personas.id))
 
           ORDER BY
             nombre ASC
@@ -1296,8 +1295,7 @@ async function findDirectTarget({
           $1::uuid
 
         AND id <> $2::uuid
-        AND superior_id =
-          $2::uuid
+        AND (superior_id = $2::uuid OR public.puebla_shared_supervisor($2::uuid, personas.id))
 
         AND area::text =
           'FARMACIAS'
@@ -1359,8 +1357,7 @@ async function lockDirectTarget(
           $1::uuid
 
         AND id <> $2::uuid
-        AND superior_id =
-          $2::uuid
+        AND (superior_id = $2::uuid OR public.puebla_shared_supervisor($2::uuid, personas.id))
 
         AND area::text =
           'FARMACIAS'

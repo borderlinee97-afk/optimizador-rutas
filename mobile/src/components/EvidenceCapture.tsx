@@ -1,3 +1,4 @@
+import { useNetInfo } from '@react-native-community/netinfo'
 import {
   randomUUID,
 } from 'expo-crypto'
@@ -8,6 +9,7 @@ import { File } from 'expo-file-system'
 import {
   useCallback,
   useEffect,
+  useRef,
   useState,
 } from 'react'
 import {
@@ -31,6 +33,7 @@ import {
 import type {
   LocalEvidence,
 } from '../types/evidence'
+import { db, getDatabaseUserId, isDatabaseActive } from '../../storage/db'
 
 type Props = {
   planItemId?: string
@@ -56,6 +59,9 @@ export function EvidenceCapture({
   compact = false,
   onSynced,
 }: Props) {
+  const network = useNetInfo()
+  const database = useRef(db).current
+  const owner = getDatabaseUserId(database)
   const [
     evidence,
     setEvidence,
@@ -73,7 +79,7 @@ export function EvidenceCapture({
           planItemId,
           activityId,
           taskId,
-        }),
+        }, database),
       )
     }, [
       planItemId,
@@ -300,7 +306,7 @@ export function EvidenceCapture({
           accuracyM,
           mocked:
             false,
-        })
+        }, database)
         queued = true
       } finally {
         if (!queued) {
@@ -311,12 +317,12 @@ export function EvidenceCapture({
         }
       }
 
+      if (!owner || !isDatabaseActive(owner)) return
       refresh()
 
-      const syncResult =
-        await syncPendingEvidence(
-          accessToken,
-        )
+      const syncResult = network.isConnected === false || network.isInternetReachable === false
+        ? { synced: 0, pending: 1, failed: 0 }
+        : await syncPendingEvidence(accessToken)
 
       refresh()
 

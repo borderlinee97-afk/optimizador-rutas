@@ -19,6 +19,22 @@ if (!supabasePublishableKey) {
   )
 }
 
+// Same storage key used by Supabase by default; no second copy of tokens.
+export const authStorageKey = `sb-${new URL(supabaseUrl).hostname.split('.')[0]}-auth-token`
+
+export async function readPersistedAuthSession(): Promise<import('@supabase/supabase-js').Session | null> {
+  if (Platform.OS === 'web') return null
+  try {
+    const raw = await AsyncStorage.getItem(authStorageKey)
+    const value = raw ? JSON.parse(raw) : null
+    return typeof value?.user?.id === 'string' && value.user.id &&
+      typeof value.access_token === 'string' && value.access_token &&
+      typeof value.refresh_token === 'string' && value.refresh_token ? value : null
+  } catch {
+    return null
+  }
+}
+
 export const supabase = createClient(
   supabaseUrl,
   supabasePublishableKey,
@@ -37,6 +53,7 @@ export const supabase = createClient(
       },
     },
     auth: {
+      storageKey: authStorageKey,
       ...(Platform.OS !== 'web'
         ? {
             storage: AsyncStorage,

@@ -1,0 +1,265 @@
+const test = require('node:test')
+const assert = require('node:assert/strict')
+const { loadTs, hooks } = require('./helpers/loadTs.cjs')
+
+const A = '11111111-1111-1111-1111-111111111111'
+const B = '22222222-2222-2222-2222-222222222222'
+const sessionFor = id => ({ user: { id }, access_token: `token-${id}`, refresh_token: 'sdk-owned', expires_at: 1 })
+const profileFor = id => ({ id: `persona-${id}`, nombre: id, area: 'FARMACIAS', rol: 'SUPERVISOR', activo: true, superiorId: null })
+class ApiError extends Error { constructor(message, status, code) { super(message); this.status = status; this.code = code } }
+const network = () => new ApiError('offline', 0, 'NETWORK_ERROR')
+
+function harness({ storage = new Map(), stored = sessionFor(A), sdkNetworkError = false, initialError = null, refreshEmitsEvent = false,
+  refreshError = null, recovery = async () => ({ copied: 0, retained: 0 }) } = {}) {
+  const storageApi = { getItem: async key => storage.get(key) ?? null, setItem: async (key, value) => { storage.set(key, value) } }
+  const cache = loadTs('src/services/profileCache.ts', { '@react-native-async-storage/async-storage': { default: storageApi } })
+  const runner = hooks()
+  let authCallback, sdkSession = stored, error = initialError, activeOwner = null, deferred = null
+  const calls = [], revoked = []
+  const sdk = {
+    onAuthStateChange(callback) { authCallback = callback; return { data: { subscription: { unsubscribe() {} } } } },
+    getSession: async () => sdkNetworkError
+      ? { data: { session: null }, error: { name: 'AuthRetryableFetchError' } }
+      : { data: { session: sdkSession }, error: null },
+    refreshSession: async () => {
+      if (refreshError) return { data: { session: null }, error: refreshError }
+      if (refreshEmitsEvent) {
+        sdkSession = { ...sdkSession, access_token: `token-${sdkSession.user.id}-renewed` }
+        authCallback('TOKEN_REFRESHED', sdkSession)
+      }
+      return { data: { session: sdkSession }, error: null }
+    },
+    signInWithPassword: async () => {
+      if (error?.code === 'NETWORK_ERROR') return { error }
+      sdkSession = sessionFor(A); authCallback('SIGNED_IN', sdkSession); return { error: null }
+    },
+    signOut: async () => { sdkSession = null; authCallback('SIGNED_OUT', null); return { error: null } },
+    resetPasswordForEmail: async () => ({ error: null }),
+  }
+  const exports = loadTs('src/context/AuthContext.tsx', {
+    ...runner.modules,
+    'react-native': { AppState: { currentState: 'active', addEventListener: () => ({ remove() {} }) } },
+    '../lib/api': { ApiError, unregisterPushSession: async token => { revoked.push(token); if (sdkNetworkError) throw network() }, getCurrentProfile: async token => {
+      calls.push(token)
+      if (deferred) return deferred
+      const failure = typeof error === 'function' ? error(token) : error
+      if (failure) throw failure
+      const id = token.slice('token-'.length, 'token-'.length + 36)
+      return { user: { id }, profile: profileFor(id) }
+    } },
+    '../lib/supabase': { supabase: { auth: sdk }, readPersistedAuthSession: async () => stored },
+    '../../storage/db': {
+      activateUserDatabase: id => { activeOwner = id }, deactivateUserDatabase: () => { activeOwner = null }, hasLegacyLocalData: () => false,
+      isDatabaseActive: id => activeOwner === id,
+    },
+    '../services/profileCache': cache,
+    '../services/legacyRecovery': { recoverLegacyData: recovery },
+  }, { setInterval: () => 0, clearInterval() {} })
+  runner.mount(exports.AuthProvider)
+  return { runner, storage, cache, calls, revoked, get owner() { return activeOwner },
+    setError(value) { error = value }, defer(value) { deferred = value },
+    changeUser(id) { sdkSession = sessionFor(id); authCallback('SIGNED_IN', sdkSession) },
+    revokeSession() { sdkSession = null; authCallback('SIGNED_OUT', null) } }
+}
+
+test('A: online password login persists only the backend profile under the real auth ID', async () => {
+  const h = harness({ stored: null }); await h.runner.flush()
+  assert.equal(h.runner.value.accessState, 'signed_out')
+  assert.equal(h.runner.value.sessionEndReason, 'no_previous_session')
+  await h.runner.value.signIn('user@example.test', 'not-persisted'); await h.runner.flush()
+  assert.equal(h.runner.value.accessState, 'online'); assert.equal(h.owner, A)
+  const saved = await h.cache.readProfileSnapshot(A)
+  assert.equal(saved.profile.id, profileFor(A).id)
+  assert.ok(!JSON.stringify([...h.storage]).includes('not-persisted'))
+  h.runner.stop()
+})
+
+test('C/D/E: cold start with expired SDK session and network failure restores the same profile without deleting it', async () => {
+  const first = harness(); await first.runner.flush(); first.runner.stop()
+  const before = JSON.stringify([...first.storage])
+  const offline = harness({ storage: first.storage, sdkNetworkError: true, initialError: network() })
+  await offline.runner.flush()
+  assert.equal(offline.runner.value.session.user.id, A)
+  assert.equal(offline.runner.value.profile.id, profileFor(A).id)
+  assert.equal(offline.runner.value.accessState, 'offline')
+  assert.equal(JSON.stringify([...first.storage]), before)
+  offline.runner.stop()
+})
+
+test('F: reconnect validates with the backend and updates the snapshot', async () => {
+  const h = harness(); await h.runner.flush()
+  h.setError(network()); await h.runner.value.refreshProfile(); await h.runner.flush()
+  assert.equal(h.runner.value.accessState, 'offline')
+  h.setError(null); await h.runner.value.refreshProfile(); await h.runner.flush()
+  assert.equal(h.runner.value.accessState, 'online'); assert.ok(h.calls.length >= 3)
+  h.runner.stop()
+})
+
+test('G: a cached profile alone never grants a first offline login without an SDK session', async () => {
+  const first = harness(); await first.runner.flush(); first.runner.stop()
+  const h = harness({ stored: null, storage: first.storage, initialError: network() }); await h.runner.flush()
+  assert.equal(h.runner.value.session, null); assert.equal(h.runner.value.profile, null)
+  const result = await h.runner.value.signIn('user@example.test', 'password')
+  assert.ok(result.error); assert.equal(h.calls.length, 0)
+  h.runner.stop()
+})
+
+test('H: changing accounts hides A immediately and ignores a late A response', async () => {
+  const h = harness(); await h.runner.flush()
+  let resolveA
+  h.defer(new Promise(resolve => { resolveA = resolve }))
+  const late = h.runner.value.refreshProfile()
+  h.changeUser(B); h.defer(null); await h.runner.flush()
+  assert.equal(h.runner.value.profile.id, profileFor(B).id); assert.equal(h.owner, B)
+  resolveA({ user: { id: A }, profile: profileFor(A) }); await late; await h.runner.flush()
+  assert.equal(h.runner.value.profile.id, profileFor(B).id)
+  h.runner.stop()
+})
+
+test('H: offline user B never falls back to the cached profile of A', async () => {
+  const h = harness(); await h.runner.flush()
+  h.setError(network()); h.changeUser(B); await h.runner.flush()
+  assert.equal(h.runner.value.user.id, B)
+  assert.equal(h.runner.value.profile, null); assert.equal(h.runner.value.accessState, 'offline')
+  assert.ok(await h.cache.readProfileSnapshot(A)); assert.equal(await h.cache.readProfileSnapshot(B), null)
+  h.runner.stop()
+})
+
+test('J: inactive backend profile blocks offline reuse, including after another cold start', async () => {
+  const h = harness(); await h.runner.flush()
+  h.setError(new ApiError('inactive', 403, 'PROFILE_INACTIVE'))
+  await h.runner.value.refreshProfile(); await h.runner.flush()
+  assert.equal(h.runner.value.profile, null); assert.equal(h.runner.value.accessState, 'unauthorized')
+  assert.equal(await h.cache.readProfileSnapshot(A), null); h.runner.stop()
+  const offline = harness({ storage: h.storage, initialError: network() }); await offline.runner.flush()
+  assert.equal(offline.runner.value.profile, null); offline.runner.stop()
+})
+
+test('explicit logout blocks offline access but retains the stored snapshot as a denied record', async () => {
+  const h = harness(); await h.runner.flush()
+  await h.runner.value.signOut(); await h.runner.flush()
+  assert.equal(h.runner.value.profile, null); assert.equal(h.owner, null)
+  assert.equal(h.runner.value.accessState, 'signed_out')
+  assert.equal(h.runner.value.sessionEndReason, 'explicit_logout')
+  assert.equal(h.storage.size, 1); assert.ok(JSON.parse([...h.storage.values()][0]).blocked)
+  h.runner.stop()
+})
+
+test('a snapshot from another account or with an inactive profile is rejected', () => {
+  const h = harness()
+  assert.equal(h.cache.isUsableSnapshot({ userId: A, profile: profileFor(A), validatedAt: Date.now(), blocked: false }, B), false)
+  assert.equal(h.cache.isUsableSnapshot({ userId: A, profile: { ...profileFor(A), activo: false }, validatedAt: Date.now(), blocked: false }, A), false)
+})
+
+test('a persistent backend 401 blocks access after one SDK refresh, without a retry loop', async () => {
+  const h = harness(); await h.runner.flush()
+  h.setError(new ApiError('revoked', 401, 'INVALID_TOKEN'))
+  const before = h.calls.length
+  await h.runner.value.refreshProfile(); await h.runner.flush()
+  assert.equal(h.runner.value.profile, null); assert.equal(h.runner.value.accessState, 'unauthorized')
+  assert.equal(h.calls.length - before, 2); assert.equal(await h.cache.readProfileSnapshot(A), null)
+  h.runner.stop()
+})
+
+test('SDK TOKEN_REFRESHED supersedes the expired-token request and validates the new token', async () => {
+  const h = harness({ refreshEmitsEvent: true }); await h.runner.flush()
+  h.setError(token => token.endsWith('-renewed') ? null : new ApiError('expired', 401))
+  await h.runner.value.refreshProfile(); await h.runner.flush()
+  assert.equal(h.runner.value.accessState, 'online')
+  assert.equal(h.runner.value.profile.id, profileFor(A).id)
+  assert.equal(h.runner.value.session.access_token, `token-${A}-renewed`)
+  assert.ok(await h.cache.readProfileSnapshot(A)); h.runner.stop()
+})
+
+test('an actual SDK SIGNED_OUT is distinguished from explicit logout and blocks the cached profile', async () => {
+  const h = harness(); await h.runner.flush()
+  h.revokeSession(); await h.runner.flush()
+  assert.equal(h.runner.value.profile, null); assert.equal(h.runner.value.session, null)
+  assert.equal(h.runner.value.sessionEndReason, 'server_invalidated')
+  assert.match(h.runner.value.profileError, /invalidada/)
+  assert.equal(await h.cache.readProfileSnapshot(A), null); h.runner.stop()
+})
+
+test('explicit recovery uses the SDK session and exact auth/persona IDs without automatically starting at login', async () => {
+  const requests = []
+  const h = harness({ recovery: async account => { requests.push(account); assert.equal(account.isCurrent(), true); return { copied: 1, retained: 0 } } })
+  await h.runner.flush(); assert.equal(requests.length, 0)
+  await h.runner.value.recoverLegacy(); await h.runner.flush()
+  assert.equal(requests[0].userId, A); assert.equal(requests[0].profileId, profileFor(A).id)
+  assert.equal(requests[0].accessToken, sessionFor(A).access_token)
+  assert.equal(h.runner.value.legacyRecovery.result.copied, 1); h.runner.stop()
+})
+
+test('offline recovery cannot attribute additional records and does not discard the saved profile', async () => {
+  let requests = 0
+  const h = harness({ recovery: async () => { requests++; throw new Error('must not run offline') } })
+  await h.runner.flush(); h.setError(network()); await h.runner.value.refreshProfile(); await h.runner.flush()
+  assert.equal(await h.runner.value.recoverLegacy(), null)
+  assert.equal(requests, 0); assert.ok(await h.cache.readProfileSnapshot(A)); h.runner.stop()
+})
+
+test('recovery authorization denial blocks offline profile reuse without ending the SDK session', async () => {
+  const h = harness({ recovery: async () => { throw new ApiError('inactive', 403, 'PROFILE_INACTIVE') } })
+  await h.runner.flush(); await h.runner.value.recoverLegacy(); await h.runner.flush()
+  assert.equal(h.runner.value.accessState, 'unauthorized'); assert.equal(h.runner.value.profile, null)
+  assert.equal(h.runner.value.session.user.id, A); assert.equal(await h.cache.readProfileSnapshot(A), null)
+  assert.equal(h.owner, null); h.runner.stop()
+})
+
+test('a recovery result for A never appears in B after an account switch', async () => {
+  let finish, account
+  const h = harness({ recovery: args => { account = args; return new Promise(resolve => { finish = resolve }) } })
+  await h.runner.flush(); const pending = h.runner.value.recoverLegacy(); await h.runner.flush()
+  h.changeUser(B); await h.runner.flush(); assert.equal(account.isCurrent(), false)
+  finish({ copied: 1, retained: 0 }); await pending; await h.runner.flush()
+  assert.equal(h.runner.value.legacyRecovery.result, null); assert.equal(h.runner.value.profile.id, profileFor(B).id)
+  h.runner.stop()
+})
+
+
+test('Logout revokes current account push devices and still works offline without erasing profile snapshots', async () => {
+ for(const sdkNetworkError of [false,true]) {
+  const h=harness({sdkNetworkError});await h.runner.flush()
+  const before=h.storage.get(`authorized-profile:v1:${A}`);await h.runner.value.signOut();await h.runner.flush()
+  assert.deepEqual(h.revoked,[sessionFor(A).access_token]);assert.equal(h.runner.value.session,null)
+  const after=JSON.parse(h.storage.get(`authorized-profile:v1:${A}`));assert.equal(after.blocked,true)
+  if(before)assert.deepEqual(after.profile,JSON.parse(before).profile);h.runner.stop()
+ }
+})
+
+
+test('Expired access token plus network failure renewing it preserves the validated offline profile', async () => {
+  const h = harness({ refreshError: { name: 'AuthRetryableFetchError', message: 'Network request failed' } })
+  await h.runner.flush()
+  h.setError(new ApiError('Access token expired', 401, 'ACCESS_TOKEN_INVALID'))
+  await h.runner.value.refreshProfile(); await h.runner.flush()
+  assert.equal(h.runner.value.session.user.id, A)
+  assert.equal(h.runner.value.accessState, 'offline')
+  assert.equal(h.runner.value.profile.id, profileFor(A).id)
+  assert.ok(await h.cache.readProfileSnapshot(A))
+  assert.equal(h.owner, A)
+  h.runner.stop()
+})
+
+
+test('An actual refresh token rejection still blocks offline reuse after an access-token 401', async () => {
+  const h = harness({ refreshError: { name: 'AuthApiError', status: 400, code: 'refresh_token_not_found' } })
+  await h.runner.flush()
+  h.setError(new ApiError('Token invalid', 401, 'ACCESS_TOKEN_INVALID'))
+  await h.runner.value.refreshProfile(); await h.runner.flush()
+  assert.equal(h.runner.value.accessState, 'unauthorized')
+  assert.equal(h.runner.value.profile, null)
+  assert.equal(await h.cache.readProfileSnapshot(A), null)
+  h.runner.stop()
+})
+
+test('Cold start with a cached profile, expired access token and offline refresh keeps account access', async () => {
+  const first = harness(); await first.runner.flush(); first.runner.stop()
+  const h = harness({ storage: first.storage, initialError: new ApiError('Expired', 401),
+    refreshError: { name: 'AuthRetryableFetchError', message: 'Network request failed' } })
+  await h.runner.flush()
+  assert.equal(h.runner.value.accessState, 'offline')
+  assert.equal(h.runner.value.profile.id, profileFor(A).id)
+  assert.equal(h.runner.value.session.user.id, A)
+  h.runner.stop()
+})

@@ -1,3 +1,4 @@
+import { AvailabilityPanel } from '../../src/components/AvailabilityPanel'
 import {
 
   Ionicons,
@@ -1671,6 +1672,7 @@ export default function ApprovalsScreen() {
         }
 
       >
+        <AvailabilityPanel />
 
         <View>
 

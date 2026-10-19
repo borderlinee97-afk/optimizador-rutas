@@ -1,0 +1,28 @@
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { useFocusEffect } from 'expo-router'
+import { Alert, Pressable, Text, TextInput, View } from 'react-native'
+import * as Crypto from 'expo-crypto'
+import { useAuth } from '../context/AuthContext'
+import { apiRequest } from '../lib/api'
+type Request = {id:string;supervisor_name:string;start_date:string;end_date:string;status:string;comment:string;active:boolean;reviewed_by_name?:string;review_comment?:string}
+type Response = {enabled:boolean;canRequest:boolean;requests:Request[]}
+export function AvailabilityPanel(){
+ const {session,profile,accessState}=useAuth(),token=session?.access_token
+ const [dataOwner,setDataOwner]=useState<string | undefined>()
+ const [data,setData]=useState<Response>({enabled:false,canRequest:false,requests:[]})
+ const [start,setStart]=useState(''),[end,setEnd]=useState(''),[comment,setComment]=useState(''),[busy,setBusy]=useState(false),[error,setError]=useState('')
+ const [reviewing,setReviewing]=useState<Request|null>(null),[reason,setReason]=useState('')
+ const key=useRef(Crypto.randomUUID()),owner=useRef(session?.user.id);owner.current=session?.user.id
+ const load=useCallback(async()=>{if(!token||accessState!=='online'||!['SUPERVISOR','COORDINADOR'].includes(profile?.rol??''))return;const user=owner.current;try{const response=await apiRequest<Response>('/api/mobile/availability',{method:'GET'},token);if(owner.current===user){setData(response);setDataOwner(user)}}catch{/* Other states keep the existing interface. */}},[token,accessState,profile?.rol])
+ useEffect(()=>{setData({enabled:false,canRequest:false,requests:[]});setDataOwner(undefined);setStart('');setEnd('');setComment('');setError('');setReviewing(null);setReason('');key.current=Crypto.randomUUID()},[session?.user.id])
+ useFocusEffect(useCallback(()=>{void load()},[load]))
+ if(!data.enabled||dataOwner!==session?.user.id||profile?.area!=='FARMACIAS')return null
+ const label=(status:string)=>({PENDING_APPROVAL:'Pendiente de aprobación',APPROVED:'Aprobada',REJECTED:'Rechazada'}[status]??status)
+ async function send(path:string,body:unknown){if(!token||busy)return false;if(accessState!=='online'){setError('Conéctate para enviar o revisar vacaciones.');return false}setBusy(true);setError('');try{await apiRequest(path,{method:'POST',body:JSON.stringify(body)},token);await load();return true}catch(e){setError(e instanceof Error?e.message:'No fue posible guardar la solicitud.');return false}finally{setBusy(false)}}
+ async function submit(){if(!/^\d{4}-\d{2}-\d{2}$/.test(start)||!/^\d{4}-\d{2}-\d{2}$/.test(end)||end<start||comment.trim().length<5){setError('Indica fechas AAAA-MM-DD y un comentario de al menos 5 caracteres.');return}if(await send('/api/mobile/availability',{id:key.current,startDate:start,endDate:end,comment})){key.current=Crypto.randomUUID();setStart('');setEnd('');setComment('');Alert.alert('Vacaciones','Solicitud enviada a los coordinadores.')}}
+ const button=(text:string,onPress:()=>void)=><Pressable disabled={busy} onPress={onPress} className="mt-2 rounded-xl bg-primary-600 px-4 py-3"><Text className="font-bold text-white">{text}</Text></Pressable>
+ return <View className="my-4 rounded-2xl border border-slate-200 bg-white p-4"><Text className="text-xl font-bold text-slate-900">Vacaciones</Text><Text className="mt-1 text-sm text-slate-600">Puebla · Puede aprobar cualquiera de los dos coordinadores.</Text>{button('Actualizar',()=>{void load()})}{error?<Text accessibilityRole="alert" className="mt-2 text-red-700">{error}</Text>:null}
+ {data.canRequest?<View><TextInput accessibilityLabel="Inicio de vacaciones" placeholder="Desde AAAA-MM-DD" value={start} onChangeText={setStart} maxLength={10} className="mt-3 rounded-xl border border-slate-300 p-3"/><TextInput accessibilityLabel="Fin de vacaciones" placeholder="Hasta AAAA-MM-DD" value={end} onChangeText={setEnd} maxLength={10} className="mt-3 rounded-xl border border-slate-300 p-3"/><TextInput accessibilityLabel="Comentario de vacaciones" placeholder="Comentario" value={comment} onChangeText={setComment} maxLength={2000} multiline className="mt-3 rounded-xl border border-slate-300 p-3"/>{button('Enviar a coordinadores',()=>{void submit()})}</View>:null}
+ {!data.requests.length?<Text className="mt-3 text-slate-600">Sin solicitudes.</Text>:null}{data.requests.map(item=><View key={item.id} className="mt-4 border-t border-slate-200 pt-3"><Text className="font-bold text-slate-900">{item.supervisor_name}</Text><Text>{item.start_date.slice(0,10)} — {item.end_date.slice(0,10)}</Text><Text>{label(item.status)}{item.active?' · De vacaciones':''}</Text><Text>{item.comment}</Text>{item.reviewed_by_name?<Text>Revisó: {item.reviewed_by_name}{item.review_comment?` · ${item.review_comment}`:''}</Text>:null}{!data.canRequest&&item.status==='PENDING_APPROVAL'?<View>{button('Aprobar',()=>Alert.alert('Vacaciones','¿Aprobar estas vacaciones?',[{text:'Cancelar',style:'cancel'},{text:'Aprobar',onPress:()=>{void send(`/api/mobile/availability/${item.id}/review`,{decision:'APPROVED'})}}]))}{button('Rechazar',()=>{setReviewing(item);setReason('')})}</View>:null}</View>)}
+ {reviewing?<View className="mt-4"><Text>Motivo de rechazo</Text><TextInput value={reason} onChangeText={setReason} maxLength={2000} className="mt-2 rounded-xl border border-slate-300 p-3"/>{button('Confirmar rechazo',()=>{if(reason.trim().length<5){setError('Indica al menos 5 caracteres.');return}void send(`/api/mobile/availability/${reviewing.id}/review`,{decision:'REJECTED',comment:reason}).then(ok=>{if(ok)setReviewing(null)})})}{button('Cancelar',()=>setReviewing(null))}</View>:null}</View>
+}

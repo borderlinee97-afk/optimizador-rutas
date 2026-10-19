@@ -14,6 +14,18 @@ function selection(file, functionName) {
     .replace(/FOR UPDATE OF \w+/g, '').replace(/\$(\d+)/g, ':p$1')
 }
 const db = new DatabaseSync(':memory:')
+const shared = new Set()
+db.function('can_review_farmacias_plan', (actorId, ownerId) => {
+ const actor=db.prepare('SELECT * FROM personas WHERE id=?').get(actorId)
+ const owner=db.prepare('SELECT * FROM personas WHERE id=?').get(ownerId)
+ if(!actor?.activo||!owner?.activo||actor.id===owner.id||actor.area!=='FARMACIAS'||owner.area!=='FARMACIAS')return 0
+ if(owner.rol==='COORDINADOR')return +(actor.rol==='GERENTE'&&owner.superior_id===actor.id)
+ if(owner.rol!=='SUPERVISOR')return 0
+ if(actor.rol==='COORDINADOR')return +(owner.superior_id===actor.id||shared.has(`${actor.id}:${owner.id}`))
+ const coordinator=db.prepare('SELECT * FROM personas WHERE id=?').get(owner.superior_id)
+ return +(actor.rol==='GERENTE'&&(owner.superior_id===actor.id||(coordinator?.activo&&coordinator.area==='FARMACIAS'&&coordinator.rol==='COORDINADOR'&&coordinator.superior_id===actor.id)))
+})
+db.function('puebla_shared_supervisor', (actor,target) => shared.has(`${actor}:${target}`) ? 1 : 0)
 db.exec(`CREATE TABLE personas(id TEXT, nombre TEXT, area TEXT, rol TEXT, activo BOOLEAN, superior_id TEXT, auth_user_id TEXT);
 CREATE TABLE work_plan(id TEXT, supervisor_id TEXT, status TEXT, archived_at TEXT, revision_number INTEGER);
 CREATE TABLE work_plan_item(id TEXT, plan_id TEXT, cancellation_requested_by TEXT, source TEXT, item_type TEXT, removed_at TEXT);`)
@@ -35,7 +47,7 @@ const cases = [
   ['COORDINADOR', 'coordinator', 'coordinator', false],
   ['GERENTE', 'manager', 'coordinator', true],
   ['GERENTE', 'manager', 'directSupervisor', true],
-  ['GERENTE', 'manager', 'supervisor', false],
+  ['GERENTE', 'manager', 'supervisor', true],
   ['GERENTE', 'manager', 'manager', false],
   ['SUPERVISOR', 'supervisor', 'supervisor', false],
   ['DIRECTOR', 'director', 'supervisor', false],
@@ -46,12 +58,12 @@ for (const [role, actor, owner, allowed] of cases) {
     assert.equal(!!plan.get({ p1: owner, p2: role, p3: actor }), allowed)
   })
   if (role !== 'DIRECTOR') test(`cancellation review ${actor} -> ${owner}: ${allowed}`, () => {
-    assert.equal(!!cancellation.get({ p1: owner, p2: role, p3: actor }), allowed)
+    assert.equal(!!cancellation.get({ p1: owner, p2: role, p3: actor }), owner === 'supervisor' && role === 'GERENTE' ? false : allowed)
   })
 }
-test('Director retains the existing two-level Supervisor scope', () => {
+test('Director cannot approve plans even across two levels', () => {
   db.prepare('UPDATE personas SET superior_id = ? WHERE id = ?').run('director', 'coordinator')
-  assert.equal(!!plan.get({ p1: 'supervisor', p2: 'DIRECTOR', p3: 'director' }), true)
+  assert.equal(!!plan.get({ p1: 'supervisor', p2: 'DIRECTOR', p3: 'director' }), false)
   assert.equal(!!plan.get({ p1: 'coordinator', p2: 'DIRECTOR', p3: 'director' }), false)
 })
 
@@ -73,4 +85,13 @@ test('Coordinator geofence accepts own approved PLAN and HIERARCHY_ASSIGNED only
   db.prepare('UPDATE work_plan_item SET source = ? WHERE id = ?').run('PLAN', 'coordinator')
   db.prepare('UPDATE work_plan SET status = ? WHERE id = ?').run('DRAFT', 'coordinator')
   assert.equal(!!statement.get({ p1: 'coordinator', p2: 'coordinator' }), false)
+})
+
+test('Puebla second coordinator can review the shared Supervisor, but cannot review own or coordinator plans', () => {
+  shared.add('otherCoordinator:supervisor')
+  assert.equal(!!plan.get({p1:'supervisor',p2:'COORDINADOR',p3:'otherCoordinator'}),true)
+  assert.equal(!!cancellation.get({p1:'supervisor',p2:'COORDINADOR',p3:'otherCoordinator'}),true)
+  assert.equal(!!plan.get({p1:'otherCoordinator',p2:'COORDINADOR',p3:'otherCoordinator'}),false)
+  assert.equal(!!plan.get({p1:'coordinator',p2:'COORDINADOR',p3:'otherCoordinator'}),false)
+  shared.clear()
 })

@@ -463,8 +463,7 @@ async function lockCancellationRequestForActor(
             AND requester.rol::text =
               'SUPERVISOR'
 
-            AND requester.superior_id =
-              $3::uuid
+            AND (requester.superior_id = $3::uuid OR public.puebla_shared_supervisor($3::uuid, requester.id))
 
             AND owner.id =
               requester.id
@@ -479,8 +478,7 @@ async function lockCancellationRequestForActor(
                 requester.rol::text =
                   'COORDINADOR'
 
-                AND requester.superior_id =
-                  $3::uuid
+                AND (requester.superior_id = $3::uuid OR public.puebla_shared_supervisor($3::uuid, requester.id))
 
                 AND owner.id =
                   requester.id
@@ -490,8 +488,7 @@ async function lockCancellationRequestForActor(
                 requester.rol::text =
                   'SUPERVISOR'
 
-                AND requester.superior_id =
-                  $3::uuid
+                AND (requester.superior_id = $3::uuid OR public.puebla_shared_supervisor($3::uuid, requester.id))
 
                 AND owner.id =
                   requester.id

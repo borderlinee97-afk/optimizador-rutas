@@ -21,7 +21,7 @@ function loadRoute(file, pool) {
   return { context, routes }
 }
 
-test('POST profile guard accepts approval roles and rejects Supervisor/inactive/wrong area', async () => {
+test('Shared router guard preserves Director read/cancellation access; service restricts plan approval', async () => {
   for (const [rol, activo, area, allowed] of [
     ['COORDINADOR', true, 'FARMACIAS', true],
     ['GERENTE', true, 'FARMACIAS', true],
@@ -61,7 +61,7 @@ test('detail forwards actor into SQL authorization and reflects its result in bo
     assert.equal(queries[0].params[1], 'actor')
     assert.equal(queries[0].params[2], 'COORDINADOR')
     const sql = queries[0].sql.replace(/\s+/g, ' ')
-    assert.match(sql, /supervisor\.superior_id = \$2::uuid/)
+    assert.match(sql, /public\.can_review_farmacias_plan\(\$2::uuid, supervisor\.id\)/)
     assert.match(sql, /wp\.supervisor_id <> \$2::uuid/)
     assert.match(sql, /wp\.archived_at IS NULL/)
     assert.match(sql, /wp\.status::text = 'PENDING_APPROVAL'/)
@@ -92,16 +92,16 @@ function loadService(file) {
 
 test('plan service preserves roles, scoped locking, anti-self and pending/archive rejection', async () => {
   const service = loadService('workPlanApproval.service.js')
-  for (const rol of ['COORDINADOR', 'GERENTE', 'DIRECTOR']) {
+  for (const rol of ['COORDINADOR', 'GERENTE']) {
     assert.equal(service.validateApprovalActor({ id: 'actor', area: 'FARMACIAS', rol }), rol)
     let sql
     await service.lockApprovalPlan({ query: async value => { sql = value.replace(/\s+/g, ' '); return { rows: [] } } }, 'plan', rol, 'actor')
-    assert.match(sql, /supervisor\.superior_id = \$3::uuid/)
+    assert.match(sql, /public\.can_review_farmacias_plan\(\$3::uuid, supervisor\.id\)/)
     assert.match(sql, /wp\.supervisor_id <> \$3::uuid/)
-    assert.match(sql, /coordinator\.superior_id = \$3::uuid/)
     assert.match(sql, /FOR UPDATE OF wp/)
   }
   assert.throws(() => service.validateApprovalActor({ id: 'actor', area: 'FARMACIAS', rol: 'SUPERVISOR' }), { code: 'APPROVAL_ROLE_REQUIRED' })
+  assert.throws(() => service.validateApprovalActor({ id: 'actor', area: 'FARMACIAS', rol: 'DIRECTOR' }), { code: 'APPROVAL_ROLE_REQUIRED' })
   assert.throws(() => service.validatePendingPlan(null), { code: 'WORK_PLAN_APPROVAL_NOT_FOUND' })
   for (const status of ['DRAFT', 'APPROVED', 'REJECTED']) {
     assert.throws(() => service.validatePendingPlan({ status }), { code: 'WORK_PLAN_NOT_PENDING_APPROVAL' })

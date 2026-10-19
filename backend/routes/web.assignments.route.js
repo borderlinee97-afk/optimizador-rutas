@@ -150,6 +150,16 @@ router.get(
             ),
         )
 
+      const leaders = await pool.query(`
+        SELECT DISTINCT p.id, p.nombre AS name, p.rol::text AS role
+        FROM public.personas p JOIN public.person_state_scope scope ON scope.persona_id=p.id
+        WHERE p.activo AND p.area::text='FARMACIAS' AND scope.revoked_at IS NULL
+          AND upper(trim(scope.estado))=upper(trim($3::text))
+          AND ((p.rol::text='GERENTE' AND (p.id=$1::uuid OR p.id=(SELECT superior_id FROM public.personas WHERE id=$1::uuid AND rol::text='COORDINADOR')))
+            OR (p.rol::text='COORDINADOR' AND (p.id=$1::uuid OR ($2::text='GERENTE' AND p.superior_id=$1::uuid)
+              OR EXISTS(SELECT 1 FROM public.personas target WHERE public.puebla_shared_supervisor($1::uuid,target.id) AND public.puebla_shared_supervisor(p.id,target.id)))))
+        ORDER BY p.nombre`, [req.profile.id,req.profile.rol,authorizedState])
+
       const totals =
         buildTotals(
           units,
@@ -182,7 +192,7 @@ router.get(
         coordinators,
 
         supervisors,
-
+        coverageCandidates: leaders.rows,
         units,
       })
     } catch (
@@ -250,8 +260,7 @@ async function getUnits({
 
     authorizationCondition =
       `
-      territory.coordinator_id =
-        $2::uuid
+      (territory.coordinator_id = $2::uuid OR public.puebla_shared_pharmacy($2::uuid, farmacia.id))
       `
   }
 
@@ -514,8 +523,7 @@ async function getSupervisors({
     hierarchyCondition =
       `
       (
-        supervisor.superior_id =
-          $1::uuid
+        (supervisor.superior_id = $1::uuid OR public.puebla_shared_supervisor($1::uuid, supervisor.id))
 
         OR coordinator.superior_id =
           $1::uuid
@@ -524,8 +532,7 @@ async function getSupervisors({
   } else {
     hierarchyCondition =
       `
-      supervisor.superior_id =
-        $1::uuid
+      (supervisor.superior_id = $1::uuid OR public.puebla_shared_supervisor($1::uuid, supervisor.id))
       `
   }
 

@@ -1,3 +1,6 @@
+import { useNetInfo } from '@react-native-community/netinfo'
+import { hasPendingVisitExecution, queueVisitExecution } from '../../src/services/executionSync'
+import { VisitSyncStatus } from '../../src/components/VisitSyncStatus'
 import { Ionicons } from '@expo/vector-icons'
 import {
   type Href,
@@ -87,6 +90,7 @@ import {
 import {
   db,
   initDB,
+  isDatabaseActive,
 } from '../../storage/db'
 
 type CachedPlanItem = {
@@ -265,10 +269,15 @@ const STATUS_CONFIG: Record<
 export default function UnitDetailScreen() {
   const {
     session,
+    profile,
+    accessState,
   } = useAuth()
+  const network = useNetInfo()
+  const shouldQueueOffline = () => accessState === 'offline' || network.isConnected === false || network.isInternetReachable === false || hasPendingVisitExecution()
 
   const {
     applyExecutionItem,
+    reloadFromCache,
   } = usePlan()
 
   const params =
@@ -938,6 +947,15 @@ export default function UnitDetailScreen() {
           position.mocked === true,
       }
 
+      if (shouldQueueOffline()) {
+        if (!session || !profile) throw new Error('No hay un perfil local validado.')
+        queueVisitExecution(session.user.id, profile, { itemId:item.id, action:type==='IN'?'CHECK_IN':'CHECK_OUT', ...coordinates })
+        reloadFromCache(); loadVisit()
+        Alert.alert(type==='IN'?'Check-in guardado en el celular':'Check-out guardado en el celular',
+          'Pendiente de sincronización. Se enviará al recuperar conexión; el servidor validará el registro.')
+        return
+      }
+
       const response =
         type === 'IN'
           ? await checkInPlanItem(
@@ -1492,14 +1510,13 @@ export default function UnitDetailScreen() {
           selectedActivityId,
       }).some(
         evidence =>
-          evidence.status ===
-          'READY',
+          (evidence.status === 'READY' || (shouldQueueOffline() && ['PENDING','UPLOADING'].includes(evidence.status))),
       )
 
     if (!hasReadyEvidence) {
       Alert.alert(
         'Evidencia requerida',
-        'Toma una fotografía y espera a que aparezca como sincronizada antes de cerrar la actividad.',
+        'Toma y guarda una fotografía de la actividad. Sin conexión se conservará para enviarla después.',
       )
 
       return
@@ -1529,6 +1546,16 @@ export default function UnitDetailScreen() {
         'ACTIVITY',
       )
 
+      if (shouldQueueOffline()) {
+        if (!session || !profile) throw new Error('No hay un perfil local validado.')
+        queueVisitExecution(session.user.id,profile,{itemId:item.id,activityId:selectedActivityId,
+          action:activityResolutionMode==='DONE'?'ACTIVITY_DONE':'ACTIVITY_SKIPPED',executionNote,skipReason})
+        setActivityResolutionMode(null);setSelectedActivityId(null);setActivityExecutionNote('');setActivitySkipReason('')
+        reloadFromCache();loadVisit()
+        Alert.alert('Actividad guardada en el celular','Pendiente de sincronización al recuperar conexión.')
+        return
+      }
+
       const response =
         activityResolutionMode ===
           'DONE'
@@ -1554,6 +1581,7 @@ export default function UnitDetailScreen() {
               accessToken,
             )
 
+      if (!session || !isDatabaseActive(session.user.id)) return
       replaceCachedVisitActivities(
         item.id,
         response.activities,
@@ -1626,13 +1654,12 @@ export default function UnitDetailScreen() {
           null,
       }).some(
         evidence =>
-          evidence.status ===
-          'READY',
+          (evidence.status === 'READY' || (shouldQueueOffline() && ['PENDING','UPLOADING'].includes(evidence.status))),
       )
     ) {
       Alert.alert(
         'Evidencia requerida',
-        'Toma una fotografía de la visita y espera a que quede sincronizada antes del check-out.',
+        'Toma y guarda una fotografía de la visita antes del check-out.',
       )
 
       return
@@ -1776,6 +1803,7 @@ export default function UnitDetailScreen() {
           false
         }
       >
+        <VisitSyncStatus itemId={item.id} />
         <View
           className={
             isExtraStop
@@ -2812,7 +2840,7 @@ export default function UnitDetailScreen() {
               </Text>
 
               <Text className="mt-1 text-sm leading-5 text-emerald-700">
-                El check-out y la duración quedaron guardados en el servidor.
+                El check-out y la duración quedaron registrados. Revisa el estado de sincronización mostrado arriba.
               </Text>
             </View>
           </View>

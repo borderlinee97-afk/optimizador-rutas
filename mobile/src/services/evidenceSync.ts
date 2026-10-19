@@ -1,5 +1,7 @@
 import {
   db,
+  getDatabaseUserId,
+  isDatabaseActive,
 } from '../../storage/db'
 import { File } from 'expo-file-system'
 import { Platform } from 'react-native'
@@ -57,11 +59,13 @@ export function queueEvidence(
     | 'attempts'
     | 'lastError'
   >,
+  database = db,
 ) {
+  if (!getDatabaseUserId(database)) throw new Error('No se puede guardar evidencia sin propietario local.')
   const now =
     Date.now()
 
-  db.runSync(
+  database.runSync(
     `
     INSERT INTO evidence_queue (
       evidence_id,
@@ -115,7 +119,9 @@ export function listLocalEvidence({
   planItemId?: string
   activityId?: string | null
   taskId?: string
-}): LocalEvidence[] {
+}, database = db): LocalEvidence[] {
+  const owner = getDatabaseUserId(database)
+  if (!owner || !isDatabaseActive(owner)) return []
   const conditions: string[] =
     []
 
@@ -170,7 +176,7 @@ export function listLocalEvidence({
   }
 
   const rows =
-    db.getAllSync(
+    database.getAllSync(
       `
       SELECT *
       FROM evidence_queue
@@ -187,29 +193,38 @@ export function listLocalEvidence({
   )
 }
 
-let activeSync: Promise<{ synced: number; pending: number; failed: number }> | null = null
+const activeSyncs = new WeakMap<typeof db, Promise<{ synced: number; pending: number; failed: number }>>()
 
 export function syncPendingEvidence(
   accessToken: string,
   retryFailed = false,
+  scope?: { planItemId: string },
 ) {
-  if (activeSync) return activeSync
-  activeSync = processPendingEvidence(accessToken, retryFailed).finally(() => {
-    activeSync = null
+  const database = db
+  const previous = activeSyncs.get(database)
+  if (previous) return previous
+  const activeSync = processPendingEvidence(accessToken, retryFailed, database, scope).finally(() => {
+    activeSyncs.delete(database)
   })
+  activeSyncs.set(database, activeSync)
   return activeSync
 }
 
 async function processPendingEvidence(
   accessToken: string,
   retryFailed: boolean,
+  database = db,
+  scope?: { planItemId: string },
 ): Promise<{
   synced: number
   pending: number
   failed: number
 }> {
+  // Pin persistence to the owner that started this batch. Transport, ticket,
+  // signed upload and READY confirmation retain their existing behavior.
+  const owner = getDatabaseUserId(database)
   const rows =
-    db.getAllSync(
+    database.getAllSync(
       `
       SELECT *
       FROM evidence_queue
@@ -235,21 +250,29 @@ async function processPendingEvidence(
   for (
     const row of rows
   ) {
+    if (scope && row.plan_item_id !== scope.planItemId) continue
+    if (row.plan_item_id && database.getFirstSync("SELECT 1 FROM execution_outbox WHERE plan_item_id=? AND action_type='CHECK_IN' AND status<>'SYNCED' LIMIT 1", [row.plan_item_id])) {
+      pending += 1
+      continue
+    }
     let stage = 'SESSION'
     try {
       const { data, error: sessionError } = await supabase.auth.getSession()
       if (sessionError) throw sessionError
       if (!data.session) throw new ApiError('Inicia sesión para sincronizar la evidencia.', 401)
       let currentSession = data.session
+      if (!owner || currentSession.user.id !== owner) break
       if ((currentSession.expires_at ?? 0) * 1000 <= Date.now() + 60_000) {
         const refreshed = await supabase.auth.refreshSession()
         if (refreshed.error) throw refreshed.error
         if (!refreshed.data.session) throw new ApiError('Inicia sesión para sincronizar la evidencia.', 401)
         currentSession = refreshed.data.session
       }
+      if (currentSession.user.id !== owner) break
       accessToken = currentSession.access_token
       markUploading(
         row.evidence_id,
+        database,
       )
 
       stage = 'LOCAL_FILE'
@@ -261,7 +284,7 @@ async function processPendingEvidence(
         throw new ApiError('El archivo local no tiene un tamaño válido.', 422, 'LOCAL_FILE_INVALID')
       }
       if (actualByteSize !== row.byte_size) {
-        db.runSync(
+        database.runSync(
           `
           UPDATE evidence_queue
           SET byte_size = ?, updated_at = ?
@@ -347,7 +370,7 @@ async function processPendingEvidence(
         throw new Error('El servidor no confirmó la evidencia como READY.')
       }
 
-      db.runSync(
+      database.runSync(
         `
         UPDATE evidence_queue
         SET
@@ -381,7 +404,7 @@ async function processPendingEvidence(
           ? 'FAILED'
           : 'PENDING'
 
-      db.runSync(
+      database.runSync(
         `
         UPDATE evidence_queue
         SET
@@ -426,8 +449,9 @@ function isPermanentEvidenceSyncError(error: unknown) {
 
 function markUploading(
   evidenceId: string,
+  database = db,
 ) {
-  db.runSync(
+  database.runSync(
     `
     UPDATE evidence_queue
     SET

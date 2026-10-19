@@ -1,3 +1,4 @@
+import { VisitSyncStatus } from '../../src/components/VisitSyncStatus'
 import { Ionicons } from '@expo/vector-icons'
 import {
   type Href,
@@ -266,6 +267,7 @@ export default function WorkScreen() {
           false
         }
       >
+        <VisitSyncStatus />
         <View className="flex-row items-start justify-between">
           <View className="mr-4 flex-1">
             <Text className="text-3xl font-bold text-slate-900">

@@ -43,3 +43,9 @@ yarn-error.*
 # local development
 .env
 .vscode/
+
+# Push configuration supplied through EAS file environment variables.
+google-services.json
+*service-account*.json
+*firebase-adminsdk*.json
+serviceAccountKey.json

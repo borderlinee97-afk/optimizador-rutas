@@ -46,7 +46,8 @@
           "cameraPermission": "APP DE RUTAS necesita usar la cámara para registrar evidencia de la visita.",
           "microphonePermission": false
         }
-      ]
+      ],
+      "expo-notifications"
     ],
     "experiments": {
       "typedRoutes": true

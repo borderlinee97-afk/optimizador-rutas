@@ -339,8 +339,7 @@ router.get(
                     'GERENTE'
 
                   AND (
-                    supervisor.superior_id =
-                      $3::uuid
+                    (supervisor.superior_id = $3::uuid OR public.puebla_shared_supervisor($3::uuid, supervisor.id))
 
                     OR coordinator.superior_id =
                       $3::uuid
@@ -351,8 +350,7 @@ router.get(
                   $1::text =
                     'COORDINADOR'
 
-                  AND supervisor.superior_id =
-                    $3::uuid
+                  AND (supervisor.superior_id = $3::uuid OR public.puebla_shared_supervisor($3::uuid, supervisor.id))
                 )
 
                 OR (
@@ -666,14 +664,8 @@ router.get(
               AND wp.supervisor_id <> $2::uuid
               AND wp.status::text = 'PENDING_APPROVAL'
               AND wp.archived_at IS NULL
-              AND (
-                ($3::text = 'COORDINADOR'
-                  AND supervisor.superior_id = $2::uuid)
-                OR ($3::text = 'GERENTE'
-                  AND (supervisor.superior_id = $2::uuid
-                    OR (coordinator.activo = TRUE
-                      AND coordinator.superior_id = $2::uuid)))
-              )
+              AND $3::text IN ('COORDINADOR', 'GERENTE')
+              AND public.can_review_farmacias_plan($2::uuid, supervisor.id)
             ) AS can_review
 
           FROM public.work_plan wp

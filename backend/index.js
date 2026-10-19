@@ -1,3 +1,6 @@
+import mobileNotificationsRouter from './routes/mobile.notifications.route.js'
+import { startPlanPushWorker, stopPlanPushWorker } from './services/planNotifications.service.js'
+import personAvailabilityRouter from './routes/personAvailability.route.js'
 import express from 'express'
 import cors from 'cors'
 import helmet from 'helmet'
@@ -428,6 +431,9 @@ app.use(
 // MOBILE
 // ============================================================
 
+app.use('/api/mobile/availability', personAvailabilityRouter)
+app.use('/api/mobile/notifications', mobileNotificationsRouter)
+
 app.use(
   '/api/mobile',
   mobileRouter,
@@ -824,6 +830,7 @@ export function startServer({
       },
     )
 
+  startPlanPushWorker()
   return server
 }
 
@@ -884,6 +891,7 @@ async function shutdown(
       }
 
       try {
+        await stopPlanPushWorker()
         await pool.end()
 
         console.log(

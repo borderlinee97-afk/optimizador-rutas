@@ -394,7 +394,7 @@ export function createOperationalTasksService({
         `WITH RECURSIVE scope AS (
       SELECT id, nombre, rol, superior_id FROM public.personas WHERE id = $1::uuid AND activo = TRUE
       UNION
-      SELECT p.id, p.nombre, p.rol, p.superior_id FROM public.personas p JOIN scope s ON p.superior_id = s.id
+      SELECT p.id, p.nombre, p.rol, p.superior_id FROM public.personas p JOIN scope s ON (p.superior_id = s.id OR public.puebla_shared_supervisor(s.id, p.id))
       WHERE p.activo = TRUE AND $2::boolean
     ) SELECT id, nombre AS name, rol AS role FROM scope
       UNION SELECT id, nombre AS name, rol AS role FROM public.personas WHERE activo = TRUE AND $3::boolean
@@ -529,7 +529,7 @@ export function createOperationalTasksService({
       await pool.query(
         `WITH RECURSIVE scope AS (
       SELECT id FROM public.personas WHERE id = $1::uuid
-      UNION SELECT p.id FROM public.personas p JOIN scope s ON p.superior_id = s.id WHERE p.activo = TRUE
+      UNION SELECT p.id FROM public.personas p JOIN scope s ON (p.superior_id = s.id OR public.puebla_shared_supervisor(s.id, p.id)) WHERE p.activo = TRUE
     ) ${TASK_SELECT} WHERE
       (($2::boolean = FALSE AND task.assignee_id = $1::uuid) OR
        ($2::boolean = TRUE AND ($3::boolean OR task.assignee_id IN (SELECT id FROM scope))))

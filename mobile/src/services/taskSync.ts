@@ -1,6 +1,6 @@
 import * as Crypto from 'expo-crypto'
 
-import { db, initDB } from '../../storage/db'
+import { db, initDB, isDatabaseActive } from '../../storage/db'
 import {
   ApiError,
   addOperationalTaskComment,
@@ -31,6 +31,7 @@ export function isRetryableTaskMutationError(error: unknown) {
   }
 
   return (
+    error.status === 0 ||
     error.status === 401 ||
     error.status === 408 ||
     error.status === 425 ||
@@ -64,18 +65,21 @@ export async function syncAgenda(
   mode: TaskMode,
   status = 'ALL',
   priority = 'ALL',
+  userId?: string,
 ) {
+  if (userId && !isDatabaseActive(userId)) throw new Error('La cuenta cambió durante la sincronización.')
   initDB()
-  const outbox = await flushTaskOutbox(accessToken)
+  const database = db
+  const outbox = await flushTaskOutbox(accessToken, database)
   const response = await listOperationalTasks(accessToken, mode, { status, priority })
   const syncedAt = Date.now()
-  db.runSync(
+  database.runSync(
     `INSERT INTO operational_task_cache (cache_key, payload_json, synced_at) VALUES (?, ?, ?)
      ON CONFLICT(cache_key) DO UPDATE SET payload_json = excluded.payload_json, synced_at = excluded.synced_at`,
     [cacheKey(mode, status, priority), JSON.stringify(response), syncedAt],
   )
   if (status === 'ALL' && priority === 'ALL') {
-    db.runSync(
+    database.runSync(
       `INSERT INTO operational_task_cache (cache_key, payload_json, synced_at) VALUES (?, ?, ?)
        ON CONFLICT(cache_key) DO UPDATE SET payload_json = excluded.payload_json, synced_at = excluded.synced_at`,
       [`${mode}:latest`, JSON.stringify(response), syncedAt],
@@ -88,10 +92,9 @@ export function createTaskMutationKey() {
   return Crypto.randomUUID()
 }
 
-export function getTaskOutboxSummary(): TaskOutboxSummary {
-  initDB()
+export function getTaskOutboxSummary(database = db): TaskOutboxSummary {
 
-  const rows = db.getAllSync(
+  const rows = database.getAllSync(
     `SELECT status, COUNT(*) AS total
      FROM operational_task_outbox
      GROUP BY status`,
@@ -129,10 +132,10 @@ function enqueue(
   actionType: 'STATUS' | 'COMMENT',
   payload: object,
   idempotencyKey = createTaskMutationKey(),
+  database = db,
 ) {
-  initDB()
   const now = Date.now()
-  db.runSync(
+  database.runSync(
     `INSERT INTO operational_task_outbox
       (idempotency_key, task_id, action_type, payload_json, created_at, updated_at)
      VALUES (?, ?, ?, ?, ?, ?)`,
@@ -145,21 +148,31 @@ export function enqueueTaskStatus(
   taskId: string,
   status: OperationalTaskStatus,
   idempotencyKey?: string,
+  database = db,
 ) {
-  return enqueue(taskId, 'STATUS', { status }, idempotencyKey)
+  return enqueue(taskId, 'STATUS', { status }, idempotencyKey, database)
 }
 
 export function enqueueTaskComment(
   taskId: string,
   body: string,
   idempotencyKey?: string,
+  database = db,
 ) {
-  return enqueue(taskId, 'COMMENT', { body }, idempotencyKey)
+  return enqueue(taskId, 'COMMENT', { body }, idempotencyKey, database)
 }
 
-export async function flushTaskOutbox(accessToken: string) {
-  initDB()
-  const rows = db.getAllSync(
+const activeTaskSyncs = new WeakMap<typeof db, Promise<TaskOutboxSummary>>()
+export function flushTaskOutbox(accessToken: string, database = db) {
+  const previous = activeTaskSyncs.get(database)
+  if (previous) return previous
+  const active = processTaskOutbox(accessToken, database).finally(() => activeTaskSyncs.delete(database))
+  activeTaskSyncs.set(database, active)
+  return active
+}
+
+async function processTaskOutbox(accessToken: string, database = db) {
+  const rows = database.getAllSync(
     `SELECT idempotency_key, task_id, action_type, payload_json
      FROM operational_task_outbox WHERE status = 'PENDING' ORDER BY created_at`,
   ) as OutboxRow[]
@@ -171,10 +184,10 @@ export async function flushTaskOutbox(accessToken: string) {
       } else if (row.action_type === 'COMMENT' && payload.body) {
         await addOperationalTaskComment(row.task_id, payload.body, accessToken, row.idempotency_key)
       }
-      db.runSync('DELETE FROM operational_task_outbox WHERE idempotency_key = ?', [row.idempotency_key])
+      database.runSync('DELETE FROM operational_task_outbox WHERE idempotency_key = ?', [row.idempotency_key])
     } catch (error) {
       const permanent = !isRetryableTaskMutationError(error)
-      db.runSync(
+      database.runSync(
         `UPDATE operational_task_outbox SET status = ?, attempts = attempts + 1, last_error = ?, updated_at = ?
          WHERE idempotency_key = ?`,
         [permanent ? 'FAILED' : 'PENDING', error instanceof Error ? error.message : 'Error de sincronización', Date.now(), row.idempotency_key],
@@ -183,5 +196,5 @@ export async function flushTaskOutbox(accessToken: string) {
     }
   }
 
-  return getTaskOutboxSummary()
+  return getTaskOutboxSummary(database)
 }

@@ -200,6 +200,7 @@ export default function WorkPlanDetailScreen() {
 
   const {
     session,
+    profile,
   } =
     useAuth()
 
@@ -937,7 +938,7 @@ export default function WorkPlanDetailScreen() {
         item.temporaryCoverage,
 
       locationName:
-        null,
+        item.locationName ?? null,
 
       address:
         item.address,
@@ -1563,6 +1564,8 @@ export default function WorkPlanDetailScreen() {
     }
   }
 
+  const reviewRecipient = profile?.rol === 'COORDINADOR' ? 'gerente' : 'coordinador'
+
   function confirmSubmitPlan() {
     if (
       items.length ===
@@ -1630,7 +1633,7 @@ export default function WorkPlanDetailScreen() {
         ? 'Reenviar plan'
         : 'Enviar plan',
 
-      'Después de enviarlo, el plan quedará bloqueado mientras el gerente lo revisa.',
+      `Después de enviarlo, el plan quedará bloqueado mientras el ${reviewRecipient} lo revisa.`,
 
       [
         {
@@ -2186,7 +2189,7 @@ export default function WorkPlanDetailScreen() {
 
               <View className="ml-4 flex-1">
                 <Text className="text-base font-bold text-slate-900">
-                  Enviar para aprobación
+                  Enviar al {reviewRecipient}
                 </Text>
 
                 <Text className="mt-1 text-sm leading-5 text-slate-500">
@@ -2230,8 +2233,8 @@ export default function WorkPlanDetailScreen() {
                   <Text className="ml-2 text-base font-bold text-white">
                     {plan.status ===
                     'REJECTED'
-                      ? 'Reenviar al gerente'
-                      : 'Enviar al gerente'}
+                      ? `Reenviar al ${reviewRecipient}`
+                      : `Enviar al ${reviewRecipient}`}
                   </Text>
                 </>
               )}
@@ -2400,10 +2403,8 @@ export default function WorkPlanDetailScreen() {
 
                       {selectedPharmacy.clues ? (
                         <Text className="mt-1 text-xs text-emerald-700">
-                          CLUES:{' '}
-                          {
-                            selectedPharmacy.clues
-                          }
+                          {selectedPharmacy.locationName === 'ALMACENES' ? 'Almacén · Referencia: ' : 'CLUES: '}
+                          {selectedPharmacy.clues}
                         </Text>
                       ) : null}
 
@@ -2559,10 +2560,8 @@ export default function WorkPlanDetailScreen() {
                                     : 'text-primary-700'
                                 }`}
                               >
-                                CLUES:{' '}
-                                {
-                                  pharmacy.clues
-                                }
+                                {pharmacy.locationName === 'ALMACENES' ? 'Almacén · Referencia: ' : 'CLUES: '}
+                                {pharmacy.clues}
                               </Text>
 
                               <View className="mt-2">

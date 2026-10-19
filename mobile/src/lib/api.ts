@@ -165,12 +165,14 @@ export async function apiRequest<T>(
 
 export function getCurrentProfile(
   accessToken: string,
+  signal?: AbortSignal,
 ): Promise<AuthMeResponse> {
   return apiRequest<AuthMeResponse>(
     '/api/auth/me',
     {
       method:
         'GET',
+      signal,
     },
     accessToken,
   )
@@ -180,7 +182,7 @@ export function getTodayPlan(
   accessToken: string,
 ): Promise<TodayPlanResponse> {
   return apiRequest<TodayPlanResponse>(
-    '/api/mobile/farmacias/my-plan/today',
+    '/api/mobile/farmacias/my-plan/today?scope=week',
     {
       method:
         'GET',
@@ -586,4 +588,13 @@ export function getOperationalTaskDetail(
     { method: 'GET' },
     accessToken,
   )
+}
+
+// Best effort before the existing global Supabase sign-out; never block offline logout.
+export async function unregisterPushSession(accessToken: string) {
+  const controller = new AbortController()
+  const timer = setTimeout(() => controller.abort(), 5_000)
+  try {
+    return await apiRequest('/api/mobile/notifications/devices/current', { method: 'DELETE', signal: controller.signal }, accessToken)
+  } finally { clearTimeout(timer) }
 }

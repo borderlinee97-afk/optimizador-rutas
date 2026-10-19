@@ -260,8 +260,7 @@ router.get(
                     person.id =
                       $1::uuid
 
-                    OR person.superior_id =
-                      $1::uuid
+                    OR (person.superior_id = $1::uuid OR public.puebla_shared_supervisor($1::uuid, person.id))
 
                     OR EXISTS (
                       WITH RECURSIVE reports AS (
@@ -293,8 +292,7 @@ router.get(
                     person.id =
                       $1::uuid
 
-                    OR person.superior_id =
-                      $1::uuid
+                    OR (person.superior_id = $1::uuid OR public.puebla_shared_supervisor($1::uuid, person.id))
 
                     OR EXISTS (
                       SELECT
@@ -328,8 +326,7 @@ router.get(
                     person.id =
                       $1::uuid
 
-                    OR person.superior_id =
-                      $1::uuid
+                    OR (person.superior_id = $1::uuid OR public.puebla_shared_supervisor($1::uuid, person.id))
                   )
                 )
               )

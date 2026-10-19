@@ -249,6 +249,9 @@ export interface WorkPlanItem {
   pharmacyStatus?:
     string | null
 
+  locationName?:
+    string | null
+
   lat:
     number | null
 

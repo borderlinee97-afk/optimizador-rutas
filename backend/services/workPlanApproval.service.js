@@ -1,3 +1,4 @@
+import { queuePlanNotifications } from './planNotifications.service.js'
 import {
   pool,
 } from '../db/pool.js'
@@ -15,7 +16,6 @@ const UUID_PATTERN =
 
 const APPROVAL_ROLES =
   new Set([
-    'DIRECTOR',
     'GERENTE',
     'COORDINADOR',
   ])
@@ -309,6 +309,8 @@ export async function approveWorkPlan({
         },
       },
     )
+
+    await queuePlanNotifications(client, planId, 'PLAN_APPROVED')
 
     await client.query(
       'COMMIT',
@@ -641,31 +643,8 @@ async function lockApprovalPlan(
         AND wp.supervisor_id <>
           $3::uuid
 
-        AND (
-          (
-            $2::text =
-              'COORDINADOR'
-
-            AND supervisor.rol::text = 'SUPERVISOR'
-
-            AND supervisor.superior_id =
-              $3::uuid
-          )
-
-          OR (
-            $2::text IN (
-              'GERENTE',
-              'DIRECTOR'
-            )
-
-            AND (
-              supervisor.superior_id =
-                $3::uuid
-
-              OR ($2::text = 'DIRECTOR' AND coordinator.superior_id = $3::uuid)
-            )
-          )
-        )
+        AND $2::text IN ('COORDINADOR', 'GERENTE')
+        AND public.can_review_farmacias_plan($3::uuid, supervisor.id)
 
       FOR UPDATE OF wp
       `,

@@ -378,34 +378,13 @@ function getPendingPlans(
       AND supervisor.area::text =
         'FARMACIAS'
 
-      AND supervisor.rol::text =
-        'SUPERVISOR'
+      AND supervisor.rol::text IN ('SUPERVISOR', 'COORDINADOR')
 
       AND supervisor.activo =
         TRUE
 
-      AND (
-        (
-          $1::text =
-            'GERENTE'
-
-          AND (
-            supervisor.superior_id =
-              $2::uuid
-
-            OR coordinator.superior_id =
-              $2::uuid
-          )
-        )
-
-        OR (
-          $1::text =
-            'COORDINADOR'
-
-          AND supervisor.superior_id =
-            $2::uuid
-        )
-      )
+      AND $1::text IN ('GERENTE', 'COORDINADOR')
+      AND public.can_review_farmacias_plan($2::uuid, supervisor.id)
 
     GROUP BY
       wp.id,
@@ -459,7 +438,7 @@ function getPendingCancellations(
 
       (requester.id <> $2::uuid
         AND supervisor.id = requester.id
-        AND requester.superior_id = $2::uuid
+        AND (requester.superior_id = $2::uuid OR public.puebla_shared_supervisor($2::uuid, requester.id))
         AND (($1::text = 'GERENTE'
           AND requester.rol::text IN ('SUPERVISOR', 'COORDINADOR'))
           OR ($1::text = 'COORDINADOR'
@@ -584,7 +563,7 @@ function getPendingCancellations(
             'GERENTE'
 
           AND (
-            supervisor.superior_id = $2::uuid
+            (supervisor.superior_id = $2::uuid OR public.puebla_shared_supervisor($2::uuid, supervisor.id))
             OR coordinator.superior_id = $2::uuid
           )
         )
@@ -594,7 +573,7 @@ function getPendingCancellations(
             'COORDINADOR'
 
           AND requester.rol::text = 'SUPERVISOR'
-          AND requester.superior_id = $2::uuid
+          AND (requester.superior_id = $2::uuid OR public.puebla_shared_supervisor($2::uuid, requester.id))
           AND supervisor.id = requester.id
           AND requester.id <> $2::uuid
         )

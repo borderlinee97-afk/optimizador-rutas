@@ -19,6 +19,9 @@ import {
 import {
   PlanProvider,
 } from '../src/context/PlanContext'
+import { NotificationBridge } from '../src/components/NotificationBridge'
+import { OfflineStatus } from '../src/components/OfflineStatus'
+import { View } from 'react-native'
 
 export {
   ErrorBoundary,
@@ -58,11 +61,15 @@ export default function RootLayout() {
 
   return (
     <AuthProvider>
-      <PlanProvider>
-        <RootNavigator />
-      </PlanProvider>
+      <AccountNavigator />
     </AuthProvider>
   )
+}
+
+function AccountNavigator() {
+  const { session } = useAuth()
+  // Remount all account-local screen state when the authenticated identity changes.
+  return <PlanProvider key={session?.user.id ?? 'signed-out'}><NotificationBridge /><RootNavigator /></PlanProvider>
 }
 
 function RootNavigator() {
@@ -104,6 +111,8 @@ function RootNavigator() {
           : DefaultTheme
       }
     >
+      <View style={{ flex: 1 }}>
+      <OfflineStatus />
       <Stack
         screenOptions={{
           headerShown:
@@ -152,6 +161,7 @@ function RootNavigator() {
           <Stack.Screen
             name="unit/[id]"
           />
+          <Stack.Screen name="legacy-recovery" />
 
           <Stack.Screen
             name="extra-stop/new"
@@ -166,6 +176,7 @@ function RootNavigator() {
           />
         </Stack.Protected>
       </Stack>
+      </View>
     </ThemeProvider>
   )
 }

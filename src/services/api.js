@@ -1195,3 +1195,7 @@ export function territorialApi(path = '', { method = 'GET', body } = {}) {
     timeoutMs: path === '/calculate-all' ? 1800000 : 300000,
   })
 }
+
+export function getAvailabilityRequests() { return fetchJSON(`${BASE_API}/mobile/availability`, {method:'GET'}) }
+export function createAvailabilityRequest(payload) { return fetchJSON(`${BASE_API}/mobile/availability`, {method:'POST',body:JSON.stringify(payload)}) }
+export function reviewAvailabilityRequest(id,payload) { return fetchJSON(`${BASE_API}/mobile/availability/${encodeURIComponent(id)}/review`, {method:'POST',body:JSON.stringify(payload)}) }

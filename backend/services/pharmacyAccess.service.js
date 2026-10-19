@@ -73,6 +73,8 @@ export async function getPharmacyAccess(
         farmacia.latitud,
         farmacia.longitud,
 
+        public.has_shared_plan_pharmacy_access($2::uuid, farmacia.id) AS shared_plan_access,
+
         permanent_assignment.id
           AS permanent_assignment_id,
 
@@ -206,18 +208,21 @@ export async function getPharmacyAccess(
       pharmacy.coverage_id,
     )
 
+  const hasSharedPlanAccess = pharmacy.shared_plan_access === true
+
   const allowed =
     scopeMode ===
       'ALL' ||
     hasPermanentAssignment ||
-    hasTemporaryCoverage
+    hasTemporaryCoverage ||
+    hasSharedPlanAccess
 
   let accessType =
     'NONE'
 
   if (
     scopeMode ===
-    'ALL'
+    'ALL' || hasSharedPlanAccess
   ) {
     accessType =
       'ALL'
@@ -360,6 +365,8 @@ export async function findUnauthorizedPlanPharmacy(
 
         AND item.pharmacy_id
           IS NOT NULL
+
+        AND NOT public.has_shared_plan_pharmacy_access($2::uuid, item.pharmacy_id)
 
         AND NOT EXISTS (
           SELECT 1
