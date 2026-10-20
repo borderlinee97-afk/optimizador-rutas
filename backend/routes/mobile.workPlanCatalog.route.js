@@ -272,7 +272,7 @@ router.get(
  * - project
  * - state
  * - status
- * - kind (UNITS o CEDIS, opcional; conserva el catálogo mixto si se omite)
+ * - kind (UNITS legado, UNITS_ONLY, CEDIS o REG_SAN; mixto si se omite)
  * - limit
  * - offset
  *
@@ -316,7 +316,7 @@ router.get(
       )
 
     const kind = normalizeOptionalText(req.query.kind)?.toUpperCase() ?? null
-    if (kind && !['UNITS', 'CEDIS'].includes(kind)) {
+    if (kind && !['UNITS', 'UNITS_ONLY', 'CEDIS', 'REG_SAN'].includes(kind)) {
       return res.status(400).json({ error: 'Tipo de unidad inválido', code: 'PHARMACY_KIND_INVALID' })
     }
 
@@ -670,7 +670,9 @@ router.get(
           AND (
             $10::text IS NULL
             OR ($10::text = 'CEDIS' AND UPPER(BTRIM(COALESCE(farmacia.lugar_farmacia, ''))) = 'ALMACENES')
+            OR ($10::text = 'REG_SAN' AND UPPER(BTRIM(COALESCE(farmacia.lugar_farmacia, ''))) = 'REGIONES SANITARIAS')
             OR ($10::text = 'UNITS' AND UPPER(BTRIM(COALESCE(farmacia.lugar_farmacia, ''))) <> 'ALMACENES')
+            OR ($10::text = 'UNITS_ONLY' AND UPPER(BTRIM(COALESCE(farmacia.lugar_farmacia, ''))) NOT IN ('ALMACENES','REGIONES SANITARIAS'))
           )
 
           ORDER BY

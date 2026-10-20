@@ -1,3 +1,4 @@
+import bulkCancellationRouter from './routes/web.workPlanBulkCancellation.route.js'
 import farmaciasReportsRouter from './routes/web.farmaciasReports.route.js'
 import mobileNotificationsRouter from './routes/mobile.notifications.route.js'
 import { startPlanPushWorker, stopPlanPushWorker } from './services/planNotifications.service.js'
@@ -478,6 +479,7 @@ app.use(
 )
 
 app.use('/api/web/farmacias-reports', farmaciasReportsRouter)
+app.use('/api/web/work-plans',bulkCancellationRouter)
 
 /*
  * Acciones:

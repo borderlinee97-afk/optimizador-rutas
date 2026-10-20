@@ -667,7 +667,9 @@ router.get(
               AND wp.archived_at IS NULL
               AND $3::text IN ('COORDINADOR', 'GERENTE')
               AND public.can_review_farmacias_plan($2::uuid, supervisor.id)
-            ) AS can_review
+            ) AS can_review,
+            (wp.status::text='APPROVED' AND wp.archived_at IS NULL AND $3::text IN ('SUPERVISOR','COORDINADOR','GERENTE')
+              AND (wp.supervisor_id=$2::uuid OR public.can_review_farmacias_plan($2::uuid,supervisor.id))) AS can_cancel_remaining
 
           FROM public.work_plan wp
 
@@ -966,6 +968,7 @@ router.get(
         },
 
         permissions: {
+          canCancelRemaining:row.can_cancel_remaining===true,
           canView:
             true,
 

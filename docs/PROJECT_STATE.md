@@ -1,5 +1,43 @@
 # APP DE RUTAS — estado del proyecto
 
+## Seguimiento de visitas, agenda y acceso — publicación autorizada (2026-10-20)
+
+- Farmacias pendientes por responsable y asignaciones del periodo: última visita
+  autorizada al cierre, programación, vacaciones aprobadas y cobertura temporal.
+  La atención completada por apoyo autorizado evita un pendiente ficticio.
+- Comparación planeado/realizado con pendientes, en curso, omisiones, cancelaciones,
+  reprogramaciones, adicionales y registros sin marcas válidas. Exportaciones CSV.
+- Cancelación conjunta de unidades pendientes de un plan aprobado con motivo,
+  confirmación y auditoría: el dueño solicita; su superior autorizado resuelve.
+  Se conservan visitas iniciadas, realizadas y solicitudes ya enviadas.
+- Vacaciones disponibles según la jerarquía normal; aprobación compartida de
+  coordinadores exclusivamente para Puebla. Fechas, cruces y reintentos validados.
+- Web: recuperar contraseña desde acceso y cambiarla verificando la actual.
+  Recuperación por Supabase con manejo de enlace expirado. En código móvil,
+  la pantalla conserva el flujo al crearse la sesión y comparte el canje de
+  un código de un solo uso entre remontajes; al terminar exige nuevo acceso.
+- Agenda: resumen, horario de Guadalajara, actualización controlada y acceso al
+  detalle desde avisos. Avisos web con permiso y página abierta. Cola push existente
+  ampliada para asignaciones y recordatorios 30 minutos antes; deduplicación,
+  validación de destinatario/jerarquía y descarte de tareas cerradas o reasignadas.
+- Supabase: creadas sólo REGION SANITARIA COLOTLAN (3214) y ALMACEN DE REGION
+  SANITARIA I (3215), asignadas a DEL REAL QUEZADA OCTAVIO ALONSO. Referencias
+  internas provisionales INT-JAL-RS01-COLOTLAN e INT-JAL-RS01-ALMACEN.
+- Filtro web Regiones sanitarias y código móvil preparado. UNITS conserva la
+  compatibilidad de la APK instalada; UNITS_ONLY separa las sedes en clientes nuevos.
+  Estas sedes administrativas no aumentan el denominador de farmacias clínicas.
+- Validación: 49 casos enfocados aprobados, PostgreSQL local desechable, catálogo,
+  notificaciones y recuperación; TypeScript, build web y sintaxis backend correctos.
+  Revisión visual con datos simulados; registro de sedes probado idempotentemente.
+- Migración 20261020120000_task_push_notifications.sql probada localmente y
+  aplicada a Supabase tras autorización explícita del usuario y dry-run exclusivo.
+  Verificadas columna, índice de deduplicación, restricción de origen y RLS.
+- Usuario autorizó publicar exclusivamente web/backend y la migración, sin APK.
+  Publicación mediante GitHub, Render y Vercel existentes. Los ajustes móviles
+  permanecen locales para una futura compilación; no se incluyen en este commit.
+  Prueba real de correo/cambio de contraseña y recepción push en dispositivo
+  pendiente tras publicación, con cuenta del usuario.
+
 ## Indicadores y reportes de ejecución de Farmacias — publicación autorizada (2026-10-19)
 
 - Nuevas vistas web /farmacias/indicadores y /farmacias/reportes para DIRECTOR,

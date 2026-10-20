@@ -49,6 +49,7 @@ export function createFarmaciasReportsRouter(
       if (
         exportData &&
         ![
+          'pending','planned',
           'people',
           'visits',
           'units',

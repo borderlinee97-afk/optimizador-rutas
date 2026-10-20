@@ -72,11 +72,38 @@ export async function queuePlanNotifications(client, planId, kind) {
   }
 }
 
-const eligible = `d.active AND d.persona_id=o.recipient_id AND d.expo_push_token=o.push_token
+const planEligible = `d.active AND d.persona_id=o.recipient_id AND d.expo_push_token=o.push_token
   AND d.auth_user_id=p.auth_user_id AND p.activo AND p.area::text='FARMACIAS'
   AND wp.archived_at IS NULL AND wp.revision_number=o.revision_number
   AND ((o.kind='PLAN_APPROVED' AND wp.status='APPROVED' AND wp.supervisor_id=p.id)
     OR (o.kind='PLAN_SUBMITTED' AND wp.status='PENDING_APPROVAL' AND public.can_review_farmacias_plan(p.id,wp.supervisor_id)))`
+
+const eligible = `d.active AND d.persona_id=o.recipient_id AND d.expo_push_token=o.push_token
+ AND d.auth_user_id=p.auth_user_id AND p.activo AND p.area::text='FARMACIAS'
+ AND ((${planEligible}) OR (t.id=o.task_id AND t.assignee_id=p.id AND t.status IN ('TODO','IN_PROGRESS')
+  AND (o.kind='TASK_ASSIGNED' OR (o.kind='TASK_REMINDER' AND t.due_at IS NOT NULL AND hashtext(extract(epoch from t.due_at)::text)=o.revision_number))
+  AND EXISTS(SELECT 1 FROM public.personas sender WHERE sender.id=t.assigned_by AND sender.activo AND sender.area::text='FARMACIAS' AND (sender.id=p.id OR public.can_review_farmacias_plan(sender.id,p.id) OR sender.system_role='ADMIN' OR (sender.rol::text='DIRECTOR' AND sender.id IN (WITH RECURSIVE chain AS (SELECT id,superior_id FROM public.personas WHERE id=p.id UNION SELECT a.id,a.superior_id FROM public.personas a JOIN chain c ON a.id=c.superior_id WHERE a.activo) SELECT id FROM chain))))))`
+
+export async function queueTaskAssignment(client,taskId){
+ await client.query('SAVEPOINT task_push_enqueue')
+ try{
+  await client.query(`INSERT INTO public.plan_push_outbox(device_id,recipient_id,task_id,revision_number,kind,push_token)
+   SELECT d.installation_id,p.id,t.id,1,'TASK_ASSIGNED',d.expo_push_token
+   FROM public.operational_task t JOIN public.personas p ON p.id=t.assignee_id AND p.activo AND p.area::text='FARMACIAS'
+   JOIN public.app_push_device d ON d.persona_id=p.id AND d.auth_user_id=p.auth_user_id AND d.active
+   WHERE t.id=$1 AND t.assignee_id<>t.assigned_by
+   ON CONFLICT DO NOTHING`,[taskId]);await client.query('RELEASE SAVEPOINT task_push_enqueue')
+ }catch(e){await client.query('ROLLBACK TO SAVEPOINT task_push_enqueue');await client.query('RELEASE SAVEPOINT task_push_enqueue');console.error('[task-notifications][enqueue]',e.code||'ENQUEUE_FAILED')}
+}
+
+export async function queueDueTaskReminders(db){
+ await db.query(`INSERT INTO public.plan_push_outbox(device_id,recipient_id,task_id,revision_number,kind,push_token)
+  SELECT d.installation_id,p.id,t.id,hashtext(extract(epoch from t.due_at)::text),'TASK_REMINDER',d.expo_push_token
+  FROM public.operational_task t JOIN public.personas p ON p.id=t.assignee_id AND p.activo AND p.area::text='FARMACIAS'
+  JOIN public.app_push_device d ON d.persona_id=p.id AND d.auth_user_id=p.auth_user_id AND d.active
+  WHERE t.status IN ('TODO','IN_PROGRESS') AND t.due_at<=now()+interval '30 minutes' AND t.due_at>now()-interval '24 hours'
+  ON CONFLICT DO NOTHING`)
+}
 
 async function expoRequest(route, body, fetcher) {
   const headers = { 'Content-Type': 'application/json', Accept: 'application/json' }
@@ -103,15 +130,16 @@ async function failDelivery(db, row, code, retry = false) {
 }
 
 export async function dispatchPlanNotifications({ db = pool, fetcher = fetch } = {}) {
+  await queueDueTaskReminders(db)
   await db.query(`UPDATE public.plan_push_outbox SET status='PENDING',updated_at=now()
     WHERE status='SENDING' AND claimed_at<now()-interval '5 minutes'`)
   await db.query(`UPDATE public.plan_push_outbox o SET status='CANCELLED',updated_at=now()
     WHERE o.status='PENDING' AND NOT EXISTS (
       SELECT 1 FROM public.app_push_device d JOIN public.personas p ON p.id=d.persona_id
-       JOIN public.work_plan wp ON wp.id=o.plan_id WHERE d.installation_id=o.device_id AND ${eligible})`)
+       LEFT JOIN public.work_plan wp ON wp.id=o.plan_id LEFT JOIN public.operational_task t ON t.id=o.task_id WHERE d.installation_id=o.device_id AND ${eligible})`)
   const { rows } = await db.query(`WITH candidates AS (
     SELECT o.id FROM public.plan_push_outbox o JOIN public.app_push_device d ON d.installation_id=o.device_id
-     JOIN public.personas p ON p.id=d.persona_id JOIN public.work_plan wp ON wp.id=o.plan_id
+     JOIN public.personas p ON p.id=d.persona_id LEFT JOIN public.work_plan wp ON wp.id=o.plan_id LEFT JOIN public.operational_task t ON t.id=o.task_id
     WHERE o.status='PENDING' AND o.next_attempt_at<=now() AND ${eligible}
     ORDER BY o.created_at LIMIT 50 FOR UPDATE OF o SKIP LOCKED
    ) UPDATE public.plan_push_outbox o SET status='SENDING',attempts=attempts+1,claimed_at=now(),updated_at=now()
@@ -121,9 +149,9 @@ export async function dispatchPlanNotifications({ db = pool, fetcher = fetch } =
     try {
       const tickets = await expoRequest('send', rows.map(row => ({
         to: row.push_token, sound: 'default', channelId: 'work-plans',
-        title: row.kind === 'PLAN_SUBMITTED' ? 'Plan pendiente de autorización' : 'Plan de trabajo aprobado',
-        body: row.kind === 'PLAN_SUBMITTED' ? 'Tienes un plan de trabajo por revisar.' : 'Tu plan de trabajo ya fue aprobado.',
-        data: { kind: row.kind, planId: row.plan_id, recipientAuthId: row.recipient_auth_id },
+        title: row.kind === 'TASK_ASSIGNED' ? 'Nueva tarea asignada' : row.kind === 'TASK_REMINDER' ? 'Recordatorio de agenda' : row.kind === 'PLAN_SUBMITTED' ? 'Plan pendiente de autorización' : 'Plan de trabajo aprobado',
+        body: row.kind === 'TASK_ASSIGNED' ? 'Tu superior te asignó una tarea. Revisa tu agenda.' : row.kind === 'TASK_REMINDER' ? 'Tienes una tarea próxima a vencer o pendiente. Revisa tu agenda.' : row.kind === 'PLAN_SUBMITTED' ? 'Tienes un plan de trabajo por revisar.' : 'Tu plan de trabajo ya fue aprobado.',
+        data: { kind: row.kind, planId: row.plan_id, taskId:row.task_id, recipientAuthId: row.recipient_auth_id },
       })), fetcher)
       if (!Array.isArray(tickets) || tickets.length !== rows.length) throw new Error('EXPO_TICKET_COUNT_MISMATCH')
       for (const [i, row] of rows.entries()) {

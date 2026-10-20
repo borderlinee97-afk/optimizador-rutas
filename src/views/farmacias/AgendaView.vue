@@ -26,6 +26,7 @@
         </button>
       </header>
 
+      <section class="agenda-summary" aria-label="Resumen de tareas"><button @click="filters.status='TODO'">{{ tasks.filter(t=>t.status==='TODO').length }} pendientes</button><button @click="filters.status='IN_PROGRESS'">{{ tasks.filter(t=>t.status==='IN_PROGRESS').length }} en curso</button><button @click="filters.status='ALL'">Ver todas</button><span>Horario de Guadalajara · Recordatorios 30 minutos antes del vencimiento.</span></section>
       <section class="toolbar">
         <label>
           Vista
@@ -645,9 +646,13 @@
 </template>
 
 <script setup>
+import {useRoute} from 'vue-router'
+const route=useRoute()
+const localDay=v=>new Intl.DateTimeFormat('en-CA',{timeZone:'America/Mexico_City'}).format(new Date(v))
 import {
   computed,
   onMounted,
+  onUnmounted,
   reactive,
   ref,
   watch,
@@ -677,6 +682,10 @@ const priorities = [
   'URGENT',
 ]
 
+let agendaTimer
+onMounted(()=>{agendaTimer=setInterval(()=>{if(!loading.value&&!saving.value&&!formOpen.value&&document.visibilityState==='visible'&&navigator.onLine)void load()},60000)})
+onUnmounted(()=>clearInterval(agendaTimer))
+watch(()=>route.query.task,id=>{if(typeof id==='string'&&/^[0-9a-f-]{36}$/i.test(id))void openDetail({id})})
 const tasks = ref([])
 const assignees = ref([])
 const canAssign = ref(false)
@@ -716,17 +725,7 @@ const blank = () => ({
 const form = reactive(blank())
 
 const groups = computed(() => {
-  const today = new Date()
-
-  const start =
-    new Date(
-      today.getFullYear(),
-      today.getMonth(),
-      today.getDate(),
-    ).getTime()
-
-  const end =
-    start + 86400000
+  const todayKey=localDay(Date.now())
 
   const result = [
     {
@@ -772,16 +771,16 @@ const groups = computed(() => {
     }
 
     if (
-      Date.parse(task.dueAt) <
-      start
+      localDay(task.dueAt) <
+      todayKey
     ) {
       result[0].tasks.push(task)
       return
     }
 
     if (
-      Date.parse(task.dueAt) <
-      end
+      localDay(task.dueAt) ===
+      todayKey
     ) {
       result[1].tasks.push(task)
       return
@@ -820,14 +819,14 @@ async function load() {
       dueFrom:
         filters.dueFrom
           ? new Date(
-              `${filters.dueFrom}T00:00:00`,
+              `${filters.dueFrom}T00:00:00-06:00`,
             ).toISOString()
           : '',
 
       dueTo:
         filters.dueTo
           ? new Date(
-              `${filters.dueTo}T23:59:59`,
+              `${filters.dueTo}T23:59:59.999-06:00`,
             ).toISOString()
           : '',
     }
@@ -837,6 +836,8 @@ async function load() {
 
     tasks.value =
       response.tasks
+    const target=tasks.value.find(t=>t.id===route.query.task)
+    if(target && detail.value?.task.id!==target.id)await openDetail(target)
   } catch (reason) {
     error.value =
       errorMessage(
@@ -896,12 +897,7 @@ function toLocalDateTimeInput(value) {
     return ''
   }
 
-  const local =
-    new Date(
-      date.getTime() -
-      date.getTimezoneOffset() *
-      60000,
-    )
+  const local = new Date(date.getTime()-6*3600000)
 
   return local
     .toISOString()
@@ -963,7 +959,7 @@ async function saveTask() {
       dueAt:
         form.dueAt
           ? new Date(
-              form.dueAt,
+              form.dueAt+'-06:00',
             ).toISOString()
           : null,
 
@@ -1152,6 +1148,7 @@ const formatDate =
         ).toLocaleString(
           'es-MX',
           {
+            timeZone:'America/Mexico_City',
             dateStyle:
               'medium',
 
@@ -1217,6 +1214,7 @@ onMounted(
 </script>
 
 <style scoped>
+.agenda-summary{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin:20px 0}.agenda-summary button{padding:14px 18px;border:1px solid #d6e1ee;background:white;color:#244b79;border-radius:12px;font:inherit;cursor:pointer}.agenda-summary span{font-size:13px;color:#526579}
 .agenda-page {
   width: 100%;
   min-height: 100%;

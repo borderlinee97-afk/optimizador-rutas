@@ -239,6 +239,7 @@
           <FarmaciasReportTable :columns="groupColumns" :rows="groupRows" />
         </section>
       </template>
+      <FarmaciasFollowUp v-if="report.followUp" :data="report.followUp" :exporting="exporting" @export="downloadCsv" />
       <section class="panel">
         <div class="section-title">
           <div>
@@ -392,6 +393,7 @@
   </main>
 </template>
 <script setup>
+import FarmaciasFollowUp from '../../components/FarmaciasFollowUp.vue'
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import FarmaciasReportTable from '../../components/FarmaciasReportTable.vue'
 import {
@@ -507,7 +509,7 @@ const chartMax = computed(() =>
 )
 const n = (v) => Number(v || 0).toLocaleString('es-MX')
 const unitLabel = (v) =>
-  ({ PHARMACY: 'Farmacia', CEDIS: 'CEDIS', EXTRA_STOP: 'Parada adicional' })[
+  ({ PHARMACY: 'Farmacia', CEDIS: 'CEDIS',REG_SAN:'Región sanitaria', EXTRA_STOP: 'Parada adicional' })[
     v
   ] || v
 const statusLabel = (v) =>

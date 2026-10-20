@@ -15,6 +15,8 @@ async function request(query = {}) {
   for(let i=1;i<=51;i++) insert.run(i,i===1?null:'URBANA',1)
   insert.run(70,' almacenes ',1)
   insert.run(71,'ALMACENES',0)
+  insert.run(80,' regiones sanitarias ',1)
+  insert.run(81,'REGIONES SANITARIAS',0)
   const context = {
     Router: () => ({ use() {}, get(path,handler) { routes.push({path,handler}) } }), requireAuth() {},
     normalizePharmacyScopeMode: value => value ?? 'ASSIGNED_ONLY',
@@ -50,13 +52,13 @@ test('units exclude warehouses and retain null-location pharmacies and original 
   const r=await request({kind:'UNITS'})
   assert.equal(r.status,200)
   assert.equal(r.body.pharmacies.length,30)
-  assert.equal(r.body.pagination.total,51)
+  assert.equal(r.body.pagination.total,52)
   assert.equal(String(r.body.pharmacies[0].id),'1')
 })
 test('existing clients without kind retain their mixed catalog',async()=>{
   const r=await request({limit:'100'})
   assert.equal(r.status,200)
-  assert.equal(r.body.pagination.total,52)
+  assert.equal(r.body.pagination.total,53)
   assert.equal(r.calls[0].params[9],null)
 })
 test('unknown kind returns 400 before querying data',async()=>{
@@ -65,3 +67,7 @@ test('unknown kind returns 400 before querying data',async()=>{
   assert.equal(r.body.code,'PHARMACY_KIND_INVALID')
   assert.equal(r.calls.length,0)
 })
+
+test('sanitary regions filter precedes pagination and preserves scope',async()=>{const r=await request({kind:'REG_SAN'});assert.equal(r.status,200);assert.equal(r.body.pagination.total,1);assert.equal(String(r.body.pharmacies[0].id),'80')})
+
+test('new units tab separates regional sedes without removing them from legacy APK catalogs',async()=>{const r=await request({kind:'UNITS_ONLY'});assert.equal(r.status,200);assert.equal(r.body.pagination.total,51)})

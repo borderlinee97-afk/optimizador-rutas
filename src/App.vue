@@ -1,10 +1,11 @@
 <template>
   <div class="app-root">
+    <PasswordAccess v-if="passwordMode" :mode="passwordMode" @close="closePassword" />
     <!-- =========================================================
          CARGANDO AUTENTICACIÓN
     ========================================================== -->
     <div
-      v-if="loading"
+      v-else-if="loading"
       class="auth-loading"
     >
       <div class="loading-card">
@@ -125,6 +126,7 @@
               }}
             </span>
           </button>
+          <button type="button" class="password-link" @click="passwordMode='forgot'">Olvidé mi contraseña</button>
         </form>
       </main>
     </div>
@@ -508,6 +510,7 @@
               </div>
             </div>
 
+            <button type="button" class="password-link" @click="passwordMode='change'">Cambiar contraseña</button>
             <button
               class="topbar-logout"
               type="button"
@@ -600,6 +603,7 @@
             </button>
           </div>
 
+          <button type="button" class="password-link" @click="passwordMode='change'">Cambiar contraseña</button>
           <button
             class="logout-button"
             type="button"
@@ -611,13 +615,18 @@
         </div>
       </template>
     </div>
+    <TaskAlerts v-if="authenticated && isFarmacias && !passwordMode" :key="profile.id" :persona-id="profile.id" />
   </div>
 </template>
 
 <script setup>
+import TaskAlerts from './components/TaskAlerts.vue'
+import PasswordAccess from './components/PasswordAccess.vue'
+import {supabase} from './lib/supabase.js'
 import {
   computed,
   onMounted,
+  onUnmounted,
   ref,
   watch,
 } from 'vue'
@@ -658,6 +667,10 @@ const route =
 const router =
   useRouter()
 
+const passwordMode=ref(new URLSearchParams(window.location.search).get('password')==='recovery'||new URLSearchParams(window.location.hash.slice(1)).get('type')==='recovery'?'reset':null)
+const recoveryListener=supabase.auth.onAuthStateChange(event=>{if(event==='PASSWORD_RECOVERY')passwordMode.value='reset'})
+onUnmounted(()=>recoveryListener.data.subscription.unsubscribe())
+async function closePassword(){passwordMode.value=null;if(new URLSearchParams(window.location.search).has('password')){window.history.replaceState(null,'',window.location.pathname)}await router.replace(getDefaultPath())}
 const email =
   ref('')
 
@@ -974,6 +987,7 @@ watch(
 
   async () => {
     if (
+      passwordMode.value ||
       loading.value ||
       !authenticated.value ||
       !profile.value
@@ -1246,6 +1260,7 @@ function formatLabel(
 </script>
 
 <style>
+.password-link{border:0;background:transparent;color:#285789;font:inherit;text-decoration:underline;cursor:pointer;padding:10px;}
 html,
 body,
 #app,

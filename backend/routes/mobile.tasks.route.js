@@ -1,3 +1,4 @@
+import {queueTaskAssignment} from '../services/planNotifications.service.js'
 import { Router } from 'express'
 import { pool } from '../db/pool.js'
 import { canAccessPersona } from '../services/hierarchyAccess.service.js'
@@ -7,7 +8,7 @@ import {
 } from '../services/operationalTasks.service.js'
 
 const router = Router()
-const tasks = createOperationalTasksService({ pool, canAccessPersona })
+const tasks = createOperationalTasksService({ pool, canAccessPersona,notifyAssignment:queueTaskAssignment })
 
 export function requireMobileTaskAccess(req, res, next) {
   const actor = req.identityProfile ?? req.profile

@@ -309,6 +309,7 @@ export function createOperationalTasksService({
   pool,
   canAccessPersona,
   signEvidence = addSignedEvidenceReadUrl,
+  notifyAssignment = async () => {},
 }) {
   async function accessible(
     actor,
@@ -629,6 +630,8 @@ export function createOperationalTasksService({
               values.requires_evidence,
             ],
           )
+
+        await notifyAssignment(db,rows[0].id)
 
         // The existing operational_task_audit_trigger
         // records CREATED/UPDATED/STATUS_CHANGED.

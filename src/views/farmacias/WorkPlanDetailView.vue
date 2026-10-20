@@ -42,6 +42,7 @@
       </div>
 
       <template v-else-if="detail">
+        <CancelRemainingVisits v-if="detail.permissions?.canCancelRemaining" :plan="detail.plan" @updated="loadDetail" />
         <!-- ===================================================
              CABECERA
         ==================================================== -->
@@ -1051,6 +1052,7 @@
 </template>
 
 <script setup>
+import CancelRemainingVisits from '../../components/CancelRemainingVisits.vue'
 import VisitExecutionSummary from '../../components/VisitExecutionSummary.vue'
 import { formatRecordedAt } from '../../utils/farmaciasReports.js'
 import {

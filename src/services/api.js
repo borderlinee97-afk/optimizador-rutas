@@ -918,6 +918,8 @@ export async function rejectWebCoverage(
   )
 }
 
+export function cancelRemainingWebVisits(id,payload) { return fetchJSON(`${BASE_API}/web/work-plans/${encodeURIComponent(id)}/cancel-remaining${buildWebQS()}`,{method:'POST',body:JSON.stringify(payload)}) }
+
 export async function cancelWebCoverage(
   coverageId,
   {

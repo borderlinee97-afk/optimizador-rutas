@@ -89,7 +89,7 @@ test(
       CREATE TABLE pharmacy_supervisor_coverage(id uuid PRIMARY KEY,pharmacy_id bigint,coordinator_id uuid,titular_supervisor_id uuid,covering_supervisor_id uuid,start_date date,end_date date,status text,reviewed_at timestamptz,requested_at timestamptz,cancelled_at timestamptz);
       CREATE TABLE person_availability_request(id uuid PRIMARY KEY,supervisor_id uuid,start_date date,end_date date,status text);
       CREATE TABLE work_plan(id uuid PRIMARY KEY,supervisor_id uuid,status text,plan_type text,approved_at timestamptz);
-      CREATE TABLE work_plan_item(id uuid PRIMARY KEY,plan_id uuid,pharmacy_id bigint,custom_name text,item_type text,source text,status text,scheduled_date date,scheduled_time time,check_in_at timestamptz,check_out_at timestamptz,dwell_seconds int,notes text,skip_reason text,reschedule_reason text,removed_at timestamptz);
+      CREATE TABLE work_plan_item(id uuid PRIMARY KEY,plan_id uuid,pharmacy_id bigint,custom_name text,item_type text,source text,status text,scheduled_date date,scheduled_time time,check_in_at timestamptz,check_out_at timestamptz,dwell_seconds int,notes text,skip_reason text,reschedule_reason text,cancellation_request_notes text,removed_at timestamptz);
       CREATE TABLE pharmacy_activity(id uuid PRIMARY KEY,plan_item_id uuid,activity_type text,status text,completed_at timestamptz,execution_note text,skip_reason text,ord int,note text,completed_by uuid,skipped_by uuid,skipped_at timestamptz,created_by uuid,created_at timestamptz DEFAULT now(),updated_by uuid,updated_at timestamptz);`)
       const migration = await readFile(
         new URL(
@@ -452,6 +452,7 @@ test(
             )
           }
           for (const dataset of [
+            'pending','planned',
             'people',
             'visits',
             'units',

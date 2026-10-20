@@ -65,12 +65,13 @@
         <section class="modal" role="dialog" aria-modal="true" aria-labelledby="visit-title">
           <header class="modal-heading"><div><span class="kicker">{{ editingItem ? 'Editar' : 'Agregar' }}</span><h2 id="visit-title">Visita del plan</h2></div><button type="button" class="text-button" :disabled="busy" @click="closeVisit">Cerrar</button></header>
           <p v-if="formError" class="notice error" role="alert">{{ formError }}</p>
-          <div class="field"><label>Farmacia</label><strong>{{ chosenPharmacy?.name || editingItem?.name || 'Selecciona una farmacia' }}</strong><small v-if="visitForm.pharmacyId">{{ (chosenPharmacy?.locationName || editingItem?.locationName) === 'ALMACENES' ? 'Almacén · Referencia' : 'CLUES' }} {{ chosenPharmacy?.clues || editingItem?.clues || '—' }}</small></div>
+          <div class="field"><label>Farmacia</label><strong>{{ chosenPharmacy?.name || editingItem?.name || 'Selecciona una farmacia' }}</strong><small v-if="visitForm.pharmacyId">{{ ['ALMACENES','REGIONES SANITARIAS'].includes(chosenPharmacy?.locationName || editingItem?.locationName) ? 'Referencia interna' : 'CLUES' }} {{ chosenPharmacy?.clues || editingItem?.clues || '—' }}</small></div>
           <div class="catalog">
+            <div class="catalog-kinds" role="group" aria-label="Tipo de unidad"><button v-for="option in [{key:'UNITS',name:'Unidades asignadas'},{key:'CEDIS',name:'CEDIS'},{key:'REG_SAN',name:'Regiones sanitarias'}]" :key="option.key" type="button" :aria-pressed="catalogKind===option.key" :class="{primary:catalogKind===option.key,secondary:catalogKind!==option.key}" @click="catalogKind=option.key;searchCatalog()">{{ option.name }}</button></div>
             <div class="catalog-filters"><input v-model="catalogSearch" type="search" placeholder="Buscar nombre o CLUES" aria-label="Buscar farmacia" @keyup.enter="searchCatalog" /><select v-model="catalogRegion" aria-label="Región" @change="searchCatalog"><option value="">Todas las regiones</option><option v-for="region in catalogFilters.regions" :key="region" :value="region">{{ region }}</option></select><select v-model="catalogProject" aria-label="Proyecto" @change="searchCatalog"><option value="">Todos los proyectos</option><option v-for="project in catalogFilters.projects" :key="project" :value="project">{{ project }}</option></select><select v-model="catalogState" aria-label="Estado" @change="searchCatalog"><option value="">Todos los estados</option><option v-for="state in catalogFilters.states" :key="state" :value="state">{{ state }}</option></select><select v-model="catalogStatus" aria-label="Estatus" @change="searchCatalog"><option value="">Todos los estatus</option><option v-for="status in catalogFilters.statuses" :key="status" :value="status">{{ status }}</option></select><button type="button" class="secondary" :disabled="catalogLoading" @click="searchCatalog">Buscar</button></div>
             <p v-if="catalogLoading" class="muted">Buscando farmacias…</p>
             <p v-else-if="!catalog.length && !catalogError" class="muted">No hay farmacias para estos filtros.</p>
-            <div v-else-if="catalog.length" class="catalog-list"><button v-for="pharmacy in catalog" :key="pharmacy.id" type="button" class="catalog-option" :class="{ selected: visitForm.pharmacyId === pharmacy.id }" :disabled="pharmacy.accessType === 'NONE'" @click="choosePharmacy(pharmacy)"><strong>{{ pharmacy.name }}</strong><small>{{ pharmacy.locationName === 'ALMACENES' ? 'Almacén · Referencia' : 'CLUES' }} {{ pharmacy.clues }} · {{ pharmacy.region || 'Sin región' }}<span v-if="pharmacy.project"> · {{ pharmacy.project }}</span></small><small>{{ accessLabel(pharmacy) }}<span v-if="pharmacy.temporaryCoverage"> · {{ pharmacy.temporaryCoverage.startDate }} a {{ pharmacy.temporaryCoverage.endDate }}</span></small></button></div>
+            <div v-else-if="catalog.length" class="catalog-list"><button v-for="pharmacy in catalog" :key="pharmacy.id" type="button" class="catalog-option" :class="{ selected: visitForm.pharmacyId === pharmacy.id }" :disabled="pharmacy.accessType === 'NONE'" @click="choosePharmacy(pharmacy)"><strong>{{ pharmacy.name }}</strong><small>{{ ['ALMACENES','REGIONES SANITARIAS'].includes(pharmacy.locationName) ? 'Referencia interna' : 'CLUES' }} {{ pharmacy.clues }} · {{ pharmacy.region || 'Sin región' }}<span v-if="pharmacy.project"> · {{ pharmacy.project }}</span></small><small>{{ accessLabel(pharmacy) }}<span v-if="pharmacy.temporaryCoverage"> · {{ pharmacy.temporaryCoverage.startDate }} a {{ pharmacy.temporaryCoverage.endDate }}</span></small></button></div>
             <p v-if="catalogError" class="notice error" role="alert">{{ catalogError }}</p>
             <button v-if="catalogHasMore" type="button" class="secondary more" :disabled="catalogLoading" @click="loadCatalog(true)">Cargar más</button>
           </div>
@@ -120,6 +121,7 @@ const visitForm = ref({ pharmacyId: '', scheduledDate: '', scheduledTime: '', re
 const formError = ref('')
 const catalog = ref([])
 const catalogFilters = ref({ regions: [], projects: [], states: [], statuses: [] })
+const catalogKind=ref('UNITS')
 const catalogSearch = ref('')
 const catalogRegion = ref('')
 const catalogProject = ref('')
@@ -275,7 +277,7 @@ function currentCatalogParams() {
   return {
     search: catalogSearch.value.trim() || undefined, region: catalogRegion.value || undefined,
     project: catalogProject.value || undefined, state: catalogState.value || undefined,
-    status: catalogStatus.value || undefined,
+    status: catalogStatus.value || undefined, kind:catalogKind.value==='UNITS'?'UNITS_ONLY':catalogKind.value,
   }
 }
 async function searchCatalog() {
@@ -370,6 +372,7 @@ function displayDay(value) { const date = parseDate(value); return date ? new In
 </script>
 
 <style scoped>
+.catalog-kinds{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0}
 .editor-page { min-height: 100%; padding: 28px 28px 48px; background: var(--color-background); color: var(--color-text); }
 .content { width: min(var(--content-max-width), 100%); margin: auto; display: grid; gap: 18px; }
 .heading, .toolbar, .toolbar-actions, .day-heading, .visit-row, .visit-actions, .section-heading, .form-actions, .modal-heading, .activity-header, .footer-actions { display: flex; align-items: center; justify-content: space-between; gap: 16px; }

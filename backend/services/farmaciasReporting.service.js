@@ -1,3 +1,4 @@
+import { buildFollowUp } from './farmaciasFollowUp.service.js'
 // Read-only reporting. Recorded presence in units is not a payroll/workday measure.
 export const REPORT_TIME_ZONE = 'America/Mexico_City'
 const ROLES = new Set(['DIRECTOR', 'GERENTE', 'COORDINADOR'])
@@ -151,7 +152,7 @@ export async function reportingPeople(db, actor) {
     coordinators: p.coordinators,
   }))
 }
-const warehouse = `upper(trim(COALESCE(f.lugar_farmacia,''))) IN ('ALMACEN','ALMACENES','CEDIS') OR EXISTS
+const warehouse = `upper(trim(COALESCE(f.lugar_farmacia,''))) IN ('ALMACEN','ALMACENES','CEDIS','REGIONES SANITARIAS') OR EXISTS
   (SELECT 1 FROM public.pharmacy_shared_plan_access s WHERE s.pharmacy_id=f.id)`
 // The identical dimension predicate is applied to assignments, coverage and visits.
 const dimensions = `($4::text IS NULL OR upper(trim(f.proyecto))=upper($4))
@@ -159,7 +160,7 @@ const dimensions = `($4::text IS NULL OR upper(trim(f.proyecto))=upper($4))
   AND ($6::text IS NULL OR upper(trim(f.estado))=upper($6))
   AND ($7::bigint IS NULL OR f.id=$7::bigint)`
 const unitFields = `f.id::text AS pharmacy_id, f.clues, f.unidad AS unit_name, f.proyecto AS project,
-  f.region_sanitaria AS jurisdiction, f.estado AS state, (${warehouse}) AS warehouse`
+  f.region_sanitaria AS jurisdiction, f.estado AS state, (${warehouse}) AS warehouse, upper(trim(COALESCE(f.lugar_farmacia,'')))='REGIONES SANITARIAS' AS sanitary_region`
 export async function loadReportingData(db, actor, filters) {
   const people = await reportingPeople(db, actor)
   if (filters.personId && !people.some((p) => p.id === filters.personId))
@@ -228,7 +229,7 @@ export async function loadReportingData(db, actor, filters) {
     await db.query(
       `SELECT v.id,v.plan_id,p.supervisor_id AS person_id,person.nombre AS person_name,
       p.status AS plan_status,p.plan_type,v.item_type,v.source,v.status,v.scheduled_date::text,v.scheduled_time::text,
-      v.check_in_at,v.check_out_at,v.dwell_seconds,v.notes,v.skip_reason,v.reschedule_reason,
+      v.check_in_at,v.check_out_at,v.dwell_seconds,v.notes,v.skip_reason,v.reschedule_reason,v.cancellation_request_notes,
       COALESCE(f.unidad,v.custom_name,'Actividad sin nombre') AS name,${unitFields}
     FROM public.work_plan_item v JOIN public.work_plan p ON p.id=v.plan_id
     JOIN public.personas person ON person.id=p.supervisor_id AND person.area::text='FARMACIAS'
@@ -258,7 +259,21 @@ export async function loadReportingData(db, actor, filters) {
       'Reduce el periodo o aplica filtros: el reporte supera 50,000 registros.',
       413
     )
-  return { people: selected, assignments, coverages, vacations, visits }
+  const lastVisits = (await db.query(`SELECT v.pharmacy_id::text AS pharmacy_id, max(v.check_out_at) AS last_visit_at
+    FROM public.work_plan_item v JOIN public.work_plan p ON p.id=v.plan_id
+    WHERE v.pharmacy_id=ANY($1::bigint[]) AND v.removed_at IS NULL AND v.status='DONE'
+      AND v.check_in_at IS NOT NULL AND v.check_out_at>=v.check_in_at
+      AND (p.status='APPROVED' OR (p.status='ARCHIVED' AND p.approved_at IS NOT NULL))
+      AND v.check_out_at < (($2::date+1)::timestamp AT TIME ZONE '${REPORT_TIME_ZONE}')
+      AND (p.supervisor_id=ANY($3::uuid[]) OR EXISTS (
+        SELECT 1 FROM public.pharmacy_supervisor_coverage c WHERE c.pharmacy_id=v.pharmacy_id
+          AND c.covering_supervisor_id=p.supervisor_id AND c.titular_supervisor_id=ANY($3::uuid[])
+          AND (c.status='APPROVED' OR (c.status='CANCELLED' AND c.reviewed_at IS NOT NULL))
+          AND (v.check_in_at AT TIME ZONE '${REPORT_TIME_ZONE}')::date BETWEEN c.start_date AND c.end_date
+          AND v.check_in_at>=COALESCE(c.reviewed_at,c.requested_at)
+          AND (c.cancelled_at IS NULL OR v.check_in_at<c.cancelled_at)))
+    GROUP BY v.pharmacy_id`,[[...new Set(assignments.map(a=>a.pharmacy_id))],filters.endDate,selected.map(p=>p.id)])).rows
+  return { people: selected, assignments, coverages, vacations, visits, lastVisits }
 }
 const inRange = (date, start, end) => !!date && date >= start && date <= end
 function overlap(a, b, c, d) {
@@ -377,7 +392,7 @@ export function buildReport(data, filters, allVisits = false) {
       project: row.project,
       jurisdiction: row.jurisdiction,
       state: row.state,
-      unitKind: row.warehouse
+      unitKind: row.sanitary_region ? 'REG_SAN' : row.warehouse
         ? 'CEDIS'
         : row.pharmacy_id
           ? 'PHARMACY'
@@ -388,6 +403,7 @@ export function buildReport(data, filters, allVisits = false) {
       scheduledTime: row.scheduled_time,
       ...e,
       notes: row.notes,
+      cancellationNotes: row.cancellation_request_notes,
       skipReason: row.skip_reason,
       rescheduleReason: row.reschedule_reason,
       activities: row.activities || [],
@@ -764,6 +780,7 @@ export function buildReport(data, filters, allVisits = false) {
       ownVisits,
       people.map((p) => p.id)
     ),
+    followUp: buildFollowUp({...data,people},visits,start,end),
     people: personRows,
     groups,
     daily,
@@ -818,6 +835,8 @@ export function csvCell(value) {
 }
 export function reportCsv(report, dataset) {
   const headers = {
+    pending:['Farmacia','Referencia / CLUES','Proyecto','Jurisdicción','Responsable','Última visita','Días sin visita al cierre','Programación','Vacaciones','Coberturas'],
+    planned:['Persona','Programadas','Vigentes','Realizadas al cierre','Realizadas posteriormente','Pendientes','En curso','Omitidas','Canceladas','Reprogramadas','Sin marcas válidas','Adicionales realizadas','Realizadas por cobertura','Planeadas durante vacaciones','Vacaciones'],
     people: [
       'Persona',
       'Rol',
@@ -901,6 +920,8 @@ export function reportCsv(report, dataset) {
         }).format(new Date(v))
       : ''
   const rows = {
+    pending:()=>report.followUp.pending.map(p=>[p.name,p.clues,p.project,p.jurisdiction,p.personName,local(p.lastVisitedAt),p.daysSinceVisit,p.plannedDates.join(' / '),p.vacations.map(v=>v.startDate+' a '+v.endDate).join(' / '),p.coverages.map(c=>c.name+': '+c.startDate+' a '+c.endDate).join(' / ')]),
+    planned:()=>report.followUp.comparison.map(p=>[p.name,p.planned,p.activePlanned,p.completed,p.completedLater,p.pending,p.inProgress,p.omitted,p.cancelled,p.rescheduled,p.missingTimes,p.additional,p.coverageCompleted,p.duringVacation,p.vacations.map(v=>v.startDate+' a '+v.endDate).join(' / ')]),
     people: () =>
       report.people.map((p) => [
         p.name,
@@ -989,6 +1010,7 @@ export function reportCsv(report, dataset) {
       ])
   if (
     ![
+      'pending','planned',
       'people',
       'visits',
       'units',
