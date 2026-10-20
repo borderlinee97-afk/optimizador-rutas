@@ -4,12 +4,17 @@ import { getRandomBytesAsync } from 'expo-crypto'
 import { pbkdf2Async } from '@noble/hashes/pbkdf2'
 import { sha256 } from '@noble/hashes/sha256'
 import { Platform } from 'react-native'
+import { requireOptionalNativeModule } from 'expo'
 
 const credentialKey = 'offline-login.v1'
 const lockKey = 'auth:local-lock:v1'
 const maxAge = 8 * 24 * 60 * 60 * 1000
 const options = { keychainAccessible: SecureStore.WHEN_UNLOCKED_THIS_DEVICE_ONLY }
 export const supportsOfflineLogin = Platform.OS !== 'web'
+// Same PBKDF2 parameters and record format; older APKs/Expo Go retain the JS path.
+const nativeVerifier = Platform.OS === 'android'
+  ? requireOptionalNativeModule<{ deriveAsync(password: string, salt: string): Promise<string | null> }>('OfflinePasswordVerifier')
+  : null
 type Credential = { version: 1; userId: string; email: string; salt: string; verifier: string; validatedAt: number; failures: number; lockedUntil: number }
 let writes: Promise<unknown> = Promise.resolve()
 function serial<T>(run: () => Promise<T>): Promise<T> {
@@ -28,8 +33,15 @@ function utf8(value: string) {
   return Uint8Array.from(bytes)
 }
 async function derive(password: string, salt: string) {
+  // Reject malformed UTF-16 exactly as the original encoder does.
   const input = utf8(password)
   try {
+    if (nativeVerifier) {
+      try {
+        const result = await nativeVerifier.deriveAsync(password, salt)
+        if (result && /^[a-f0-9]{64}$/.test(result)) return result
+      } catch { /* Native crypto unavailable: retain the established verifier. */ }
+    }
     return hex(await pbkdf2Async(sha256, input, Uint8Array.from(salt.match(/../g)!, b => parseInt(b, 16)), {
       c: 600_000, dkLen: 32, asyncTick: 10,
     }))

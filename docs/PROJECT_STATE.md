@@ -1,5 +1,28 @@
 # APP DE RUTAS — estado del proyecto
 
+## Rendimiento del acceso móvil — publicación autorizada (2026-10-19)
+
+- El usuario confirmó ejecución offline y sincronización correctas; solicitó sólo
+  optimizar la lentitud del acceso y del flujo local, conservando lo conseguido.
+- Eliminada una petición de perfil duplicada inmediatamente después del login
+  explícito ya validado. En modo avión conocido se usa el perfil autorizado local
+  sin intentar /me ni la renovación explícita del SDK en el arranque. Se conserva
+  validación al recuperar conexión, cambio de token, reanudación y reintento periódico.
+- La comprobación PBKDF2 de 600,000 iteraciones se ejecuta opcionalmente con el
+  proveedor nativo Android en un AsyncFunction de Expo, fuera del hilo JavaScript.
+  Mismo SHA256, sal, tamaño, registro v1, límites de intentos y vigencia: no requiere
+  borrar credenciales ni datos. Android anterior a 8, Expo Go o módulo no disponible
+  conservan el algoritmo JS existente. Sin dependencias nuevas ni cambio de permisos.
+- No se modifica check-in/out, GPS, evidencias, colas, fechas, backend ni Supabase.
+- Validados 52 casos: 29 de AuthProvider, cinco de credenciales (incluyendo la
+  clase Java real con cinco vectores ASCII/Unicode/vacío/NUL/contraseña larga) y
+  18 de caché semanal y ejecución offline con SQLite real. TypeScript y diff
+  correctos; Expo autolinking detecta y resuelve el módulo Android.
+- El usuario autorizó publicar exclusivamente este bloque y generar una nueva APK
+  preview. Publicación y compilación EAS en curso; no hay SDK Android local.
+  Pendiente medir el inicio con red y en modo avión en el teléfono, instalando
+  sobre la APK anterior para conservar información local.
+
 ## Mi trabajo ocultaba fechas serializadas con hora — backend (2026-10-19)
 
 - El usuario aclaró que las nuevas paradas aparecen en el plan, pero no en Mi
@@ -16,8 +39,8 @@
   sincronización repara fechas con hora ya descargadas y se conserva al reiniciar.
 - Validados 18 casos de caché/ejecución offline y nueve de PostgreSQL real; estos
   últimos ahora exigen la fecha exacta sin convertirla desde el propio test.
-  Sintaxis y diff correctos. Publicación backend en curso; verificación en celular
-  pendiente tras actualizar Mi trabajo. No hace falta generar otra APK.
+  Sintaxis y diff correctos. Backend publicado; el usuario confirmó que 519/518
+  aparecen en Mi trabajo y que check-in offline y sincronización funcionan.
 
 ## Calendario operativo Guadalajara — corrección backend (2026-10-19)
 

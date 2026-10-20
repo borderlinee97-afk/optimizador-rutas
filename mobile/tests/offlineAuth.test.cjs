@@ -21,6 +21,7 @@ function harness({ storage = new Map(), secureStorage = new Map(), stored = sess
       getItemAsync: async key => secureStorage.get(key) ?? null,
       setItemAsync: async (key, value) => { secureStorage.set(key, value) },
       deleteItemAsync: async key => { secureStorage.delete(key) } },
+    'expo': { requireOptionalNativeModule: () => null },
     'expo-crypto': { getRandomBytesAsync: async size => new Uint8Array(crypto.randomBytes(size)) },
     '@noble/hashes/pbkdf2': { pbkdf2Async: async (_, input, salt, opts) => new Uint8Array(crypto.pbkdf2Sync(input, salt, opts.c, opts.dkLen, 'sha256')) },
     '@noble/hashes/sha256': { sha256: {} }, 'react-native': { Platform: { OS: platform } },
@@ -236,7 +237,9 @@ test('a recovery result for A never appears in B after an account switch', async
 
 test('Logout unregisters push online and locks locally offline without erasing authorized snapshots', async () => {
  for(const sdkNetworkError of [false,true]) {
-  const h=harness({sdkNetworkError});await h.runner.flush()
+  const h=harness({sdkNetworkError})
+  if (sdkNetworkError) await h.cache.saveProfileSnapshot(A, profileFor(A))
+  await h.runner.flush()
   const before=h.storage.get(`authorized-profile:v1:${A}`);await h.runner.value.signOut();await h.runner.flush()
   assert.deepEqual(h.revoked,sdkNetworkError?[]:[sessionFor(A).access_token]);assert.equal(h.runner.value.session,null)
   const after=JSON.parse(h.storage.get(`authorized-profile:v1:${A}`));assert.equal(after.blocked,false)
@@ -379,5 +382,29 @@ test('an inactive backend profile returned during password login revokes the pre
   assert.equal(h.secureStorage.size,0)
   assert.equal(await h.cache.readProfileSnapshot(A),null)
   assert.equal(h.runner.value.session,null)
+  h.runner.stop()
+})
+
+
+test('password login validates the online profile exactly once; offline reopen makes no profile request', async () => {
+  const h=harness({stored:null});await h.runner.flush()
+  assert.equal((await h.runner.value.signIn('user@example.test','correct')).error,null)
+  await h.runner.flush();assert.equal(h.calls.length,1)
+  await h.runner.value.signOut();await h.runner.flush()
+  h.setDisconnected(true);h.setError(network())
+  assert.equal((await h.runner.value.signIn('user@example.test','correct')).error,null)
+  await h.runner.flush();assert.equal(h.calls.length,1);assert.equal(h.runner.value.accessState,'offline')
+  await h.runner.value.refreshProfile();await h.runner.flush()
+  assert.equal(h.calls.length,1);assert.equal(h.owner,A)
+  h.setDisconnected(false);h.setError(null)
+  await h.runner.value.refreshProfile();await h.runner.flush()
+  assert.equal(h.calls.length,2);assert.equal(h.runner.value.accessState,'online')
+  h.runner.stop()
+})
+
+test('known-offline cold start opens only the previously authorized local profile without calling /me',async()=>{
+  const h=harness({sdkNetworkError:true})
+  await h.cache.saveProfileSnapshot(A,profileFor(A));await h.runner.flush()
+  assert.equal(h.calls.length,0);assert.equal(h.runner.value.accessState,'offline');assert.equal(h.owner,A)
   h.runner.stop()
 })

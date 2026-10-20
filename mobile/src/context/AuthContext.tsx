@@ -56,6 +56,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
   const authOperation = useRef(0)
   const serverInvalidated = useRef(false)
   const observedSession = useRef<Session | null>(null)
+  const passwordValidatedSession = useRef<Session | null>(null)
   const acceptSessionRef = useRef<(next: Session | null) => void>(() => undefined)
 
   const publishAccess = useCallback((value: Access | null) => {
@@ -122,6 +123,11 @@ export function AuthProvider({ children }: PropsWithChildren) {
       if (revision === eventSequence) acceptSession(stored)
       const checkRevision = eventSequence
       try {
+        if (supportsOfflineLogin) {
+          const connection = await NetInfo.fetch()
+          if (!mounted || checkRevision !== eventSequence) return
+          if (connection.isConnected === false || connection.isInternetReachable === false) return
+        }
         const { data, error } = await supabase.auth.getSession()
         if (!mounted || checkRevision !== eventSequence) return
         if (error && isNetworkFailure(error)) return
@@ -193,6 +199,13 @@ export function AuthProvider({ children }: PropsWithChildren) {
     const controller = new AbortController()
     const timeout = setTimeout(() => controller.abort(), 10_000)
     try {
+      if (supportsOfflineLogin) {
+        const connection = await NetInfo.fetch()
+        if (!isCurrent()) return
+        if (connection.isConnected === false || connection.isInternetReachable === false) {
+          throw new ApiError('Sin conexión.', 0, 'NETWORK_ERROR')
+        }
+      }
       let response
       try {
         response = await getCurrentProfile(activeSession.access_token, controller.signal)
@@ -263,7 +276,14 @@ export function AuthProvider({ children }: PropsWithChildren) {
   }, [invalidateProfile, publishAccess])
 
   useEffect(() => {
-    if (sessionReady && session) void refreshProfile()
+    if (!sessionReady || !session) return
+    // Explicit login has already checked the password and online profile (or the
+    // authorized offline snapshot). Do not immediately repeat that same request.
+    if (passwordValidatedSession.current === session) {
+      passwordValidatedSession.current = null
+      return
+    }
+    void refreshProfile()
   }, [sessionReady, session?.user.id, session?.access_token, refreshProfile])
 
   useEffect(() => {
@@ -303,6 +323,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
       serverInvalidated.current = false
       observedSession.current = stored
       acceptSessionRef.current(stored)
+      passwordValidatedSession.current = stored
       activateUserDatabase(stored.user.id)
       publishAccess({ owner: stored.user.id, profile: cached.profile, state: 'offline', validatedAt: cached.validatedAt })
       setProfileError('SIN CONEXIÓN. Mostrando el último perfil validado en este dispositivo.')
@@ -352,6 +373,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
       serverInvalidated.current = false
       observedSession.current = next
       acceptSessionRef.current(next)
+      passwordValidatedSession.current = next
       activateUserDatabase(next.user.id)
       publishAccess({ owner: next.user.id, profile: response.profile, state: 'online', validatedAt: Date.now() })
       setProfileError(null)
