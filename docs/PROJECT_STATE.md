@@ -1,5 +1,24 @@
 # APP DE RUTAS — estado del proyecto
 
+## Calendario operativo Guadalajara — corrección backend (2026-10-19)
+
+- Confirmado el desfase: Supabase usa UTC y la parada adicional se fechaba con
+  CURRENT_DATE; después de las 18:00 de Guadalajara eso corresponde al día siguiente.
+- Alta, orden por día, edición y cancelación de paradas adicionales ahora usan
+  (CURRENT_TIMESTAMP AT TIME ZONE 'America/Mexico_City')::date. Se alinean las
+  vigencias de coberturas, catálogo, asignaciones y sus contadores de Farmacias:
+  23 sustituciones puntuales en siete archivos. No cambia el horario de la base,
+  los instantes timestamptz/NOW, permisos, rutas ni el flujo offline.
+- La APK actual ya calcula el día con America/Mexico_City y recibe la fecha de la
+  parada desde el backend. Este ajuste no modifica móvil ni requiere otra APK.
+- Prueba PostgreSQL local desechable: consultas reales de alta/edición/cancelación
+  en medianoche UTC y local, domingo/lunes, fin de mes/año y distintas zonas de
+  sesión de base; se conserva el bloqueo para editar/cancelar días pasados.
+  Prueba opt-in: backend/tests/farmaciasTimeZone.test.cjs con TEST_ADMIN_DATABASE_URL
+  exclusivamente local; la base de prueba se crea y elimina sin tocar tablas reales.
+- Publicación del backend y corrección puntual con auditoría de la parada pendiente
+  identificada en curso; no se modificarán visitas ya completadas ni datos Auth.
+
 ## Reapertura offline y selector de CEDIS — publicación autorizada (2026-10-19)
 
 El usuario confirmó en la APK preview d2aa4937-6742-4484-b74c-16cc5295b317 que

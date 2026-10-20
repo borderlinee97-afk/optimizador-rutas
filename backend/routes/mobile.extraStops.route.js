@@ -70,7 +70,7 @@ router.post('/', async (req, res) => {
 
         WHERE wp.supervisor_id = $1
           AND wp.status = 'APPROVED'
-          AND CURRENT_DATE BETWEEN
+          AND (CURRENT_TIMESTAMP AT TIME ZONE 'America/Mexico_City')::date BETWEEN
             wp.period_start
             AND wp.period_end
 
@@ -111,7 +111,7 @@ router.post('/', async (req, res) => {
 
         WHERE plan_id = $1
           AND scheduled_date =
-            CURRENT_DATE
+            (CURRENT_TIMESTAMP AT TIME ZONE 'America/Mexico_City')::date
         `,
         [plan.id]
       )
@@ -161,7 +161,7 @@ router.post('/', async (req, res) => {
           $1,
           NULL,
 
-          CURRENT_DATE,
+          (CURRENT_TIMESTAMP AT TIME ZONE 'America/Mexico_City')::date,
           NULL,
           $2,
           TRUE,
@@ -349,7 +349,7 @@ router.patch(
 
             (
               wpi.scheduled_date =
-                CURRENT_DATE
+                (CURRENT_TIMESTAMP AT TIME ZONE 'America/Mexico_City')::date
             ) AS is_today
 
           FROM public.work_plan_item wpi
@@ -661,7 +661,7 @@ router.post(
 
             (
               wpi.scheduled_date =
-                CURRENT_DATE
+                (CURRENT_TIMESTAMP AT TIME ZONE 'America/Mexico_City')::date
             ) AS is_today
 
           FROM public.work_plan_item wpi

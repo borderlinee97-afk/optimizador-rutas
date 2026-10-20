@@ -144,7 +144,7 @@ export async function getPharmacyAccess(
 
           AND COALESCE(
             $3::date,
-            CURRENT_DATE
+            (CURRENT_TIMESTAMP AT TIME ZONE 'America/Mexico_City')::date
           ) BETWEEN
             approved_coverage.start_date
             AND approved_coverage.end_date

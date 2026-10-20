@@ -961,7 +961,7 @@ async function findBlockingPlanItem(
             )
 
             AND plan.period_end >=
-              CURRENT_DATE
+              (CURRENT_TIMESTAMP AT TIME ZONE 'America/Mexico_City')::date
           )
 
           OR (
@@ -974,7 +974,7 @@ async function findBlockingPlanItem(
             )
 
             AND item.scheduled_date >=
-              CURRENT_DATE
+              (CURRENT_TIMESTAMP AT TIME ZONE 'America/Mexico_City')::date
           )
         )
 

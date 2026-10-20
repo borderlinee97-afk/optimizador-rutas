@@ -127,7 +127,7 @@ router.get(
                    * mostrar la unidad automáticamente.
                    */
                   AND coverage.end_date >=
-                    CURRENT_DATE
+                    (CURRENT_TIMESTAMP AT TIME ZONE 'America/Mexico_City')::date
               )
           )
 
@@ -413,11 +413,11 @@ router.get(
                   IS NULL
                 THEN NULL
 
-                WHEN CURRENT_DATE <
+                WHEN (CURRENT_TIMESTAMP AT TIME ZONE 'America/Mexico_City')::date <
                   temporary_coverage.start_date
                 THEN 'SCHEDULED'
 
-                WHEN CURRENT_DATE BETWEEN
+                WHEN (CURRENT_TIMESTAMP AT TIME ZONE 'America/Mexico_City')::date BETWEEN
                   temporary_coverage.start_date
                   AND temporary_coverage.end_date
                 THEN 'ACTIVE'
@@ -504,11 +504,11 @@ router.get(
                   IS NULL
 
                 AND coverage.end_date >=
-                  CURRENT_DATE
+                  (CURRENT_TIMESTAMP AT TIME ZONE 'America/Mexico_City')::date
 
               ORDER BY
                 CASE
-                  WHEN CURRENT_DATE BETWEEN
+                  WHEN (CURRENT_TIMESTAMP AT TIME ZONE 'America/Mexico_City')::date BETWEEN
                     coverage.start_date
                     AND coverage.end_date
                   THEN 0

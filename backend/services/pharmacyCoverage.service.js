@@ -141,20 +141,20 @@ export async function listPharmacyCoverages({
         CASE
           WHEN coverage.status =
             'APPROVED'
-            AND CURRENT_DATE <
+            AND (CURRENT_TIMESTAMP AT TIME ZONE 'America/Mexico_City')::date <
               coverage.start_date
           THEN 'SCHEDULED'
 
           WHEN coverage.status =
             'APPROVED'
-            AND CURRENT_DATE BETWEEN
+            AND (CURRENT_TIMESTAMP AT TIME ZONE 'America/Mexico_City')::date BETWEEN
               coverage.start_date
               AND coverage.end_date
           THEN 'ACTIVE'
 
           WHEN coverage.status =
             'APPROVED'
-            AND CURRENT_DATE >
+            AND (CURRENT_TIMESTAMP AT TIME ZONE 'America/Mexico_City')::date >
               coverage.end_date
           THEN 'EXPIRED'
 
@@ -1751,20 +1751,20 @@ async function loadCoverageById(
         CASE
           WHEN coverage.status =
             'APPROVED'
-            AND CURRENT_DATE <
+            AND (CURRENT_TIMESTAMP AT TIME ZONE 'America/Mexico_City')::date <
               coverage.start_date
           THEN 'SCHEDULED'
 
           WHEN coverage.status =
             'APPROVED'
-            AND CURRENT_DATE BETWEEN
+            AND (CURRENT_TIMESTAMP AT TIME ZONE 'America/Mexico_City')::date BETWEEN
               coverage.start_date
               AND coverage.end_date
           THEN 'ACTIVE'
 
           WHEN coverage.status =
             'APPROVED'
-            AND CURRENT_DATE >
+            AND (CURRENT_TIMESTAMP AT TIME ZONE 'America/Mexico_City')::date >
               coverage.end_date
           THEN 'EXPIRED'
 

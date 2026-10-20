@@ -456,7 +456,7 @@ router.get(
               AND coverage.cancelled_at
                 IS NULL
 
-              AND CURRENT_DATE BETWEEN
+              AND (CURRENT_TIMESTAMP AT TIME ZONE 'America/Mexico_City')::date BETWEEN
                 coverage.start_date
                 AND coverage.end_date
           ) active_coverage_count
@@ -480,7 +480,7 @@ router.get(
                 IS NULL
 
               AND coverage.start_date >
-                CURRENT_DATE
+                (CURRENT_TIMESTAMP AT TIME ZONE 'America/Mexico_City')::date
           ) scheduled_coverage_count
             ON TRUE
 

@@ -607,11 +607,11 @@ router.get(
                 IS NULL
               THEN NULL
 
-              WHEN CURRENT_DATE <
+              WHEN (CURRENT_TIMESTAMP AT TIME ZONE 'America/Mexico_City')::date <
                 temporary_coverage.start_date
               THEN 'SCHEDULED'
 
-              WHEN CURRENT_DATE BETWEEN
+              WHEN (CURRENT_TIMESTAMP AT TIME ZONE 'America/Mexico_City')::date BETWEEN
                 temporary_coverage.start_date
                 AND temporary_coverage.end_date
               THEN 'ACTIVE'
