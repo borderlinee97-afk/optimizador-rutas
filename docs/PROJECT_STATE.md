@@ -536,3 +536,15 @@ El encargo reutilizable está en `docs/CODEX_HANDOFF.md`.
 - No mostrar ni guardar tokens, contraseñas, claves de servicio o cadenas de conexión.
 - No ejecutar cambios destructivos de datos sin autorización explícita y una copia verificable.
 - Tratar el proyecto remoto como un entorno con datos que deben preservarse.
+
+## 2026-10-20 - Destino de recuperacion de contrasena web
+
+- Proyecto Supabase sgmezyynqhahzmfrehou: corregida exclusivamente la configuracion Auth de destinos; Site URL pasa de http://localhost:3000 a https://optimizador-rutas-theta.vercel.app y se autoriza el retorno exacto https://optimizador-rutas-theta.vercel.app/?password=recovery.
+- CLI config diff previo: dos propiedades declaradas; config push confirmo dos propiedades aplicadas y nueve propiedades remotas no declaradas conservadas. Verificacion posterior: cero cambios declarados pendientes. Pagina publicada de recuperacion: HTTP 200.
+- Sin cambios de codigo funcional, credenciales, usuarios, esquema, backend o APK. No se envio correo ni se cambio ninguna contrasena durante la validacion. Sin commit, push ni despliegue.
+- Pendiente: usuario debe solicitar un enlace nuevo y completar el cambio; la captura anterior devolvio otp_expired y el enlace anterior no se reutiliza. La disponibilidad HTTP y configuracion verificadas no sustituyen esa prueba real.
+## 2026-10-20 - Retorno automatico al login tras restablecer contrasena
+
+- src/components/PasswordAccess.vue: exclusivamente mode=reset, despues de actualizar la contrasena y cerrar la sesion local correctamente, emite close para salir del formulario de recuperacion y mostrar el login existente. Comprueba errores de signOut antes de salir. Los modos forgot y change conservan su comportamiento.
+- Validacion: cinco comprobaciones del componente compilado con Auth simulado (exito, fallo de actualizacion, fallo de cierre, solicitud de enlace y cambio dentro de sesion); npm run build aprobado, advertencia de tamano existente. Sin correos reales ni cambios de contrasenas de usuarios.
+- Publicacion web autorizada expresamente por el usuario. Commit limitado al componente y este registro; Vercel mediante origin/main. Sin cambios de backend ni APK. Cambios moviles preexistentes conservados y excluidos del commit. Prueba final con enlace real pendiente del usuario.

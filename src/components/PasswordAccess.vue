@@ -108,13 +108,16 @@ async function submit() {
         currentPassword: currentPassword.value,
         recovery: props.mode === 'reset',
       })
-      if (props.mode === 'reset')
-        await supabase.auth.signOut({ scope: 'local' })
+      if (props.mode === 'reset') {
+        const { error: signOutError } = await supabase.auth.signOut({ scope: 'local' })
+        if (signOutError) throw signOutError
+      }
     }
     done.value = true
     value.value = ''
     confirmation.value = ''
     currentPassword.value = ''
+    if (props.mode === 'reset') emit('close')
   } catch (e) {
     error.value = e.message || 'No fue posible completar la solicitud.'
   } finally {
