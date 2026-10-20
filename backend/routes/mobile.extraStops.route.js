@@ -1269,7 +1269,11 @@ function mapExtraStop(row) {
           ),
 
     scheduledDate:
-      row.scheduled_date,
+      row.scheduled_date instanceof Date
+        ? row.scheduled_date.toISOString().slice(0, 10)
+        : typeof row.scheduled_date === 'string'
+          ? row.scheduled_date.slice(0, 10)
+          : null,
 
     scheduledTime:
       row.scheduled_time,

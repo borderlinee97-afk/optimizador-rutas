@@ -1,5 +1,24 @@
 # APP DE RUTAS — estado del proyecto
 
+## Mi trabajo ocultaba fechas serializadas con hora — backend (2026-10-19)
+
+- El usuario aclaró que las nuevas paradas aparecen en el plan, pero no en Mi
+  trabajo. La corrección anterior de CURRENT_DATE fue insuficiente: DATE de pg
+  se devuelve como objeto Date, Express lo serializa con hora y SQLite compara
+  scheduled_date exactamente contra AAAA-MM-DD cuando hay descarga semanal.
+  La fecha en la base estaba correcta; el listado diario quedaba vacío.
+- Normalizado scheduledDate a AAAA-MM-DD en mapPlanItem de mobile.farmacias y
+  mapExtraStop. Se conservan nulls, fechas de calendario y marcas de tiempo reales.
+  Sin cambios en código de la APK, datos productivos, permisos ni ejecución.
+- Nueva regresión usa el mapeador real, serialización JSON y SQLite real de la
+  APK: el formato anterior guarda cuatro filas y muestra cero; el corregido muestra
+  dos adicionales y una unidad de hoy, dejando la de mañana para su día. Repetir
+  sincronización repara fechas con hora ya descargadas y se conserva al reiniciar.
+- Validados 18 casos de caché/ejecución offline y nueve de PostgreSQL real; estos
+  últimos ahora exigen la fecha exacta sin convertirla desde el propio test.
+  Sintaxis y diff correctos. Publicación backend en curso; verificación en celular
+  pendiente tras actualizar Mi trabajo. No hace falta generar otra APK.
+
 ## Calendario operativo Guadalajara — corrección backend (2026-10-19)
 
 - Confirmado el desfase: Supabase usa UTC y la parada adicional se fechaba con

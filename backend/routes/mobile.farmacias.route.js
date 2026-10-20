@@ -3307,8 +3307,9 @@ function mapPlanItem(row) {
       null,
 
     scheduledDate:
-      row.scheduled_date ??
-      null,
+      row.scheduled_date == null
+        ? null
+        : normalizeDateValue(row.scheduled_date),
 
     scheduledTime:
       row.scheduled_time ??

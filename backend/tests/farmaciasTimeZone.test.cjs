@@ -62,7 +62,7 @@ test('Farmacias uses Guadalajara calendar for real SQL extra-stop create/edit/ca
       await db.query('INSERT INTO work_plan_item(plan_id,scheduled_date,ord) VALUES($1,$2,3),($1,($2::date+1),50)',[plan,day])
       const added=await request('POST','/',owner,payload)
       assert.equal(added.statusCode,201,JSON.stringify(added.body))
-      assert.equal(new Date(added.body.item.scheduledDate).toISOString().slice(0,10),day)
+      assert.equal(added.body.item.scheduledDate,day)
       assert.equal(added.body.item.order,4)
       const id=added.body.item.id
       const edited=await request('PATCH','/:itemId',owner,{...payload,name:'Updated fixture'},id)

@@ -212,3 +212,44 @@ test('Weekly download survives offline date changes, selects the daily plan and 
   assert.equal(h.planSync.readCachedTodayPlan('2026-10-13').items.length,0)
   h.close()
 })
+
+test('real backend Date rows survive JSON, weekly SQLite caching and the Mi trabajo day filter', async () => {
+  const fs=require('node:fs'),path=require('node:path'),vm=require('node:vm')
+  const source=fs.readFileSync(path.join(__dirname,'../../backend/routes/mobile.farmacias.route.js'),'utf8')
+    .replace(/import\s+[\s\S]*?from\s+'[^']+'\s*/g,'').replace(/export default router\s*$/,'')
+  const context={Date,requireAuth(){},Router:()=>({use(){},get(){},post(){},patch(){}})}
+  vm.runInNewContext(source,context)
+  const rows=[
+    {id:'extra-519',item_type:'EXTRA_STOP',source:'SUPERVISOR_ADHOC',custom_name:'519',scheduled_date:new Date('2026-10-19T00:00:00Z')},
+    {id:'extra-518',item_type:'EXTRA_STOP',source:'SUPERVISOR_ADHOC',custom_name:'518',scheduled_date:new Date('2026-10-19T00:00:00Z')},
+    {id:'pharmacy-today',item_type:'PHARMACY',pharmacy_id:'17',source:'PLAN',name:'Assigned unit',scheduled_date:new Date('2026-10-19T00:00:00Z')},
+    {id:'tomorrow',item_type:'PHARMACY',source:'PLAN',scheduled_date:new Date('2026-10-20T00:00:00Z')},
+  ]
+  const response=JSON.parse(JSON.stringify({
+    plan:{id:'plan-a',status:'APPROVED',planType:'ORDINARY',periodStart:'2026-10-19',periodEnd:'2026-10-25'},
+    downloadWindow:{scope:'week',startDate:'2026-10-19',endDate:'2026-10-25'},
+    items:rows.map((row,i)=>({...context.mapPlanItem({...row,plan_id:'plan-a',status:'PENDING',ord:i+1,required:true}),activities:[]})),
+  }))
+  const h=sqliteHarness();h.storage.activateUserDatabase(A)
+  try {
+    assert.equal(response.items[0].scheduledDate,'2026-10-19')
+    // Reproduce the previous wire format: Date became an ISO timestamp and
+    // SQLite's exact calendar-day filter hid every downloaded item.
+    h.setResponse({...response,items:response.items.map((item,i)=>({...item,scheduledDate:rows[i].scheduled_date.toISOString()}))})
+    await h.planSync.syncTodayPlan('token-a')
+    assert.equal(h.storage.db.getAllSync('SELECT id FROM plan_items').length,4)
+    assert.equal(h.planSync.readCachedTodayPlan('2026-10-19').items.length,0)
+    h.setResponse(response)
+    await h.planSync.syncTodayPlan('token-a') // Includes JSON serialization used by Express.
+    assert.deepEqual(h.storage.db.getAllSync('SELECT id,scheduled_date FROM plan_items ORDER BY ord').map(x=>[x.id,x.scheduled_date]),rows.map(x=>[x.id,x.scheduled_date.toISOString().slice(0,10)]))
+    assert.deepEqual(h.planSync.readCachedTodayPlan('2026-10-19').items.map(item=>item.id),['extra-519','extra-518','pharmacy-today'])
+    assert.deepEqual(h.planSync.readCachedTodayPlan('2026-10-20').items.map(item=>item.id),['tomorrow'])
+    assert.equal(response.items[0].scheduledDate,'2026-10-19')
+    // A refresh repairs an already downloaded timestamp-shaped calendar date.
+    h.storage.db.runSync("UPDATE plan_items SET scheduled_date='2026-10-19T00:00:00.000Z' WHERE id='extra-519'")
+    await h.planSync.syncTodayPlan('token-a')
+    assert.ok(h.planSync.readCachedTodayPlan('2026-10-19').items.some(item=>item.id==='extra-519'))
+    h.storage.deactivateUserDatabase();h.storage.activateUserDatabase(A)
+    assert.equal(h.planSync.readCachedTodayPlan('2026-10-19').items.length,3)
+  } finally {h.close()}
+})
