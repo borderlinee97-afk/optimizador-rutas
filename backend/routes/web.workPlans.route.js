@@ -1,3 +1,4 @@
+import { executionDetails } from '../services/farmaciasReporting.service.js'
 import {
   Router,
 } from 'express'
@@ -796,6 +797,8 @@ router.get(
               wpi.activity_category,
               wpi.addition_reason,
               wpi.estimated_minutes,
+              wpi.check_in_at, wpi.check_out_at, wpi.dwell_seconds, wpi.notes,
+              wpi.skip_reason, wpi.skipped_at, wpi.reschedule_reason,
 
               wpi.scheduled_date,
               wpi.scheduled_time::text,
@@ -1520,6 +1523,11 @@ function mapPlanItem(
   row,
 ) {
   return {
+    ...executionDetails(row),
+    notes: row.notes,
+    skipReason: row.skip_reason,
+    skippedAt: row.skipped_at,
+    rescheduleReason: row.reschedule_reason,
     id:
       row.id,
 

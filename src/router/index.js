@@ -1,3 +1,4 @@
+import FarmaciasReportsView from '../views/farmacias/FarmaciasReportsView.vue'
 import {
   createRouter,
   createWebHistory,
@@ -31,6 +32,8 @@ const router =
       createWebHistory(),
 
     routes: [
+      { path:'/farmacias/indicadores',name:'farmacias-indicadores',component:FarmaciasReportsView,props:{mode:'indicators'},meta:{area:'FARMACIAS',roles:['DIRECTOR','GERENTE','COORDINADOR']} },
+      { path:'/farmacias/reportes',name:'farmacias-reportes',component:FarmaciasReportsView,props:{mode:'reports'},meta:{area:'FARMACIAS',roles:['DIRECTOR','GERENTE','COORDINADOR']} },
       {
         path: '/farmacias/agenda',
         name: 'farmacias-agenda',

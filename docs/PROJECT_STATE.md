@@ -1,5 +1,41 @@
 # APP DE RUTAS — estado del proyecto
 
+## Indicadores y reportes de ejecución de Farmacias — publicación autorizada (2026-10-19)
+
+- Nuevas vistas web /farmacias/indicadores y /farmacias/reportes para DIRECTOR,
+  GERENTE y COORDINADOR. API GET /api/web/farmacias-reports, /options y /export;
+  consultas autenticadas, transacciones REPEATABLE READ READ ONLY y no-store.
+- Filtros por fechas (hasta 366 días), persona, coordinación, proyecto, entidad y
+  jurisdicción. Se conserva jerarquía activa y supervisión compartida de Puebla;
+  los totales generales no duplican supervisores. Los visitantes externos sólo
+  se incluyen para coberturas autorizadas de una unidad de un titular del ámbito.
+- Criterio confirmado: denominador de farmacias con asignación vigente durante
+  cualquier parte del intervalo. La cobertura propia exige visita durante la
+  vigencia del titular; el apoyo temporal se presenta por separado. Historial por
+  farmacia con visitante efectivo, fechas, marcas horarias y cobertura; CEDIS y
+  paradas sin farmacia vinculada no incrementan ese denominador.
+- Visitas finalizadas por fecha de salida; permanencia real entre entrada/salida,
+  dividida por día de Guadalajara sin sumar intervalos superpuestos. No se
+  extrapola tiempo para entradas abiertas o marcas inválidas. Indicadores de
+  repetición, cumplimiento, registros incompletos y visitas de más de 12 horas.
+- Vacaciones aprobadas superpuestas al intervalo, por persona y en días calendario;
+  se respetan filtros territoriales. Periodos semanales, quincenales y mensuales.
+- Exportación CSV de personal, visitas, unidades, jornada, coberturas, vacaciones y
+  periodos, con neutralización de fórmulas. PDF ejecutivo del filtro aplicado.
+  Actividades detalladas se consultan sólo para la página visible mediante el
+  servicio existente; los indicadores no cargan todos sus textos.
+- Detalle web del plan: entrada, salida, duración calculada desde marcas, avance
+  de actividades, ejecución, notas y omisiones. No cambia aprobación ni ejecución.
+- Validación: 17 casos enfocados, con SQL real sobre PostgreSQL local desechable,
+  permisos, Puebla, vacaciones, coberturas canceladas, cambios de titular,
+  medianoche/DST, paginación y exportaciones. Build web, sintaxis backend y diff
+  correctos. Revisión visual local con datos ficticios y PDF generado por la
+  utilidad real; no se accedió ni modificó actividad productiva.
+- Publicación de backend y web autorizada explícitamente por el usuario.
+  Despliegue mediante el flujo existente de GitHub, Render y Vercel.
+  Sin migraciones ni cambios móviles; no requiere compilación de APK.
+
+
 ## Rendimiento del acceso móvil — publicación autorizada (2026-10-19)
 
 - El usuario confirmó ejecución offline y sincronización correctas; solicitó sólo

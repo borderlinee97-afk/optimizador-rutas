@@ -378,6 +378,8 @@
                       {{ item.address }}
                     </span>
 
+                    <VisitExecutionSummary :item="item" />
+
                     <div class="visit-meta">
                       <span
                         v-if="item.region"
@@ -449,6 +451,12 @@
                             >
                               {{ activity.note }}
                             </span>
+                            <small class="activity-execution-state">
+                              {{ activity.status === 'DONE' ? 'Completada' : activity.status === 'SKIPPED' ? 'Omitida' : 'Pendiente' }}
+                              <template v-if="activity.completedAt || activity.skippedAt"> · {{ formatRecordedAt(activity.completedAt || activity.skippedAt) }}</template>
+                            </small>
+                            <span v-if="activity.executionNote">Ejecución: {{ activity.executionNote }}</span>
+                            <span v-if="activity.skipReason">Motivo: {{ activity.skipReason }}</span>
                           </div>
                         </li>
                       </ol>
@@ -1043,6 +1051,8 @@
 </template>
 
 <script setup>
+import VisitExecutionSummary from '../../components/VisitExecutionSummary.vue'
+import { formatRecordedAt } from '../../utils/farmaciasReports.js'
 import {
   computed,
   onMounted,
@@ -1882,6 +1892,7 @@ function formatDateTime(
       year:
         'numeric',
 
+      timeZone: 'America/Mexico_City',
       hour:
         '2-digit',
 
@@ -1908,6 +1919,7 @@ function formatNumber(
 </script>
 
 <style scoped>
+.activity-execution-state { color:#526d8c; font-size:12px; display:block; margin-top:5px; }
 .detail-page {
   width: 100%;
   min-height: 100%;

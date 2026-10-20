@@ -379,6 +379,8 @@
                     />
                   </svg>
 
+                  <svg v-else-if="item.key === 'indicators'" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20V10M10 20V4M16 20v-8M22 20H2" /></svg>
+                  <svg v-else-if="item.key === 'reports'" viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3H5v18h14V8zM14 3v5h5M8 12h8M8 16h6" /></svg>
                   <!-- Personas -->
                   <svg
                     v-else
@@ -783,6 +785,8 @@ const showAreaSwitcher =
  */
 
 const farmaciasMenuDefinition = [
+  { key:'indicators',label:'Indicadores',to:'/farmacias/indicadores',roles:['DIRECTOR','GERENTE','COORDINADOR'] },
+  { key:'reports',label:'Reportes',to:'/farmacias/reportes',roles:['DIRECTOR','GERENTE','COORDINADOR'] },
   {
     key: 'agenda',
     label: 'Agenda',
@@ -896,6 +900,8 @@ const managementMenu =
             'approvals',
             'assignments',
             'people',
+            'indicators',
+            'reports',
           ].includes(
             item.key
           )

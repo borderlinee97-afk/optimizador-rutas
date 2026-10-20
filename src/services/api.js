@@ -1199,3 +1199,14 @@ export function territorialApi(path = '', { method = 'GET', body } = {}) {
 export function getAvailabilityRequests() { return fetchJSON(`${BASE_API}/mobile/availability`, {method:'GET'}) }
 export function createAvailabilityRequest(payload) { return fetchJSON(`${BASE_API}/mobile/availability`, {method:'POST',body:JSON.stringify(payload)}) }
 export function reviewAvailabilityRequest(id,payload) { return fetchJSON(`${BASE_API}/mobile/availability/${encodeURIComponent(id)}/review`, {method:'POST',body:JSON.stringify(payload)}) }
+
+// Read-only management reporting; authenticated and scoped by the backend.
+export function getFarmaciasReportOptions() {
+  return fetchJSON(`${BASE_API}/web/farmacias-reports/options${buildWebQS()}`,{method:'GET'})
+}
+export function getFarmaciasReport(filters) {
+  return fetchJSON(`${BASE_API}/web/farmacias-reports${buildWebQS(filters)}`,{method:'GET'})
+}
+export function getFarmaciasReportExport(filters,dataset) {
+  return fetchJSON(`${BASE_API}/web/farmacias-reports/export${buildWebQS({...filters,dataset})}`,{method:'GET'})
+}
