@@ -255,6 +255,11 @@ async function processPendingEvidence(
       pending += 1
       continue
     }
+    // A locally added activity must exist on the server before requesting its photo ticket.
+    if (row.activity_id && database.getFirstSync("SELECT 1 FROM execution_outbox WHERE activity_id=? AND action_type='ACTIVITY_ADDED' AND status<>'SYNCED' LIMIT 1", [row.activity_id])) {
+      pending += 1
+      continue
+    }
     let stage = 'SESSION'
     try {
       const { data, error: sessionError } = await supabase.auth.getSession()

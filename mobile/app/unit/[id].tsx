@@ -1,5 +1,6 @@
 import { useNetInfo } from '@react-native-community/netinfo'
 import { hasPendingVisitExecution, queueVisitExecution } from '../../src/services/executionSync'
+import { AddVisitActivityModal } from '../../src/components/AddVisitActivityModal'
 import { VisitSyncStatus } from '../../src/components/VisitSyncStatus'
 import { Ionicons } from '@expo/vector-icons'
 import {
@@ -26,6 +27,7 @@ import {
 import {
   useCallback,
   useMemo,
+  useRef,
   useState,
 } from 'react'
 
@@ -278,6 +280,7 @@ export default function UnitDetailScreen() {
   const {
     applyExecutionItem,
     reloadFromCache,
+    refresh,
   } = usePlan()
 
   const params =
@@ -311,6 +314,9 @@ export default function UnitDetailScreen() {
   ] = useState<
     CachedVisitActivity[]
   >([])
+
+  const [addActivityVisible,setAddActivityVisible]=useState(false)
+  const addingActivity=useRef(false)
 
   const [
     activityResolutionMode,
@@ -1456,6 +1462,27 @@ export default function UnitDetailScreen() {
     setActivitySkipReason('')
   }
 
+  async function addVisitActivity(activityType:string,note:string) {
+    if (addingActivity.current || processing) return
+    if (!item || !isPlannedPharmacy || item.status!=='IN_PROGRESS' || !session || !profile) return
+    addingActivity.current=true
+    try {
+      setProcessing('ACTIVITY')
+      queueVisitExecution(session.user.id,profile,{itemId:item.id,action:'ACTIVITY_ADDED',activityType,note})
+      setAddActivityVisible(false)
+      reloadFromCache();loadVisit()
+      if (accessState==='online' && network.isConnected!==false && network.isInternetReachable!==false) {
+        await refresh()
+        if (isDatabaseActive(session.user.id)) loadVisit()
+      }
+    } catch(error) {
+      Alert.alert('No fue posible agregar la actividad',error instanceof Error?error.message:'Inténtalo de nuevo.')
+    } finally {
+      addingActivity.current=false
+      setProcessing(null)
+    }
+  }
+
   function closeActivityResolution() {
     if (
       processing ===
@@ -2088,6 +2115,14 @@ export default function UnitDetailScreen() {
               </View>
             </View>
 
+            {item.status==='IN_PROGRESS' && !hasPendingCancellationRequest ? (
+              <Pressable accessibilityRole="button" onPress={()=>setAddActivityVisible(true)}
+                disabled={Boolean(processing)||activities.length>=50}
+                className="mb-3 flex-row items-center justify-center rounded-2xl border border-primary-200 bg-primary-50 px-4 py-3">
+                <Ionicons name="add-circle-outline" size={20} color="#2563eb" />
+                <Text className="ml-2 font-bold text-primary-700">Agregar actividad adicional</Text>
+              </Pressable>
+            ) : null}
             <View className="rounded-3xl border border-slate-200 bg-white p-4">
               {activities.length >
               0 ? (
@@ -3004,6 +3039,9 @@ export default function UnitDetailScreen() {
           </View>
         ) : null}
       </ScrollView>
+
+      <AddVisitActivityModal visible={addActivityVisible} busy={processing==='ACTIVITY'}
+        onClose={()=>{if(!addingActivity.current)setAddActivityVisible(false)}} onSave={addVisitActivity} />
 
       <SkipVisitModal
         visible={

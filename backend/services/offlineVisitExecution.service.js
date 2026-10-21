@@ -3,10 +3,10 @@ import { pool } from '../db/pool.js'
 import { getPharmacyAccess } from './pharmacyAccess.service.js'
 import { evaluateVisitGeofence, getVisitGeofenceConfig } from './visitGeofence.service.js'
 import { getEvidencePolicy, hasReadyActivityEvidence, hasReadyItemEvidence } from './evidencePolicy.service.js'
-import { getActivitiesForPlanItem } from './pharmacyActivity.service.js'
+import { getActivitiesForPlanItem, parsePlannedActivitiesInput } from './pharmacyActivity.service.js'
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
-const ACTIONS = new Set(['CHECK_IN', 'CHECK_OUT', 'ACTIVITY_DONE', 'ACTIVITY_SKIPPED'])
+const ACTIONS = new Set(['CHECK_IN', 'CHECK_OUT', 'ACTIVITY_DONE', 'ACTIVITY_SKIPPED', 'ACTIVITY_ADDED'])
 function fail(code, message, status = 409) { throw Object.assign(new Error(message), { code, status }) }
 function day(value) {
   if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value)) return value
@@ -21,6 +21,12 @@ export function parseOfflineEvent(input, now = Date.now()) {
   if (input.action.startsWith('ACTIVITY_')) {
     if (!UUID.test(input.activityId ?? '')) fail('INVALID_VISIT_ACTIVITY_ID', 'La actividad no es válida.', 400)
     event.activityId = input.activityId
+    if (input.action==='ACTIVITY_ADDED') {
+      if (typeof input.activityType!=='string' || (input.note!=null && typeof input.note!=='string')) fail('INVALID_VISIT_ACTIVITY','La descripción o nota no es válida.',400)
+      const parsed=parsePlannedActivitiesInput([{activityType:input.activityType,note:input.note}],{required:true})
+      if (!parsed.ok) fail(parsed.response.code,parsed.response.error,400)
+      event.activityType=parsed.value[0].activityType;event.note=parsed.value[0].note??''
+    }
     event.executionNote = String(input.executionNote ?? '').trim()
     event.skipReason = String(input.skipReason ?? '').trim()
     if (event.executionNote.length > 2000 || event.skipReason.length > 1000 || (event.action === 'ACTIVITY_SKIPPED' && !event.skipReason)) fail('ACTIVITY_NOTE_INVALID', 'Revisa la nota o el motivo de la actividad.', 400)
@@ -93,6 +99,14 @@ export async function applyOfflineVisitEvent({ profile, authUserId, input, helpe
         if (!activities.length && policy.requireForCheckoutWithoutActivities && !await hasReadyItemEvidence(client,event.itemId)) fail('VISIT_EVIDENCE_REQUIRED','Falta sincronizar la evidencia de la visita.')
         await client.query(`UPDATE public.work_plan_item SET status='DONE',check_out_at=$2,check_out_lat=$3,check_out_lng=$4,
           dwell_seconds=GREATEST(0,floor(extract(epoch FROM ($2::timestamptz-check_in_at)))::int),updated_by=$5,updated_at=now() WHERE id=$1`,[event.itemId,event.occurredAt,event.lat,event.lng,profile.id])
+      } else if (event.action==='ACTIVITY_ADDED') {
+        if (item.item_type!=='PHARMACY' || item.source!=='PLAN') fail('VISIT_ACTIVITIES_NOT_ALLOWED_FOR_EXTRA_STOP','Esta visita no admite actividades adicionales.')
+        const totals=await client.query('SELECT count(*)::int AS total,COALESCE(max(ord),0)+1 AS next_order FROM public.pharmacy_activity WHERE plan_item_id=$1',[event.itemId])
+        if (totals.rows[0].total>=50) fail('TOO_MANY_VISIT_ACTIVITIES','Una visita no puede contener más de 50 actividades.')
+        const added=await client.query(`INSERT INTO public.pharmacy_activity(id,plan_item_id,activity_type,note,ord,status,created_by,created_at,updated_by,updated_at)
+          VALUES($1,$2,$3,NULLIF($4,''),$5,'PENDING',$6,$7,$6,$7) ON CONFLICT(id) DO NOTHING RETURNING id`,
+          [event.activityId,event.itemId,event.activityType,event.note,totals.rows[0].next_order,profile.id,event.occurredAt])
+        if (!added.rowCount) fail('VISIT_ACTIVITY_ID_CONFLICT','El identificador ya pertenece a una actividad.')
       } else {
         if (item.item_type !== 'PHARMACY' || item.source !== 'PLAN') fail('VISIT_ACTIVITIES_NOT_ALLOWED_FOR_EXTRA_STOP','La visita no admite actividades planeadas.')
         const activity=await client.query('SELECT * FROM public.pharmacy_activity WHERE id=$1 AND plan_item_id=$2 FOR UPDATE',[event.activityId,event.itemId])

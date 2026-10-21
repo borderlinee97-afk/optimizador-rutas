@@ -18,7 +18,7 @@ function harness(){
  const location=loadTs('src/services/offlineVisitLocation.ts',{})
  const service=loadTs('src/services/executionSync.ts',{'expo-crypto':{randomUUID},'../../storage/db':storage,'./offlineVisitLocation':location,'./evidenceSync':evidence,'../lib/supabase':{supabase},'../lib/api':{ApiError,apiRequest:async(_path,options)=>{
   const event=JSON.parse(options.body);log.push(event.action+':'+event.itemId);if(hold)await hold;if(fail)throw fail
-  return{ok:!badAck,operationId:badAck?'wrong':event.id,item:{id:event.itemId},activities:[]}
+  return{ok:!badAck,operationId:badAck?'wrong':event.id,item:{id:event.itemId},activities:event.action==='ACTIVITY_ADDED'?[{id:event.activityId}]:[]}
  }}})
  const parts=new Intl.DateTimeFormat('en',{timeZone:'America/Mexico_City',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(new Date())
  const today=['year','month','day'].map(k=>parts.find(p=>p.type===k).value).join('-'),plan=randomUUID()
@@ -86,4 +86,48 @@ test('Concurrent reconnects share one drain and cross-account callbacks cannot u
 test('An invalid server acknowledgment never marks a visit as synchronized',async()=>{
  const h=harness(),v=h.visit();h.queue(v,'CHECK_IN');h.badAck(true);await h.service.syncVisitExecution(A)
  assert.equal(h.service.executionSummary()[0].status,'PENDING');h.close()
+})
+
+
+test('Additional activities survive restart, keep planned activities and sync before their photos and resolution',async()=>{
+ const h=harness(),v=h.visit()
+ h.queue(v,'CHECK_IN');await h.service.syncVisitExecution(A)
+ const original=h.storage.db.getFirstSync('SELECT * FROM plan_item_activities WHERE id=?',[v.activityId])
+ const added=h.queue(v,'ACTIVITY_ADDED',{activityType:'  Conteo adicional  ',note:'  Diferencia detectada  '})
+ assert.notEqual(added.activityId,v.activityId)
+ assert.deepEqual(h.storage.db.getFirstSync('SELECT * FROM plan_item_activities WHERE id=?',[v.activityId]),original)
+ const row=h.storage.db.getFirstSync('SELECT * FROM plan_item_activities WHERE id=?',[added.activityId])
+ assert.equal(row.activity_type,'Conteo adicional');assert.equal(row.note,'Diferencia detectada');assert.equal(row.ord,2)
+ h.photo(v,added.activityId)
+ await h.evidence.syncPendingEvidence('')
+ assert.deepEqual(h.log,['CHECK_IN:'+v.id])
+ h.photo(v);h.queue(v,'ACTIVITY_DONE')
+ assert.throws(()=>h.queue(v,'CHECK_OUT'),/actividades/)
+ h.queue(v,'ACTIVITY_DONE',{activityId:added.activityId});h.queue(v,'CHECK_OUT')
+ h.storage.deactivateUserDatabase();h.storage.activateUserDatabase(A)
+ h.fail(new ApiError('offline',0));await h.service.syncVisitExecution(A);h.fail(null)
+ await h.service.syncVisitExecution(A)
+ const addIndex=h.log.indexOf('ACTIVITY_ADDED:'+v.id)
+ assert.ok(addIndex>=0)
+ assert.ok(h.log.lastIndexOf('PHOTO:'+v.id)>addIndex)
+ assert.equal(h.service.executionSummary().length,0)
+ assert.equal(h.storage.db.getFirstSync('SELECT count(*) n FROM plan_item_activities WHERE plan_item_id=?',[v.id]).n,2)
+ assert.equal(h.storage.db.getFirstSync('SELECT status FROM plan_item_activities WHERE id=?',[added.activityId]).status,'DONE')
+ h.close()
+})
+
+test('Additional activity rules reject missing check-in, closed visit, invalid inputs, wrong source and more than fifty atomically',()=>{
+ const h=harness(),v=h.visit()
+ assert.throws(()=>h.queue(v,'ACTIVITY_ADDED',{activityType:'Nueva'}),/check-in/)
+ h.queue(v,'CHECK_IN')
+ for(const input of [{activityType:' '},{activityType:'x'.repeat(161)},{activityType:'Nueva',note:'x'.repeat(1001)}])assert.throws(()=>h.queue(v,'ACTIVITY_ADDED',input),/160/)
+ h.storage.db.runSync("UPDATE plan_items SET source='HIERARCHY_ASSIGNED' WHERE id=?",[v.id])
+ assert.throws(()=>h.queue(v,'ACTIVITY_ADDED',{activityType:'Nueva'}),/adicionales/)
+ h.storage.db.runSync("UPDATE plan_items SET source='PLAN' WHERE id=?",[v.id])
+ for(let i=1;i<50;i++)h.storage.db.runSync("INSERT INTO plan_item_activities(id,plan_item_id,activity_type,ord,status) VALUES(?,?,?,?,'PENDING')",[randomUUID(),v.id,'Actividad '+i,i+1])
+ assert.throws(()=>h.queue(v,'ACTIVITY_ADDED',{activityType:'Extra'}),/50/)
+ assert.equal(h.service.executionSummary().length,1)
+ h.storage.db.runSync("UPDATE plan_items SET status='DONE' WHERE id=?",[v.id])
+ assert.throws(()=>h.queue(v,'ACTIVITY_ADDED',{activityType:'Nueva'}),/check-in/)
+ h.close()
 })
