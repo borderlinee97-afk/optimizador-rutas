@@ -234,7 +234,7 @@ async function savePeriod() {
 }
 
 function openVisit(item = null, date = null) {
-  if (!allowed.value || !['DRAFT', 'REJECTED'].includes(plan.value?.status)) return
+  if (!allowed.value || !canMutate.value || (item && !canEditItem(item)) || (date && date < minEditDate.value)) return
   editingItem.value = item
   chosenPharmacy.value = null
   visitForm.value = {
@@ -320,7 +320,7 @@ async function saveVisit() {
   const value = visitForm.value
   if (!value.pharmacyId) { formError.value = 'Selecciona una farmacia.'; return }
   if (visitAccessError.value) { formError.value = visitAccessError.value; return }
-  if (!parseDate(value.scheduledDate) || value.scheduledDate < plan.value.periodStart || value.scheduledDate > plan.value.periodEnd) { formError.value = 'La fecha debe estar dentro del periodo del plan.'; return }
+  if (!parseDate(value.scheduledDate) || value.scheduledDate < minEditDate.value || value.scheduledDate < plan.value.periodStart || value.scheduledDate > plan.value.periodEnd) { formError.value = 'La fecha debe ser hoy o posterior y estar dentro del periodo del plan.'; return }
   if (!value.activities.length || value.activities.length > 50) { formError.value = 'Agrega entre 1 y 50 actividades.'; return }
   const activities = value.activities.map(activity => ({ activityType: activity.activityType.trim(), note: activity.note.trim() || null }))
   if (activities.some(activity => !activity.activityType || activity.activityType.length > 160 || (activity.note?.length || 0) > 1000)) { formError.value = 'Revisa las actividades: descripción de 1 a 160 caracteres y nota de hasta 1000.'; return }

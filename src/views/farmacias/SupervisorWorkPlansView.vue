@@ -51,8 +51,10 @@
             <div class="row-actions">
               <span class="badge" :class="plan.status.toLowerCase()">{{ statusLabel(plan.status) }}</span>
               <button v-if="editable(plan)" type="button" class="secondary" @click="openPlan(plan, true)">Editar</button>
+              <button v-if="canRequestEdit(plan)" type="button" class="primary" :aria-expanded="editPlanId === plan.id" @click="editPlanId = editPlanId === plan.id ? '' : plan.id">{{ editPlanId === plan.id ? 'Ocultar edición' : 'Solicitar edición' }}</button>
               <button type="button" class="secondary" @click="openPlan(plan, false)">Ver detalle</button>
             </div>
+            <WorkPlanEditAccess v-if="editPlanId === plan.id" :plan-id="plan.id" initially-open class="plan-edit-panel" @updated="loadPlans" />
           </article>
         </div>
       </section>
@@ -61,6 +63,7 @@
 </template>
 
 <script setup>
+import WorkPlanEditAccess from '../../components/WorkPlanEditAccess.vue'
 import AvailabilityPanel from '../../components/AvailabilityPanel.vue'
 import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
@@ -70,6 +73,7 @@ import { createSupervisorWorkPlan, getSupervisorWorkPlans } from '../../services
 const router = useRouter()
 const { profile } = useAuth()
 const allowed = computed(() => profile.value?.area === 'FARMACIAS' && profile.value?.rol === 'SUPERVISOR')
+const editPlanId = ref('')
 const plans = ref([])
 const loading = ref(false)
 const saving = ref(false)
@@ -142,6 +146,10 @@ function openPlan(plan, edit) {
     params: { planId: plan.id },
   })
 }
+function canRequestEdit(plan) {
+  const today = new Intl.DateTimeFormat('en-CA', {timeZone:'America/Mexico_City',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date())
+  return plan.status === 'APPROVED' && !plan.archivedAt && plan.periodEnd >= today
+}
 function editable(plan) { return ['DRAFT', 'REJECTED'].includes(plan.status) }
 function statusLabel(status) {
   return ({ DRAFT: 'Borrador', REJECTED: 'Rechazado', PENDING_APPROVAL: 'Pendiente de aprobación', APPROVED: 'Aprobado', ARCHIVED: 'Archivado' })[status] || status
@@ -182,7 +190,8 @@ function displayDate(value) {
 .date-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
 .actions { justify-content: flex-end; margin-top: 20px; }
 .plan-list { display: grid; }
-.plan-row { padding: 16px 0; border-top: 1px solid var(--color-border); }
+.plan-edit-panel { flex: 0 0 100%; min-width: 0; box-sizing: border-box; }
+.plan-row { flex-wrap: wrap; padding: 16px 0; border-top: 1px solid var(--color-border); }
 .plan-row h3 { margin: 4px 0; font-size: 17px; }
 .plan-row p { margin: 4px 0 0; font-size: 13px; }
 .row-actions { flex-wrap: wrap; justify-content: flex-end; }

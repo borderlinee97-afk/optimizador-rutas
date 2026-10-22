@@ -17,9 +17,9 @@
 import {onMounted,ref,watch} from 'vue'
 import {useRouter} from 'vue-router'
 import {getPlanEditAccess,listPlanEditRequests,changePlanEditRequest} from '../services/api.js'
-const props=defineProps({planId:{type:String,default:''},editing:Boolean})
+const props=defineProps({planId:{type:String,default:''},editing:Boolean,initiallyOpen:Boolean})
 const emit=defineEmits(['updated','access'])
-const router=useRouter(),access=ref(null),requests=ref([]),reason=ref(''),error=ref(''),message=ref(''),open=ref(false),busy=ref(false)
+const router=useRouter(),access=ref(null),requests=ref([]),reason=ref(''),error=ref(''),message=ref(''),open=ref(props.initiallyOpen),busy=ref(false)
 const labels={PENDING:'Autorización pendiente',APPROVED:'Edición autorizada',REJECTED:'Solicitud rechazada',COMPLETED:'Edición finalizada'}
 async function load(){error.value='';try{if(props.planId){access.value=await getPlanEditAccess(props.planId);emit('access',access.value)}else{requests.value=(await listPlanEditRequests()).requests}}catch(e){error.value=e.message||'No se pudo consultar la autorización.';access.value=null;emit('access',null)}}
 async function act(id,action){if(busy.value)return;if(['approve','reject','finish'].includes(action)&&!window.confirm({approve:'¿Autorizar cambios del día vigente en adelante?',reject:'¿Rechazar esta solicitud?',finish:'¿Finalizar el permiso de edición?'}[action]))return;busy.value=true;error.value='';try{await changePlanEditRequest(id,action,reason.value.trim());reason.value='';open.value=false;message.value={request:'Solicitud enviada.',approve:'Edición autorizada.',reject:'Solicitud rechazada.',finish:'Edición finalizada.'}[action];await load();emit('updated')}catch(e){error.value=e.message||'No fue posible guardar la solicitud.'}finally{busy.value=false}}
