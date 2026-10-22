@@ -60,6 +60,8 @@ import webWorkPlanActionsRouter
 import webExtraordinaryWorkPlansRouter
   from './routes/web.extraordinaryWorkPlans.route.js'
 
+import workPlanEditRouter from './routes/workPlanEdit.route.js'
+
 import webWorkPlansRouter
   from './routes/web.workPlans.route.js'
 
@@ -473,6 +475,8 @@ app.use(
  * Permitidas según las reglas del router para:
  * GERENTE, COORDINADOR y SUPERVISOR.
  */
+app.use('/api/web/work-plans',workPlanEditRouter)
+
 app.use(
   '/api/web/work-plans',
   webWorkPlansRouter,

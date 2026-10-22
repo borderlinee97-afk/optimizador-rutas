@@ -1,3 +1,4 @@
+import { attachEditAuthorization, assertEditDates, assertUnstartedItem } from '../services/workPlanEdit.service.js'
 import { Router } from 'express'
 
 import { pool } from '../db/pool.js'
@@ -99,6 +100,8 @@ router.post(
           .status(planError.status)
           .json(planError.response)
       }
+
+      assertEditDates(plan, payload.value.scheduledDate)
 
       if (
         !dateIsInsidePlan(
@@ -344,6 +347,8 @@ router.post(
         client,
       )
 
+      if (error.status) return res.status(error.status).json({error:error.message,code:error.code})
+
       console.error(
         '[mobile.work-plan-items][POST]',
         error,
@@ -463,6 +468,9 @@ router.patch(
             payload.response,
           )
       }
+
+      assertEditDates(plan, currentItem.scheduled_date, payload.value.scheduledDate)
+      assertUnstartedItem(currentItem)
 
       if (
         !dateIsInsidePlan(
@@ -693,6 +701,8 @@ router.patch(
         client,
       )
 
+      if (error.status) return res.status(error.status).json({error:error.message,code:error.code})
+
       console.error(
         '[mobile.work-plan-items][PATCH]',
         error,
@@ -810,6 +820,9 @@ router.post(
           .json(itemError.response)
       }
 
+      assertEditDates(plan, currentItem.scheduled_date)
+      assertUnstartedItem(currentItem)
+
       const beforeItem =
         await getCompletePlanItem(
           client,
@@ -921,6 +934,8 @@ router.post(
       await rollbackSafely(
         client,
       )
+
+      if (error.status) return res.status(error.status).json({error:error.message,code:error.code})
 
       console.error(
         '[mobile.work-plan-items][remove]',
@@ -1074,6 +1089,8 @@ router.post(
           .json(planError.response)
       }
 
+      assertEditDates(plan, scheduledDate)
+
       if (
         !dateIsInsidePlan(
           scheduledDate,
@@ -1097,8 +1114,7 @@ router.post(
         await client.query(
           `
           SELECT
-            id,
-            ord
+            *
 
           FROM public.work_plan_item
 
@@ -1118,6 +1134,11 @@ router.post(
             scheduledDate,
           ],
         )
+
+      for (const item of currentResult.rows) {
+        assertUnstartedItem(item)
+        if (item.source !== 'PLAN' || item.item_type !== 'PHARMACY') throw Object.assign(new Error('Sólo pueden reordenarse visitas pendientes del plan.'),{status:409,code:'PLAN_EDIT_ITEM_LOCKED'})
+      }
 
       const currentIds =
         currentResult.rows.map(
@@ -1246,6 +1267,8 @@ router.post(
       await rollbackSafely(
         client,
       )
+
+      if (error.status) return res.status(error.status).json({error:error.message,code:error.code})
 
       console.error(
         '[mobile.work-plan-items][reorder]',
@@ -1466,8 +1489,7 @@ async function lockOwnedPlan(
       ],
     )
 
-  return result.rows[0] ??
-    null
+  return attachEditAuthorization(client, result.rows[0] ?? null)
 }
 
 function validateEditablePlan(
@@ -1506,12 +1528,7 @@ function validateEditablePlan(
   }
 
   if (
-    ![
-      'DRAFT',
-      'REJECTED',
-    ].includes(
-      plan.status,
-    )
+    !(['DRAFT','REJECTED'].includes(plan.status) || (plan.status === 'APPROVED' && plan.editAuthorization))
   ) {
     return {
       status: 409,
@@ -1695,6 +1712,7 @@ function validateEditableItem(
   }
 
   if (
+    item.check_in_at || item.check_out_at || item.cancellation_request_status === 'PENDING' ||
     item.status !==
     'PENDING'
   ) {
@@ -1982,7 +2000,7 @@ async function updateOrders(
 
       SET ord = $2
 
-      WHERE id = $1
+      WHERE id = $1 AND status::text='PENDING' AND check_in_at IS NULL AND check_out_at IS NULL
       `,
       [
         itemIds[index],

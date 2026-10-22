@@ -1,3 +1,4 @@
+import { WorkPlanEditAccess } from '../../src/components/WorkPlanEditAccess'
 import { AvailabilityPanel } from '../../src/components/AvailabilityPanel'
 import {
 
@@ -1674,7 +1675,8 @@ export default function ApprovalsScreen() {
         }
 
        keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag">
-        <AvailabilityPanel />
+        <WorkPlanEditAccess />
+      <AvailabilityPanel />
 
         <View>
 

@@ -697,8 +697,7 @@ router.get(
             AND supervisor.area::text =
               'FARMACIAS'
 
-            AND supervisor.rol::text =
-              'SUPERVISOR'
+            AND supervisor.rol::text IN ('SUPERVISOR','COORDINADOR')
 
           LIMIT 1
           `,

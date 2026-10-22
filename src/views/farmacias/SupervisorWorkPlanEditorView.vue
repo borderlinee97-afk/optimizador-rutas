@@ -22,12 +22,13 @@
           <small>Al guardar cambios, el backend puede devolverlo a borrador.</small>
         </section>
 
+        <WorkPlanEditAccess v-if="plan.status==='APPROVED'" :plan-id="planId" editing @access="editAccess=$event" @updated="loadDetail" />
         <section class="card toolbar">
           <div><h2>Preparación</h2><p>{{ activeItems.length }} visitas activas · {{ dayGroups.length }} días</p></div>
           <div class="toolbar-actions">
-            <button type="button" class="secondary" :disabled="busy" @click="periodOpen = !periodOpen">Modificar periodo</button>
+            <button type="button" v-if="plan.status!=='APPROVED'" class="secondary" :disabled="busy" @click="periodOpen = !periodOpen">Modificar periodo</button>
             <button type="button" class="secondary" :disabled="busy" @click="openVisit()">Agregar visita</button>
-            <button type="button" class="primary" :disabled="busy || !activeItems.length" @click="submitPlan">Enviar al coordinador</button>
+            <button type="button" v-if="plan.status!=='APPROVED'" class="primary" :disabled="busy || !activeItems.length" @click="submitPlan">Enviar al coordinador</button>
           </div>
         </section>
 
@@ -46,7 +47,7 @@
 
         <section class="agenda">
           <article v-for="day in dayGroups" :key="day.date" class="card day-card">
-            <header class="day-heading"><div><h2>{{ displayDay(day.date) }}</h2><span>{{ day.items.length }} {{ day.items.length === 1 ? 'visita' : 'visitas' }}</span></div><button type="button" class="text-button" :disabled="busy" @click="openVisit(null, day.date)">+ Agregar visita</button></header>
+            <header class="day-heading"><div><h2>{{ displayDay(day.date) }}</h2><span>{{ day.items.length }} {{ day.items.length === 1 ? 'visita' : 'visitas' }}</span></div><button type="button" class="text-button" :disabled="busy || !canMutate || day.date < minEditDate" @click="openVisit(null, day.date)">+ Agregar visita</button></header>
             <p v-if="!day.items.length" class="muted">Sin visitas programadas.</p>
             <div v-else class="visit-list">
               <div v-for="(item, index) in day.items" :key="item.id" class="visit-row">
@@ -58,7 +59,7 @@
           </article>
         </section>
 
-        <div class="footer-actions"><button type="button" class="danger" :disabled="busy" @click="archivePlan">Archivar borrador</button></div>
+        <div v-if="plan.status!=='APPROVED'" class="footer-actions"><button type="button" class="danger" :disabled="busy" @click="archivePlan">Archivar borrador</button></div>
       </template>
 
       <div v-if="visitOpen && plan" class="modal-backdrop" @click.self="closeVisit">
@@ -75,7 +76,7 @@
             <p v-if="catalogError" class="notice error" role="alert">{{ catalogError }}</p>
             <button v-if="catalogHasMore" type="button" class="secondary more" :disabled="catalogLoading" @click="loadCatalog(true)">Cargar más</button>
           </div>
-          <div class="form-grid"><div class="field"><label for="visit-date">Fecha</label><input id="visit-date" v-model="visitForm.scheduledDate" type="date" :min="plan.periodStart" :max="plan.periodEnd" /></div><div class="field"><label for="visit-time">Hora (opcional)</label><input id="visit-time" v-model="visitForm.scheduledTime" type="time" /></div></div>
+          <div class="form-grid"><div class="field"><label for="visit-date">Fecha</label><input id="visit-date" v-model="visitForm.scheduledDate" type="date" :min="minEditDate > plan.periodStart ? minEditDate : plan.periodStart" :max="plan.periodEnd" /></div><div class="field"><label for="visit-time">Hora (opcional)</label><input id="visit-time" v-model="visitForm.scheduledTime" type="time" /></div></div>
           <p v-if="visitAccessError" class="notice error" role="alert">{{ visitAccessError }}</p>
           <label class="checkbox"><input v-model="visitForm.required" type="checkbox" /> Visita obligatoria</label>
           <section class="activities"><div class="section-heading"><h3>Actividades planeadas</h3><button type="button" class="secondary" :disabled="visitForm.activities.length >= 50" @click="addActivity">+ Actividad</button></div><p class="muted">Al menos una actividad. Máximo 50.</p><div v-for="(activity, index) in visitForm.activities" :key="activity.key" class="activity-edit"><div class="activity-header"><strong>Actividad {{ index + 1 }}</strong><div><button type="button" :disabled="index === 0" @click="moveActivity(index, -1)">↑</button><button type="button" :disabled="index === visitForm.activities.length - 1" @click="moveActivity(index, 1)">↓</button><button type="button" @click="visitForm.activities.splice(index, 1)">Eliminar</button></div></div><input v-model="activity.activityType" maxlength="160" placeholder="Descripción de la actividad" aria-label="Descripción de la actividad" /><textarea v-model="activity.note" maxlength="1000" rows="2" placeholder="Nota opcional" aria-label="Nota de la actividad"></textarea></div></section>
@@ -87,11 +88,12 @@
 </template>
 
 <script setup>
+import WorkPlanEditAccess from '../../components/WorkPlanEditAccess.vue'
 import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuth } from '../../composables/useAuth.js'
 import {
-  addSupervisorWorkPlanItem, archiveSupervisorWorkPlan, getSupervisorWorkPlan,
+  getPlanEditAccess, addSupervisorWorkPlanItem, archiveSupervisorWorkPlan, getSupervisorWorkPlan,
   getSupervisorWorkPlanPharmacies, getSupervisorWorkPlanPharmacyFilters,
   removeSupervisorWorkPlanItem, reorderSupervisorWorkPlanItems,
   submitSupervisorWorkPlan, updateSupervisorWorkPlan,
@@ -101,8 +103,11 @@ import {
 const route = useRoute()
 const router = useRouter()
 const { profile } = useAuth()
-const allowed = computed(() => profile.value?.area === 'FARMACIAS' && profile.value?.rol === 'SUPERVISOR')
+const allowed = computed(() => profile.value?.area === 'FARMACIAS' && ['SUPERVISOR','COORDINADOR'].includes(profile.value?.rol))
 const planId = computed(() => String(route.params.planId || ''))
+const editAccess = ref(null)
+const canMutate = computed(()=> ['DRAFT','REJECTED'].includes(plan.value?.status) || Boolean(editAccess.value?.canEdit))
+const minEditDate = computed(()=>editAccess.value?.minDate || new Intl.DateTimeFormat('en-CA',{timeZone:'America/Mexico_City',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date()))
 const plan = ref(null)
 const items = ref([])
 const loading = ref(true)
@@ -175,7 +180,8 @@ async function loadDetail() {
     const response = await getSupervisorWorkPlan(planId.value)
     plan.value = response.plan
     items.value = Array.isArray(response.items) ? response.items : []
-    if (!['DRAFT', 'REJECTED'].includes(plan.value.status)) {
+    editAccess.value = await getPlanEditAccess(planId.value)
+    if (!canMutate.value) {
       await router.replace({ name: 'farmacias-plan-detail', params: { planId: planId.value } })
       return
     }
@@ -191,7 +197,7 @@ async function loadDetail() {
 }
 
 async function runMutation(action, message, reload = true) {
-  if (busy.value || !allowed.value || !['DRAFT', 'REJECTED'].includes(plan.value?.status)) return false
+  if (busy.value || !allowed.value || !canMutate.value) return false
   busy.value = true
   error.value = ''
   success.value = ''
@@ -232,7 +238,7 @@ function openVisit(item = null, date = null) {
   editingItem.value = item
   chosenPharmacy.value = null
   visitForm.value = {
-    pharmacyId: item?.pharmacyId || '', scheduledDate: item?.scheduledDate || date || plan.value.periodStart,
+    pharmacyId: item?.pharmacyId || '', scheduledDate: item?.scheduledDate || date || (minEditDate.value > plan.value.periodStart ? minEditDate.value : plan.value.periodStart),
     scheduledTime: item?.scheduledTime?.slice(0, 5) || '', required: item?.required ?? true,
     activities: item?.activities?.map(activity => ({ key: ++nextActivityKey, activityType: activity.activityType, note: activity.note || '' })) || [],
   }
@@ -359,7 +365,7 @@ async function archivePlan() {
     await router.replace({ name: 'farmacias-planes' })
   }
 }
-function canEditItem(item) { return item.itemType === 'PHARMACY' && item.source === 'PLAN' && item.status === 'PENDING' && !item.removedAt }
+function canEditItem(item) { return canMutate.value && item.scheduledDate >= minEditDate.value && !item.checkInAt && !item.checkOutAt && item.itemType === 'PHARMACY' && item.source === 'PLAN' && item.status === 'PENDING' && !item.removedAt }
 function canReorderDay(day) { return day.items.length > 1 && day.items.every(canEditItem) }
 function accessLabel(pharmacy) { return ({ PERMANENT_ASSIGNMENT: 'Asignación permanente', TEMPORARY_COVERAGE: 'Cobertura temporal', ALL: 'Acceso general', NONE: 'Sin acceso' })[pharmacy.accessType] || 'Acceso sujeto a validación' }
 function statusLabel(status) { return ({ DRAFT: 'Borrador', REJECTED: 'Rechazado', PENDING_APPROVAL: 'Pendiente de aprobación', APPROVED: 'Aprobado', ARCHIVED: 'Archivado' })[status] || status }

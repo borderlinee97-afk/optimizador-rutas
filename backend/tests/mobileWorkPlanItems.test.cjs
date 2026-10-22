@@ -36,6 +36,8 @@ function harness({ role, method, found = true, planType = 'EXTRAORDINARY' }) {
     }),
     pool: { connect: async () => client },
     requireAuth() {},
+    assertEditDates() {},
+    assertUnstartedItem() {},
     parsePlannedActivitiesInput: () => ({ ok: true, value: [] }),
     getPharmacyAccess: async (_client, args) => {
       calls.supervisorAccess = args

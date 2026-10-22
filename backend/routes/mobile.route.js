@@ -14,6 +14,8 @@ import mobileFarmaciasRouter
 import mobilePlacesRouter
   from './mobile.places.route.js'
 
+import workPlanEditRouter from './workPlanEdit.route.js'
+
 import mobileWorkPlansRouter
   from './mobile.workPlans.route.js'
 
@@ -79,6 +81,8 @@ router.use(
   '/hierarchy-assignments',
   mobileHierarchyAssignmentsRouter,
 )
+
+router.use('/work-plans',workPlanEditRouter)
 
 router.use(
   '/work-plans/catalog',

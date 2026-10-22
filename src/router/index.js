@@ -112,7 +112,7 @@ const router =
         path: '/farmacias/planes/:planId/editar',
         name: 'farmacias-supervisor-plan-editor',
         component: SupervisorWorkPlanEditorView,
-        meta: { area: 'FARMACIAS', roles: ['SUPERVISOR'] },
+        meta: { area: 'FARMACIAS', roles: ['SUPERVISOR','COORDINADOR'] },
       },
 
       {

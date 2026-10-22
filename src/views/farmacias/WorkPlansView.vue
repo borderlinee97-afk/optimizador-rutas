@@ -3,6 +3,7 @@
   <main v-else class="plans-page">
     <div class="plans-container">
       <AvailabilityPanel />
+      <WorkPlanEditAccess v-if="['COORDINADOR','GERENTE'].includes(normalizedRole)" />
       <header class="plans-header">
         <div>
           <span class="plans-kicker">
@@ -599,6 +600,7 @@
 </template>
 
 <script setup>
+import WorkPlanEditAccess from '../../components/WorkPlanEditAccess.vue'
 import AvailabilityPanel from '../../components/AvailabilityPanel.vue'
 import {
   computed,

@@ -1,3 +1,4 @@
+import { WorkPlanEditAccess, type EditAccess } from '../../src/components/WorkPlanEditAccess'
 import {
   Ionicons,
 } from '@expo/vector-icons'
@@ -374,6 +375,9 @@ export default function WorkPlanDetailScreen() {
       false,
     )
 
+  const [editAccess,setEditAccess] = useState<EditAccess|null>(null)
+  const minEditDate = editAccess?.minDate ?? new Intl.DateTimeFormat('en-CA',{timeZone:'America/Mexico_City',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date())
+
   const plan =
     detail?.plan ??
     null
@@ -386,7 +390,7 @@ export default function WorkPlanDetailScreen() {
     plan?.status ===
       'DRAFT' ||
     plan?.status ===
-      'REJECTED'
+      'REJECTED' || Boolean(editAccess?.canEdit)
 
   const days =
     useMemo(
@@ -460,10 +464,10 @@ export default function WorkPlanDetailScreen() {
         if (
           !selectedPharmacy
         ) {
-          return days
+          return days.filter(day=>day>=minEditDate)
         }
 
-        return days.filter(
+        return days.filter(day=>day>=minEditDate).filter(
           day =>
             isPharmacyDateAuthorized(
               selectedPharmacy,
@@ -473,6 +477,7 @@ export default function WorkPlanDetailScreen() {
       },
       [
         days,
+        minEditDate,
         selectedPharmacy,
       ],
     )
@@ -781,7 +786,7 @@ export default function WorkPlanDetailScreen() {
   function openAddVisit(
     date: string,
   ) {
-    if (!editable) {
+    if (!editable || date < minEditDate) {
       return
     }
 
@@ -1926,6 +1931,7 @@ export default function WorkPlanDetailScreen() {
           </View>
         ) : null}
 
+        {plan.status === 'APPROVED' ? <WorkPlanEditAccess planId={planId} onAccess={setEditAccess} onUpdated={()=>void loadDetail(false)} refreshKey={Date.parse(plan.updatedAt || '') || 0}/> : null}
         {!editable ? (
           <View className="mt-4 rounded-3xl border border-amber-200 bg-amber-50 p-4">
             <View className="flex-row items-start">
@@ -2107,6 +2113,7 @@ export default function WorkPlanDetailScreen() {
                       }
                       editable={
                         editable &&
+                        normalizeDate(item.scheduledDate) >= minEditDate &&
                         item.status ===
                           'PENDING'
                       }
@@ -2191,7 +2198,7 @@ export default function WorkPlanDetailScreen() {
           </View>
         ) : null}
 
-        {editable ? (
+        {editable && plan.status !== 'APPROVED' ? (
           <View className="mt-8 rounded-3xl border border-slate-200 bg-white p-5">
             <View className="flex-row items-start">
               <View className="h-12 w-12 items-center justify-center rounded-2xl bg-blue-100">

@@ -1212,3 +1212,7 @@ export function getFarmaciasReport(filters) {
 export function getFarmaciasReportExport(filters,dataset) {
   return fetchJSON(`${BASE_API}/web/farmacias-reports/export${buildWebQS({...filters,dataset})}`,{method:'GET'})
 }
+
+export function getPlanEditAccess(id) { return fetchJSON(`${BASE_API}/web/work-plans/${encodeURIComponent(id)}/edit-request`) }
+export function listPlanEditRequests() { return fetchJSON(`${BASE_API}/web/work-plans/edit-requests`) }
+export function changePlanEditRequest(id,action,reason) { return fetchJSON(`${BASE_API}/web/work-plans/${encodeURIComponent(id)}/edit-request/${action}`,{method:'POST',body:JSON.stringify({reason})}) }

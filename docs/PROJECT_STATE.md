@@ -578,3 +578,13 @@ El encargo reutilizable está en `docs/CODEX_HANDOFF.md`.
 - Usuario autoriza publicar backend y generar una sola APK preview. Al quedar en cola de Expo se detendra el seguimiento de la compilacion y se entregara su enlace.
 - Fuente aislada desde 330b90f: solo cambios de evidencias y teclado. En reset-password.tsx y work-plans/[id].tsx se preparan versiones sin los ajustes previos ajenos. Los cambios pendientes del checkout se conservan.
 - Verificacion de la fuente aislada aprobada: TypeScript, sintaxis backend, ocho pruebas de tickets/politica y 27 pruebas de evidencias/reintentos. Sin nuevas migraciones ni cambios de datos.
+
+## 2026-10-22 - Solicitud de edición autorizada de planes vigentes
+
+- Planes ordinarios y extraordinarios aprobados: el responsable solicita edición con motivo; aprueban los mismos coordinadores/gerentes autorizados para revisar ese plan (ambos coordinadores de Puebla incluidos; planes de coordinador, sólo su gerente). Sin autoaprobación.
+- La migración 20261022120000_work_plan_edit_requests crea únicamente la tabla e índices de solicitudes, con RLS y acceso de escritura sólo para service_role. No modifica identidades, asignaciones ni registros existentes.
+- Se conserva el estado APPROVED y el flujo de ejecución. La autorización abre edición de visitas pendientes desde el día vigente de Guadalajara hasta el fin del plan; no habilita cambiar tipo/periodo, archivar ni volver a enviar el plan aprobado. Finalizar edición cierra el permiso. Cada solicitud/decisión y los cambios de visitas quedan auditados.
+- Backend bloquea crear en fechas pasadas, mover desde o hacia ellas, retirar/reordenar días anteriores y modificar visitas con check-in/check-out, resueltas o con cancelación pendiente. El permiso se liga a la revisión, se valida dentro del bloqueo transaccional del plan y vence al concluir su periodo.
+- Web: solicitud en detalle aprobado, bandeja para coordinador/gerente y editor existente con fechas y acciones restringidas. Móvil: mismo flujo preparado en detalle y aprobaciones, sin compilar APK. Cambios anteriores del checkout preservados y excluidos de la publicación de este bloque.
+- Validación: 28 pruebas focalizadas aprobadas, incluidas migración real en PostgreSQL local desechable, jerarquía real de Puebla, decisiones concurrentes, cierre/revisión/caducidad, cinco intentos de escritura retroactiva y formularios web compilados con API simulada. Web build, TypeScript móvil, sintaxis y diff check aprobados. Prueba con cuentas reales pendiente; no se generaron solicitudes productivas para validar.
+- Supabase dry-run: exclusivamente esta migración pendiente; conexión local al mismo proyecto actualizada a pooler IPv4 por incompatibilidad IPv6, sin modificar configuración remota.
