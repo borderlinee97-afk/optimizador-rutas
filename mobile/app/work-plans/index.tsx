@@ -11,6 +11,8 @@ import {
   useState,
 } from 'react'
 import {
+  KeyboardAvoidingView,
+  Platform,
   ActivityIndicator,
   Alert,
   Modal,
@@ -550,7 +552,7 @@ export default function WorkPlansScreen() {
         'right',
       ]}
     >
-      <ScrollView
+      <KeyboardAvoidingView style={{flex:1}} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}><ScrollView
         className="flex-1"
         contentContainerClassName="mx-auto w-full max-w-3xl px-5 pb-10 pt-5"
         showsVerticalScrollIndicator={
@@ -570,7 +572,7 @@ export default function WorkPlansScreen() {
             ]}
           />
         }
-      >
+       keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag">
         <AvailabilityPanel />
         {legacyDataPreserved ? <Pressable onPress={() => router.push('/legacy-recovery' as Href)}><Text className="my-3 text-sm text-primary-700">Recuperar datos anteriores</Text></Pressable> : null}
         <View className="flex-row items-start justify-between">
@@ -768,7 +770,7 @@ export default function WorkPlansScreen() {
             </View>
           </View>
         </View>
-      </ScrollView>
+      </ScrollView></KeyboardAvoidingView>
 
       <Modal
         visible={
@@ -784,7 +786,7 @@ export default function WorkPlansScreen() {
           }
         }}
       >
-        <View className="flex-1 justify-end bg-black/40">
+        <KeyboardAvoidingView className="flex-1 justify-end bg-black/40" behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
           <View className="max-h-[92%] rounded-t-[32px] bg-white">
             <ScrollView
               contentContainerClassName="px-5 pb-8 pt-5"
@@ -792,7 +794,7 @@ export default function WorkPlansScreen() {
                 false
               }
               keyboardShouldPersistTaps="handled"
-            >
+             keyboardDismissMode="on-drag">
               <View className="mx-auto mb-5 h-1.5 w-12 rounded-full bg-slate-300" />
 
               <View className="flex-row items-start justify-between">
@@ -1067,7 +1069,7 @@ export default function WorkPlansScreen() {
               </Pressable>
             </ScrollView>
           </View>
-        </View>
+        </KeyboardAvoidingView>
       </Modal>
     </SafeAreaView>
   )

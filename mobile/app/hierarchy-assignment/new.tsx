@@ -13,6 +13,8 @@ import {
 } from 'react'
 
 import {
+  KeyboardAvoidingView,
+  Platform,
   ActivityIndicator,
   Alert,
   Pressable,
@@ -980,11 +982,11 @@ export default function NewHierarchyAssignmentScreen() {
         'right',
       ]}
     >
-      <ScrollView
+      <KeyboardAvoidingView style={{flex:1}} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}><ScrollView
         className="flex-1"
         contentContainerClassName="mx-auto w-full max-w-3xl px-5 pb-10 pt-5"
         keyboardShouldPersistTaps="handled"
-      >
+       keyboardDismissMode="on-drag">
         <View className="flex-row items-center">
           <Pressable
             className="mr-3 h-11 w-11 items-center justify-center rounded-2xl bg-white"
@@ -1539,7 +1541,7 @@ export default function NewHierarchyAssignmentScreen() {
             </>
           )}
         </Pressable>
-      </ScrollView>
+      </ScrollView></KeyboardAvoidingView>
     </SafeAreaView>
   )
 }

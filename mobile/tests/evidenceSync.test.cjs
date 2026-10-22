@@ -147,3 +147,15 @@ test('Evidence waits for the queued check-in before requesting a ticket', async 
  const h=harness({pendingCheckIn:true});const result=await h.sync('token')
  assert.equal(h.row.status,'PENDING');assert.equal(result.pending,1);assert.deepEqual(h.calls,[])
 })
+
+
+for(const code of ['EVIDENCE_ACTIVITY_LIMIT_REACHED','EVIDENCE_ITEM_LIMIT_REACHED']){
+  test('an existing photo marked REVISAR after '+code+' can be retried without recapture',async()=>{
+    const options={http:409,code},h=harness(options)
+    await h.sync('token');assert.equal(h.row.status,'FAILED')
+    const originalId=h.row.evidence_id,originalUri=h.row.local_uri
+    delete options.http
+    await h.sync('token',true)
+    assert.equal(h.row.status,'READY');assert.equal(h.row.evidence_id,originalId);assert.equal(h.row.local_uri,originalUri)
+  })
+}

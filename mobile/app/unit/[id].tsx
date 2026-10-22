@@ -11,6 +11,8 @@ import {
 } from 'expo-router'
 import * as Location from 'expo-location'
 import {
+  KeyboardAvoidingView,
+  Platform,
   ActivityIndicator,
   Alert,
   Linking,
@@ -3153,8 +3155,8 @@ export default function UnitDetailScreen() {
           closeActivityResolution
         }
       >
-        <View className="flex-1 justify-end bg-black/40">
-          <View className="rounded-t-[28px] bg-white px-5 pb-8 pt-5">
+        <KeyboardAvoidingView className="flex-1 justify-end bg-black/40" behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+          <ScrollView className="rounded-t-[28px] bg-white px-5 pb-8 pt-5" style={{maxHeight:"90%",flexShrink:1,flexGrow:0}} contentContainerStyle={{paddingBottom:24}} keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag">
             <View className="flex-row items-center justify-between">
               <View className="flex-1 pr-4">
                 <Text className="text-lg font-bold text-slate-900">
@@ -3282,8 +3284,8 @@ export default function UnitDetailScreen() {
                 </>
               )}
             </Pressable>
-          </View>
-        </View>
+          </ScrollView>
+        </KeyboardAvoidingView>
       </Modal>
     </SafeAreaView>
   )

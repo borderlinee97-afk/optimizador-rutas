@@ -17,6 +17,8 @@ import {
 } from 'react'
 
 import {
+  KeyboardAvoidingView,
+  Platform,
   ActivityIndicator,
   Alert,
   Modal,
@@ -2273,7 +2275,7 @@ export default function WorkPlanDetailScreen() {
           closeVisitModal
         }
       >
-        <View className="flex-1 justify-end bg-black/40">
+        <KeyboardAvoidingView className="flex-1 justify-end bg-black/40" behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
           <View className="max-h-[95%] rounded-t-[32px] bg-white">
             <ScrollView
               contentContainerClassName="px-5 pb-10 pt-5"
@@ -2281,7 +2283,7 @@ export default function WorkPlanDetailScreen() {
               showsVerticalScrollIndicator={
                 false
               }
-            >
+             keyboardDismissMode="on-drag">
               <View className="mx-auto mb-5 h-1.5 w-12 rounded-full bg-slate-300" />
 
               <View className="flex-row items-start justify-between">
@@ -3124,7 +3126,7 @@ export default function WorkPlanDetailScreen() {
               </Pressable>
             </ScrollView>
           </View>
-        </View>
+        </KeyboardAvoidingView>
       </Modal>
     </SafeAreaView>
   )

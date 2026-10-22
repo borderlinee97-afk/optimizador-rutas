@@ -59,13 +59,13 @@ export default function ForgotPasswordScreen() {
     <SafeAreaView className="flex-1 bg-surface">
       <KeyboardAvoidingView
         className="flex-1"
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
         <ScrollView
           className="flex-1"
           contentContainerClassName="flex-grow justify-center px-6 py-10"
           keyboardShouldPersistTaps="handled"
-        >
+         keyboardDismissMode="on-drag">
           <View className="mx-auto w-full max-w-md">
             <Text className="text-3xl font-bold text-slate-900">
               Recuperar contraseña

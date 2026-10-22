@@ -262,11 +262,7 @@ export function getEvidencePolicy() {
         DEFAULT_EVIDENCE_MAX_BYTES,
       ),
 
-    maxPerActivity:
-      positiveInteger(
-        process.env.EVIDENCE_MAX_PER_ACTIVITY,
-        3,
-      ),
+    maxPerActivity: null,
 
     maxPerItem:
       positiveInteger(

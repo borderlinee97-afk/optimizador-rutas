@@ -1197,7 +1197,7 @@ export function ExtraStopFormScreen({
           Platform.OS ===
           'ios'
             ? 'padding'
-            : undefined
+            : 'height'
         }
       >
         <View className="flex-row items-center border-b border-slate-200 bg-white px-5 py-3">
@@ -1235,7 +1235,7 @@ export function ExtraStopFormScreen({
           showsVerticalScrollIndicator={
             false
           }
-        >
+         keyboardDismissMode="on-drag">
           <View
             className={
               isEditMode

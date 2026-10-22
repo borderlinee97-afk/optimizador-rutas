@@ -557,3 +557,24 @@ El encargo reutilizable está en `docs/CODEX_HANDOFF.md`.
 - backend/services/offlineVisitExecution.service.js: nuevo evento ACTIVITY_ADDED en el endpoint existente, con los mismos controles de identidad, propietario, plan aprobado, visita activa, orden de captura y cancelaciones. Inserta al final sin reemplazar actividades, registra auditoria y reutiliza el recibo idempotente. No cambia la huella de eventos antiguos. No requiere migracion.
 - Validacion focalizada aprobada: 33 comprobaciones de ejecucion offline/evidencias; siete comprobaciones del backend con PostgreSQL local desechable, incluidos reintentos, permisos, concurrencia y limite de actividades. Tras precisar la prueba de espera de evidencia se repitio solo la suite de ejecucion afectada (ocho aprobadas). TypeScript movil y node --check del servicio aprobados. Revision del diff sin errores.
 - Usuario autorizo publicar este bloque en backend y compilar APK Android preview para probar con red y modo avion. Publicacion limitada a los archivos de actividades adicionales y sus pruebas. La APK se prepara desde una copia limpia del commit; quedan excluidos los otros cambios moviles locales pendientes. Sin migraciones ni cambios de datos productivos. Validacion fisica pendiente.
+
+### Publicacion de actividades adicionales - seguimiento 2026-10-21
+
+- Commit publicado: 330b90f06371b05aa44d701f1d12085100583ce6. Ocho archivos del bloque autorizado; otros cambios moviles permanecen locales.
+- Render: dep-dbccrnl9fdbs73cjtupg activo (live), mismo commit. Salud HTTP 200 con ok=true/db=true; ejecucion sin credenciales HTTP 401; revision breve de logs posteriores sin errores. El despliegue automatico no se inicio; tras comprobar historial y ausencia de despliegues pendientes se inicio el primer despliegue de este commit via API.
+- Expo: una sola APK Android preview iniciada, build 7eff6027-34d3-47d8-bfab-7126bc39cd02, proyecto app-de-rutas de borderline97. Fuente limpia exportada del commit, entorno preview y firma existentes. TypeScript de esa copia aprobado. Se espera resultado final y prueba fisica con red/modo avion.
+
+## 2026-10-21 - Evidencias de actividades y teclado movil (local)
+
+- Solicitud: quitar tope de tres fotos por actividad, corregir fallo desde cuarta actividad y evitar teclado sobre los campos de texto. Causa identificada en el backend: tres por actividad y diez acumuladas por visita (nueve en primeras tres actividades, una en cuarta y rechazo posterior).
+- backend/routes/mobile.evidence.route.js y evidencePolicy.service.js: fotos con activity_id sin limite de cantidad y excluidas del cupo general; se conserva el limite existente de evidencias generales sin actividad, ademas de permisos, idempotencia, tipos y tamano de archivo, ubicacion y confirmacion de Storage. Sin migraciones ni cambios remotos.
+- Formularios moviles: KeyboardAvoidingView activo en Android y ScrollView en ventanas sin desplazamiento, incluidos resultado de actividad, rechazos y tareas. Proteccion en acceso, recuperacion, planes, vacaciones (mediante sus pantallas contenedoras), asignaciones, paradas y nuevas actividades. Android softwareKeyboardLayoutMode=resize explicito. Sin nuevas dependencias ni cambios en acciones de negocio.
+- Validacion aprobada: ocho pruebas backend de tickets/politica (mas de tres fotos por actividad, cuarta/quinta actividad, acumulado mayor a diez y conservacion del cupo general); 35 pruebas moviles relacionadas de evidencia/ejecucion, incluidos reintentos de fotos ya marcadas REVISAR sin recaptura. TypeScript movil, node --check del backend y git diff --check aprobados. Comprobacion estructural de los 16 archivos con TextInput: los contenedores de formulario incluyen ajuste de teclado y desplazamiento; TimeSelector y AvailabilityPanel lo heredan de sus pantallas.
+- Pendiente: verificacion fisica del teclado en Android mediante una nueva APK. Sin commit, push, despliegue, compilacion nueva ni borrado de fotos. Las imagenes guardadas conservan su ID y se pueden reintentar contra el backend corregido.
+- Los cambios previos de auth/reset-password.tsx, work-plans/[id].tsx, AvailabilityPanel, notificaciones y otros siguen locales. Al publicar este bloque se deben aislar los hunks de teclado de esos cambios previos; no incluir ajustes ajenos por compartir archivo.
+
+### Publicacion autorizada: evidencias y teclado
+
+- Usuario autoriza publicar backend y generar una sola APK preview. Al quedar en cola de Expo se detendra el seguimiento de la compilacion y se entregara su enlace.
+- Fuente aislada desde 330b90f: solo cambios de evidencias y teclado. En reset-password.tsx y work-plans/[id].tsx se preparan versiones sin los ajustes previos ajenos. Los cambios pendientes del checkout se conservan.
+- Verificacion de la fuente aislada aprobada: TypeScript, sintaxis backend, ocho pruebas de tickets/politica y 27 pruebas de evidencias/reintentos. Sin nuevas migraciones ni cambios de datos.

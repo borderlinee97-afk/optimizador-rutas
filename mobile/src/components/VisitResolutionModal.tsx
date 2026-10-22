@@ -410,7 +410,7 @@ export function VisitResolutionModal({
           Platform.OS ===
           'ios'
             ? 'padding'
-            : undefined
+            : 'height'
         }
       >
         <View className="max-h-[90%] rounded-t-[32px] bg-white">
@@ -471,7 +471,7 @@ export function VisitResolutionModal({
           <ScrollView
             contentContainerClassName="px-5 pb-8"
             keyboardShouldPersistTaps="handled"
-          >
+           keyboardDismissMode="on-drag">
             {isReschedule ? (
               <>
                 <Text className="mt-5 text-sm font-bold text-slate-800">

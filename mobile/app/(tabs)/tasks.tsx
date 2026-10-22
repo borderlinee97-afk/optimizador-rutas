@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons'
 import { useFocusEffect } from 'expo-router'
 import { useCallback, useMemo, useState } from 'react'
-import { ActivityIndicator, Alert, Modal, Pressable, ScrollView, Switch, Text, TextInput, View } from 'react-native'
+import { KeyboardAvoidingView, Platform, ActivityIndicator, Alert, Modal, Pressable, ScrollView, Switch, Text, TextInput, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 
 import { EvidenceCapture } from '../../src/components/EvidenceCapture'
@@ -453,11 +453,11 @@ export default function TasksScreen() {
         visible={detail !== null}
         onRequestClose={() => setDetail(null)}
       >
-        <View className="flex-1 justify-end bg-black/40">
+        <KeyboardAvoidingView className="flex-1 justify-end bg-black/40" behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
           <ScrollView
             className="max-h-[90%] rounded-t-[28px] bg-white p-5"
             contentContainerClassName="pb-10"
-          >
+           keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag">
             <View className="flex-row justify-between">
               <Text className="flex-1 text-xl font-bold text-slate-900">
                 {detail?.task.title}
@@ -576,7 +576,7 @@ export default function TasksScreen() {
               </View>
             ))}
           </ScrollView>
-        </View>
+        </KeyboardAvoidingView>
       </Modal>
 
       <Modal
@@ -585,8 +585,8 @@ export default function TasksScreen() {
         visible={createVisible}
         onRequestClose={() => setCreateVisible(false)}
       >
-        <View className="flex-1 justify-end bg-black/40">
-          <View className="rounded-t-[28px] bg-white p-5 pb-9">
+        <KeyboardAvoidingView className="flex-1 justify-end bg-black/40" behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+          <ScrollView className="rounded-t-[28px] bg-white p-5 pb-9" style={{maxHeight:"90%",flexShrink:1,flexGrow:0}} contentContainerStyle={{paddingBottom:24}} keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag">
             <Text className="text-lg font-bold text-slate-900">
               Nueva tarea personal
             </Text>
@@ -668,8 +668,8 @@ export default function TasksScreen() {
                 }
               />
             </View>
-          </View>
-        </View>
+          </ScrollView>
+        </KeyboardAvoidingView>
       </Modal>
     </SafeAreaView>
   )

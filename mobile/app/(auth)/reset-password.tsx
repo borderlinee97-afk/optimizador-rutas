@@ -2,6 +2,9 @@ import * as Linking from 'expo-linking'
 import { router } from 'expo-router'
 import { useEffect, useState } from 'react'
 import {
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
   ActivityIndicator,
   Alert,
   Pressable,
@@ -84,7 +87,7 @@ export default function ResetPasswordScreen() {
 
   return (
     <SafeAreaView className="flex-1 bg-surface px-6 pt-16">
-      <View className="mx-auto w-full max-w-md rounded-3xl border border-slate-200 bg-white p-6">
+      <KeyboardAvoidingView style={{flex:1}} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}><ScrollView keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag" contentContainerStyle={{flexGrow:1,paddingBottom:24}}><View className="mx-auto w-full max-w-md rounded-3xl border border-slate-200 bg-white p-6">
         <Text className="text-2xl font-bold text-slate-900">Nueva contraseña</Text>
         <Text className="mt-2 text-sm text-slate-500">Usa al menos 12 caracteres y no la compartas.</Text>
         <TextInput
@@ -108,7 +111,7 @@ export default function ResetPasswordScreen() {
         >
           <Text className="font-bold text-white">{busy ? 'Guardando…' : 'Guardar contraseña'}</Text>
         </Pressable>
-      </View>
+      </View></ScrollView></KeyboardAvoidingView>
     </SafeAreaView>
   )
 }

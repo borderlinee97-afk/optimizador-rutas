@@ -818,12 +818,6 @@ async function createUploadTicket(
       10,
     )
 
-  const maxPerActivity =
-    positiveInteger(
-      process.env.EVIDENCE_MAX_PER_ACTIVITY,
-      3,
-    )
-
   const pendingUploadTtlMinutes =
     positiveInteger(
       process.env.EVIDENCE_PENDING_UPLOAD_TTL_MINUTES,
@@ -841,7 +835,7 @@ async function createUploadTicket(
     /*
      * Serializa la creación de evidencias para una misma
      * visita/tarea. Evita que dos requests simultáneos
-     * superen el límite antes de que alguno haga COMMIT.
+     * compitan antes de que alguno haga COMMIT.
      */
     await lockEvidenceTarget(
       client,
@@ -967,7 +961,6 @@ async function createUploadTicket(
           client,
           target,
           maxPerItem,
-          maxPerActivity,
           evidence.id,
         )
 
@@ -1039,7 +1032,6 @@ async function createUploadTicket(
         client,
         target,
         maxPerItem,
-        maxPerActivity,
         null,
       )
 
@@ -1220,92 +1212,15 @@ async function lockEvidenceTarget(
   }
 }
 
-async function enforceEvidenceLimits(
-  client,
-  target,
-  maxPerItem,
-  maxPerActivity,
-  excludeEvidenceId,
-) {
-  /*
-   * Las tareas no utilizaban límite por visita/actividad
-   * en la implementación original.
-   */
-  if (
-    !target.planItemId
-  ) {
-    return
-  }
-
-  const countResult =
-    await client.query(
-      `
-      SELECT
-        COUNT(*)::integer
-          AS item_count,
-
-        COUNT(*) FILTER (
-          WHERE activity_id
-            IS NOT DISTINCT FROM
-            $2::uuid
-        )::integer
-          AS activity_count
-
-      FROM public.visit_evidence
-
-      WHERE plan_item_id =
-          $1::uuid
-
-        AND status IN (
-          'PENDING_UPLOAD',
-          'READY'
-        )
-
-        AND (
-          $3::uuid IS NULL
-          OR id <> $3::uuid
-        )
-      `,
-      [
-        target.planItemId,
-        target.activityId,
-        excludeEvidenceId,
-      ],
-    )
-
-  const itemCount =
-    Number(
-      countResult.rows[0]
-        ?.item_count ??
-      0,
-    )
-
-  const activityCount =
-    Number(
-      countResult.rows[0]
-        ?.activity_count ??
-      0,
-    )
-
-  if (
-    itemCount >=
-    maxPerItem
-  ) {
-    throw new EvidenceLimitError(
-      `La visita admite como máximo ${maxPerItem} evidencias`,
-      'EVIDENCE_ITEM_LIMIT_REACHED',
-    )
-  }
-
-  if (
-    target.activityId &&
-    activityCount >=
-      maxPerActivity
-  ) {
-    throw new EvidenceLimitError(
-      `La actividad admite como máximo ${maxPerActivity} evidencias`,
-      'EVIDENCE_ACTIVITY_LIMIT_REACHED',
-    )
+async function enforceEvidenceLimits(client, target, maxPerItem, excludeEvidenceId) {
+  // Activity photos have no quantity cap. General visit photos keep their existing cap.
+  if (!target.planItemId || target.activityId) return
+  const result = await client.query(`SELECT COUNT(*)::integer AS item_count
+    FROM public.visit_evidence WHERE plan_item_id = $1::uuid AND activity_id IS NULL
+      AND status IN ('PENDING_UPLOAD','READY')
+      AND ($2::uuid IS NULL OR id <> $2::uuid)`, [target.planItemId, excludeEvidenceId])
+  if (Number(result.rows[0]?.item_count ?? 0) >= maxPerItem) {
+    throw new EvidenceLimitError(`La visita admite como máximo ${maxPerItem} evidencias generales`, 'EVIDENCE_ITEM_LIMIT_REACHED')
   }
 }
 

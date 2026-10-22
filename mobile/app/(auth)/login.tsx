@@ -58,13 +58,13 @@ export default function LoginScreen() {
     <SafeAreaView className="flex-1 bg-surface">
       <KeyboardAvoidingView
         className="flex-1"
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
         <ScrollView
           className="flex-1"
           contentContainerClassName="flex-grow justify-center px-6 py-10"
           keyboardShouldPersistTaps="handled"
-        >
+         keyboardDismissMode="on-drag">
           <View className="mx-auto w-full max-w-md">
             <View className="mb-8">
               <View className="mb-5 h-14 w-14 items-center justify-center rounded-2xl bg-primary-600">

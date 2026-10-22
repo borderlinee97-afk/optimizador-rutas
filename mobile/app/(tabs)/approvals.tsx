@@ -22,6 +22,8 @@ import {
 } from 'react'
 
 import {
+  KeyboardAvoidingView,
+  Platform,
 
   ActivityIndicator,
 
@@ -1631,7 +1633,7 @@ export default function ApprovalsScreen() {
 
     >
 
-      <ScrollView
+      <KeyboardAvoidingView style={{flex:1}} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}><ScrollView
 
         className="flex-1"
 
@@ -1671,7 +1673,7 @@ export default function ApprovalsScreen() {
 
         }
 
-      >
+       keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag">
         <AvailabilityPanel />
 
         <View>
@@ -2104,7 +2106,7 @@ export default function ApprovalsScreen() {
 
         ) : null}
 
-      </ScrollView>
+      </ScrollView></KeyboardAvoidingView>
 
 
 
@@ -2232,9 +2234,9 @@ export default function ApprovalsScreen() {
 
       >
 
-        <View className="flex-1 items-center justify-center bg-black/40 px-5">
+        <KeyboardAvoidingView className="flex-1 items-center justify-center bg-black/40 px-5" behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
 
-          <View className="w-full max-w-xl rounded-[30px] bg-white p-5">
+          <ScrollView className="w-full max-w-xl rounded-[30px] bg-white p-5" style={{maxHeight:"90%",flexShrink:1,flexGrow:0}} contentContainerStyle={{paddingBottom:24}} keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag">
 
             <View className="flex-row items-start justify-between">
 
@@ -2442,9 +2444,9 @@ export default function ApprovalsScreen() {
 
             </View>
 
-          </View>
+          </ScrollView>
 
-        </View>
+        </KeyboardAvoidingView>
 
       </Modal>
 
@@ -2472,9 +2474,9 @@ export default function ApprovalsScreen() {
 
       >
 
-        <View className="flex-1 items-center justify-center bg-black/40 px-5">
+        <KeyboardAvoidingView className="flex-1 items-center justify-center bg-black/40 px-5" behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
 
-          <View className="w-full max-w-xl rounded-[30px] bg-white p-5">
+          <ScrollView className="w-full max-w-xl rounded-[30px] bg-white p-5" style={{maxHeight:"90%",flexShrink:1,flexGrow:0}} contentContainerStyle={{paddingBottom:24}} keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag">
 
             <View className="flex-row items-start justify-between">
 
@@ -2736,9 +2738,9 @@ export default function ApprovalsScreen() {
 
             </View>
 
-          </View>
+          </ScrollView>
 
-        </View>
+        </KeyboardAvoidingView>
 
       </Modal>
 

@@ -10,7 +10,7 @@ export function AddVisitActivityModal({visible,busy,onClose,onSave}:Props) {
     <KeyboardAvoidingView behavior={Platform.OS==='ios'?'padding':'height'} style={{flex:1}}>
       <View className="flex-1 justify-center bg-black/40 px-5">
         <View className="max-h-[90%] rounded-3xl bg-white p-5">
-          <ScrollView keyboardShouldPersistTaps="handled">
+          <ScrollView keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag">
             <Text accessibilityRole="header" className="text-xl font-bold text-slate-900">Agregar actividad adicional</Text>
             <Text className="mt-2 text-sm leading-5 text-slate-600">Se agregará a esta visita sin modificar las actividades del plan. También puedes guardarla sin conexión.</Text>
             <Text className="mb-2 mt-5 font-semibold text-slate-800">Actividad</Text>

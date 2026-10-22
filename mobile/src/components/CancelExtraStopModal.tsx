@@ -109,7 +109,7 @@ export function CancelExtraStopModal({
         behavior={
           Platform.OS === 'ios'
             ? 'padding'
-            : undefined
+            : 'height'
         }
       >
         <View className="flex-1 justify-end bg-black/40">
@@ -151,7 +151,7 @@ export function CancelExtraStopModal({
               contentContainerClassName="pb-6 pt-5"
               keyboardShouldPersistTaps="handled"
               showsVerticalScrollIndicator={false}
-            >
+             keyboardDismissMode="on-drag">
               <Text className="text-sm font-bold text-slate-900">
                 Motivo de cancelación
               </Text>

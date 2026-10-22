@@ -100,7 +100,7 @@ export function SkipVisitModal({
         behavior={
           Platform.OS === 'ios'
             ? 'padding'
-            : undefined
+            : 'height'
         }
       >
         <View className="flex-1 justify-end bg-black/40">
@@ -142,7 +142,7 @@ export function SkipVisitModal({
             <ScrollView
               showsVerticalScrollIndicator={false}
               keyboardShouldPersistTaps="handled"
-            >
+             keyboardDismissMode="on-drag">
               <View className="gap-2">
                 {SKIP_REASON_OPTIONS.map(
                   (option) => {
