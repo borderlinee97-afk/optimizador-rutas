@@ -1216,3 +1216,9 @@ export function getFarmaciasReportExport(filters,dataset) {
 export function getPlanEditAccess(id) { return fetchJSON(`${BASE_API}/web/work-plans/${encodeURIComponent(id)}/edit-request`) }
 export function listPlanEditRequests() { return fetchJSON(`${BASE_API}/web/work-plans/edit-requests`) }
 export function changePlanEditRequest(id,action,reason) { return fetchJSON(`${BASE_API}/web/work-plans/${encodeURIComponent(id)}/edit-request/${action}`,{method:'POST',body:JSON.stringify({reason})}) }
+
+
+// Administrator-only release control; reuses the existing authenticated web client.
+export function androidUpdatesApi(path='',body){
+ return fetchJSON(`${BASE_API}/web/admin/android-updates${path}`,{method:body===undefined?'GET':'POST',...(body===undefined?{}:{body:JSON.stringify(body)}),timeoutMs:path==='/prepare'?240000:45000})
+}

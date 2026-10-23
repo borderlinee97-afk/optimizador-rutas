@@ -73,3 +73,15 @@ test('unpublished or corrupt channel never downloads a fabricated/stale release 
     assert.ok(!(await response.text()).includes('private filesystem'))
   })
 })
+
+
+test('persistent async channel preserves the existing mobile response and fails closed on database errors',async()=>{
+ await withServer(async()=>validateAndroidRelease(release),async base=>{
+  const response=await fetch(base+'/api/app/android/release');assert.equal(response.status,200)
+  const data=await response.json();assert.equal(data.release.versionCode,3);assert.equal(data.release.buildId,undefined)
+  assert.equal((await fetch(base+'/api/app/android/download?versionCode=3',{redirect:'manual'})).status,302)
+ })
+ await withServer(async()=>{throw Error('private database error')},async base=>{
+  const response=await fetch(base+'/api/app/android/release');assert.equal(response.status,503);assert.ok(!(await response.text()).includes('private'))
+ })
+})

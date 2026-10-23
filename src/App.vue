@@ -341,9 +341,10 @@
                 "
               >
                 <span class="sidebar-nav-icon">
+                  <svg v-if="item.key==='app-updates'" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12m-4-4 4 4 4-4M4 16v5h16v-5" /></svg>
                   <!-- Aprobaciones -->
                   <svg
-                    v-if="item.key === 'approvals'"
+                    v-else-if="item.key === 'approvals'"
                     viewBox="0 0 24 24"
                     aria-hidden="true"
                   >
@@ -603,6 +604,7 @@
             </button>
           </div>
 
+          <RouterLink v-if="systemRole==='ADMIN'" to="/admin/actualizaciones" class="password-link">Actualizaciones APK</RouterLink>
           <button type="button" class="password-link" @click="passwordMode='change'">Cambiar contraseña</button>
           <button
             class="logout-button"
@@ -798,6 +800,7 @@ const showAreaSwitcher =
  */
 
 const farmaciasMenuDefinition = [
+  {key:'app-updates',label:'Actualizaciones APK',to:'/admin/actualizaciones',adminOnly:true,roles:[]},
   { key:'indicators',label:'Indicadores',to:'/farmacias/indicadores',roles:['DIRECTOR','GERENTE','COORDINADOR'] },
   { key:'reports',label:'Reportes',to:'/farmacias/reportes',roles:['DIRECTOR','GERENTE','COORDINADOR'] },
   {
@@ -882,7 +885,7 @@ const farmaciasMenu =
       farmaciasMenuDefinition
         .filter(
           item =>
-            item.roles.includes(
+            item.adminOnly ? systemRole.value==='ADMIN' : item.roles.includes(
               normalizedRole.value,
             )
         )
@@ -910,6 +913,7 @@ const managementMenu =
       farmaciasMenu.value.filter(
         item =>
           [
+            'app-updates',
             'approvals',
             'assignments',
             'people',
@@ -1173,6 +1177,7 @@ async function handleLogout() {
 function routeAllowedForProfile(
   currentRoute,
 ) {
+  if(currentRoute.meta?.adminOnly)return systemRole.value==='ADMIN'
   const area =
     normalizedArea.value
 

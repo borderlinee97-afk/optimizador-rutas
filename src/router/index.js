@@ -32,6 +32,7 @@ const router =
       createWebHistory(),
 
     routes: [
+      {path:'/admin/actualizaciones',name:'admin-android-updates',component:()=>import('../views/admin/AndroidUpdatesView.vue'),meta:{adminOnly:true}},
       { path:'/farmacias/indicadores',name:'farmacias-indicadores',component:FarmaciasReportsView,props:{mode:'indicators'},meta:{area:'FARMACIAS',roles:['DIRECTOR','GERENTE','COORDINADOR']} },
       { path:'/farmacias/reportes',name:'farmacias-reportes',component:FarmaciasReportsView,props:{mode:'reports'},meta:{area:'FARMACIAS',roles:['DIRECTOR','GERENTE','COORDINADOR']} },
       {
