@@ -10,6 +10,8 @@ import {
   requireAuth,
 } from '../middleware/requireAuth.js'
 
+import { isActiveAdmin, farmaciasReadRole } from '../services/adminReadAccess.service.js'
+
 const router =
   Router()
 
@@ -82,7 +84,7 @@ router.get(
 
     try {
       const authorizedState =
-        await getAuthorizedState(
+        isActiveAdmin(req.profile) ? state : await getAuthorizedState(
           req.profile.id,
           state,
         )
@@ -155,10 +157,10 @@ router.get(
         FROM public.personas p JOIN public.person_state_scope scope ON scope.persona_id=p.id
         WHERE p.activo AND p.area::text='FARMACIAS' AND scope.revoked_at IS NULL
           AND upper(trim(scope.estado))=upper(trim($3::text))
-          AND ((p.rol::text='GERENTE' AND (p.id=$1::uuid OR p.id=(SELECT superior_id FROM public.personas WHERE id=$1::uuid AND rol::text='COORDINADOR')))
+          AND (($2::text='ADMIN' AND p.rol::text IN ('GERENTE','COORDINADOR')) OR (p.rol::text='GERENTE' AND (p.id=$1::uuid OR p.id=(SELECT superior_id FROM public.personas WHERE id=$1::uuid AND rol::text='COORDINADOR')))
             OR (p.rol::text='COORDINADOR' AND (p.id=$1::uuid OR ($2::text='GERENTE' AND p.superior_id=$1::uuid)
               OR EXISTS(SELECT 1 FROM public.personas target WHERE public.puebla_shared_supervisor($1::uuid,target.id) AND public.puebla_shared_supervisor(p.id,target.id)))))
-        ORDER BY p.nombre`, [req.profile.id,req.profile.rol,authorizedState])
+        ORDER BY p.nombre`, [req.profile.id,farmaciasReadRole(req.profile),authorizedState])
 
       const totals =
         buildTotals(
@@ -179,11 +181,11 @@ router.get(
             ),
 
           canManageDirectly:
-            req.profile.rol ===
+            !isActiveAdmin(req.profile) && req.profile.rol ===
             'GERENTE',
 
           canRequestChanges:
-            req.profile.rol ===
+            !isActiveAdmin(req.profile) && req.profile.rol ===
             'COORDINADOR',
         },
 
@@ -232,7 +234,9 @@ async function getUnits({
 
   let authorizationCondition
 
-  if (
+  if (isActiveAdmin(profile)) {
+    authorizationCondition = 'TRUE'
+  } else if (
     profile.rol ===
     'GERENTE'
   ) {
@@ -429,7 +433,9 @@ async function getCoordinators({
 
   let roleCondition
 
-  if (
+  if (isActiveAdmin(profile)) {
+    roleCondition = '$1::uuid IS NOT NULL'
+  } else if (
     profile.rol ===
     'GERENTE'
   ) {
@@ -516,7 +522,9 @@ async function getSupervisors({
 
   let hierarchyCondition
 
-  if (
+  if (isActiveAdmin(profile)) {
+    hierarchyCondition = '$1::uuid IS NOT NULL'
+  } else if (
     profile.rol ===
     'GERENTE'
   ) {
@@ -737,7 +745,8 @@ async function loadFarmaciasProfile(
 
           superior_id,
 
-          pharmacy_scope_mode
+          pharmacy_scope_mode,
+          system_role
 
         FROM public.personas
 
@@ -782,7 +791,7 @@ async function loadFarmaciasProfile(
     }
 
     if (
-      String(
+      !isActiveAdmin(profile) && String(
         profile.area,
       )
         .trim()
@@ -804,7 +813,7 @@ async function loadFarmaciasProfile(
       ...profile,
 
       area:
-        String(
+        isActiveAdmin(profile) ? 'FARMACIAS' : String(
           profile.area,
         )
           .trim()
@@ -845,7 +854,7 @@ function requireSupportedRole(
   next,
 ) {
   if (
-    !ALLOWED_ROLES.has(
+    !isActiveAdmin(req.profile) && !ALLOWED_ROLES.has(
       req.profile?.rol,
     )
   ) {

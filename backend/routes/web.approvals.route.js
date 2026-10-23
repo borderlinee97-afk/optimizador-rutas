@@ -16,6 +16,8 @@ import {
   rejectCancellationRequest,
 } from '../services/workPlanCancellationApproval.service.js'
 
+import { isActiveAdmin, farmaciasReadRole } from '../services/adminReadAccess.service.js'
+
 const router =
   Router()
 
@@ -144,7 +146,7 @@ router.get(
             req.profile.rol,
 
           canDecide:
-            [
+            !isActiveAdmin(req.profile) && [
               'GERENTE',
               'COORDINADOR',
             ].includes(
@@ -393,8 +395,8 @@ function getPendingPlans(
       AND supervisor.activo =
         TRUE
 
-      AND $1::text IN ('GERENTE', 'COORDINADOR')
-      AND public.can_review_farmacias_plan($2::uuid, supervisor.id)
+      AND ($1::text = 'ADMIN' OR ($1::text IN ('GERENTE', 'COORDINADOR')
+        AND public.can_review_farmacias_plan($2::uuid, supervisor.id)))
 
     GROUP BY
       wp.id,
@@ -409,7 +411,7 @@ function getPendingPlans(
       supervisor.nombre ASC
     `,
     [
-      profile.rol,
+      farmaciasReadRole(profile),
       profile.id,
     ],
   )
@@ -568,7 +570,7 @@ function getPendingCancellations(
         TRUE
 
       AND (
-        (
+        $1::text = 'ADMIN' OR (
           $1::text =
             'GERENTE'
 
@@ -600,7 +602,7 @@ function getPendingCancellations(
         NULLS LAST
     `,
     [
-      profile.rol,
+      farmaciasReadRole(profile),
       profile.id,
     ],
   )
@@ -730,7 +732,7 @@ function getPendingCoverages(
       AND coverage.cancelled_at
         IS NULL
 
-      AND EXISTS (
+      AND ($1::text = 'ADMIN' OR EXISTS (
         SELECT 1
 
         FROM public.person_state_scope
@@ -752,10 +754,10 @@ function getPendingCoverages(
               farmacia.estado
             )
           )
-      )
+      ))
 
       AND (
-        (
+        $1::text = 'ADMIN' OR (
           $1::text =
             'GERENTE'
 
@@ -780,7 +782,7 @@ function getPendingCoverages(
       covering.nombre ASC
     `,
     [
-      profile.rol,
+      farmaciasReadRole(profile),
       profile.id,
     ],
   )
@@ -807,7 +809,8 @@ async function loadFarmaciasProfile(
           area,
           rol,
           activo,
-          superior_id
+          superior_id,
+          system_role
 
         FROM public.personas
 
@@ -851,8 +854,9 @@ async function loadFarmaciasProfile(
         })
     }
 
+    const adminRead = req.method === 'GET' && isActiveAdmin(profile)
     if (
-      String(
+      !adminRead && String(
         profile.area,
       )
         .trim()
@@ -874,7 +878,7 @@ async function loadFarmaciasProfile(
       ...profile,
 
       area:
-        String(
+        adminRead ? 'FARMACIAS' : String(
           profile.area,
         )
           .trim()
@@ -915,7 +919,7 @@ function requireApprovalRole(
   next,
 ) {
   if (
-    !ALLOWED_ROLES.has(
+    !(req.method === 'GET' && isActiveAdmin(req.profile)) && !ALLOWED_ROLES.has(
       req.profile?.rol,
     )
   ) {

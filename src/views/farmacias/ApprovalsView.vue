@@ -184,16 +184,15 @@
             </strong>
 
             <span>
-              Como coordinador puedes consultar las solicitudes
-              de tu estructura. La decisión final corresponde al
-              gerente.
+              Esta vista permite consultar las solicitudes. Las decisiones
+              requieren el permiso de aprobación correspondiente.
             </span>
           </div>
         </div>
 
         <WorkPlanEditAccess
-          v-if="canDecide"
           :inbox-requests="editRequests"
+          :readonly="!canDecide"
           show-empty
           @refresh="loadApprovals({ silent: true })"
           @updated="loadApprovals({ silent: true })"

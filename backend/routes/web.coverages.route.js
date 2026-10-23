@@ -18,6 +18,8 @@ import {
   rejectPharmacyCoverage,
 } from '../services/pharmacyCoverage.service.js'
 
+import { isActiveAdmin } from '../services/adminReadAccess.service.js'
+
 const router =
   Router()
 
@@ -248,7 +250,8 @@ async function loadCoverageProfile(
           rol,
           activo,
           superior_id,
-          pharmacy_scope_mode
+          pharmacy_scope_mode,
+          system_role
 
         FROM public.personas
 
@@ -308,13 +311,14 @@ async function loadCoverageProfile(
         })
     }
 
-    if (
+    const adminRead = req.method === 'GET' && isActiveAdmin(profile)
+    if (!adminRead && (
       area !==
       'FARMACIAS' ||
       !ALLOWED_ROLES.has(
         role,
       )
-    ) {
+    )) {
       return res
         .status(403)
         .json({
@@ -329,7 +333,7 @@ async function loadCoverageProfile(
     req.profile = {
       ...profile,
 
-      area,
+      area: adminRead ? 'FARMACIAS' : area,
 
       rol:
         role,

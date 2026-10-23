@@ -604,7 +604,6 @@
             </button>
           </div>
 
-          <RouterLink v-if="systemRole==='ADMIN'" to="/admin/actualizaciones" class="password-link">Actualizaciones APK</RouterLink>
           <button type="button" class="password-link" @click="passwordMode='change'">Cambiar contraseña</button>
           <button
             class="logout-button"
@@ -885,7 +884,7 @@ const farmaciasMenu =
       farmaciasMenuDefinition
         .filter(
           item =>
-            item.adminOnly ? systemRole.value==='ADMIN' : item.roles.includes(
+            item.adminOnly ? systemRole.value==='ADMIN' : systemRole.value==='ADMIN' || item.roles.includes(
               normalizedRole.value,
             )
         )
@@ -1177,7 +1176,7 @@ async function handleLogout() {
 function routeAllowedForProfile(
   currentRoute,
 ) {
-  if(currentRoute.meta?.adminOnly)return systemRole.value==='ADMIN'
+  if(currentRoute.meta?.adminOnly)return systemRole.value==='ADMIN' && normalizedArea.value==='FARMACIAS'
   const area =
     normalizedArea.value
 
@@ -1205,6 +1204,8 @@ function routeAllowedForProfile(
     ) {
       return false
     }
+
+    if (systemRole.value === 'ADMIN') return true
 
     const requiredRoles =
       currentRoute.meta?.roles

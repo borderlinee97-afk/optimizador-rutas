@@ -2,18 +2,19 @@ const test=require('node:test'),assert=require('node:assert/strict'),fs=require(
 
 test('approval inbox returns ordinary and extraordinary edit requests in its total using existing scoped policy',async()=>{
  const {listEditRequests}=await import('../services/workPlanEdit.service.js')
+ const {isActiveAdmin,farmaciasReadRole}=await import('../services/adminReadAccess.service.js')
  const requests=[{id:'r1',plan_id:'p1',plan_type:'ORDINARY',owner_name:'SUPERVISOR PRUEBA'},{id:'r2',plan_id:'p2',plan_type:'EXTRAORDINARY',owner_name:'SUPERVISOR PRUEBA'}]
  for(const role of ['COORDINADOR','GERENTE']){
   const routes=[],queries=[],actor={id:'actor',rol:role,area:'FARMACIAS',activo:true}
   const source=fs.readFileSync(path.join(__dirname,'../routes/web.approvals.route.js'),'utf8').replace(/import\s+[\s\S]*?from\s+'[^']+'\s*/g,'').replace(/export default router\s*$/,'')
   const pool={query:async(sql,params)=>{queries.push({sql,params});return{rows:requests}}}
-  const ctx={Router:()=>({use(){},get:(p,h)=>routes.push([p,h]),post(){}}),pool,requireAuth(){},listEditRequests,console}
+  const ctx={Router:()=>({use(){},get:(p,h)=>routes.push([p,h]),post(){}}),pool,requireAuth(){},listEditRequests,isActiveAdmin,farmaciasReadRole,console}
   vm.runInNewContext(source,ctx)
   for(const name of ['getPendingPlans','getPendingCancellations','getPendingCoverages'])ctx[name]=async()=>({rows:[]})
   let body;await routes.find(([p])=>p==='/')[1]({profile:actor},{json:v=>{body=v},status(){return this}})
   assert.equal(body.counts.editRequests,2);assert.equal(body.counts.total,2);assert.equal(body.pendingCount,2)
   assert.equal(body.editRequests[1].plan_type,'EXTRAORDINARY');assert.equal(body.context.canDecide,true)
-  assert.deepEqual(queries[0].params,['actor'])
+  assert.deepEqual(queries[0].params,['actor',false])
   assert.match(queries[0].sql,/can_review_farmacias_plan/);assert.match(queries[0].sql,/r.status='PENDING'/)
   assert.match(queries[0].sql,/revision_number=p.revision_number/);assert.match(queries[0].sql,/period_end >=/)
  }

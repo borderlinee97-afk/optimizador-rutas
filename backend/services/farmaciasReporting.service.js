@@ -1,3 +1,4 @@
+import { isActiveAdmin } from './adminReadAccess.service.js'
 import { buildFollowUp } from './farmaciasFollowUp.service.js'
 // Read-only reporting. Recorded presence in units is not a payroll/workday measure.
 export const REPORT_TIME_ZONE = 'America/Mexico_City'
@@ -124,7 +125,7 @@ export function validateReportFilters(query = {}) {
   return f
 }
 export async function reportingPeople(db, actor) {
-  if (!actor?.activo || actor.area !== 'FARMACIAS' || !ROLES.has(actor.rol))
+  if (!actor?.activo || (!isActiveAdmin(actor) && (actor.area !== 'FARMACIAS' || !ROLES.has(actor.rol))))
     throw fail(
       'Los reportes requieren un perfil activo de dirección, gerencia o coordinación de Farmacias.',
       403
@@ -145,7 +146,7 @@ export async function reportingPeople(db, actor) {
     AND (p.superior_id=c.id OR public.puebla_shared_supervisor(c.id,p.id))
   WHERE p.rol::text IN ('SUPERVISOR','COORDINADOR')
   GROUP BY p.id,p.nombre,p.rol ORDER BY p.nombre`,
-    [actor.id, actor.system_role === 'ADMIN']
+    [actor.id, isActiveAdmin(actor)]
   )
   return rows.map((p) => ({
     id: p.id,

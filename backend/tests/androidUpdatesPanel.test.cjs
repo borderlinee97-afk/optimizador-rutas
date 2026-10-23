@@ -35,14 +35,23 @@ test('logout or role change discards a late server response and previously loade
  const request=h.panel.load();h.switchRole('SUPERVISOR');releaseGate();await request
  assert.equal(h.panel.state.value,null);assert.equal(h.panel.candidate.value,null);assert.equal(h.panel.busy.value,false)
 })
-test('actual navigation guard permits admin route exclusively to ADMIN and leaves normal routes unchanged',()=>{
+test('actual navigation permits APK panel only to ADMIN in Farmacias and preserves ordinary routes',()=>{
  const source=fs.readFileSync(require.resolve('../../src/App.vue'),'utf8'),start=source.indexOf('function routeAllowedForProfile('),end=source.indexOf('function getDefaultPath()',start)
  for(const role of ['ADMIN','GERENTE','']){
   const ctx={systemRole:{value:role},normalizedArea:{value:'FARMACIAS'},normalizedRole:{value:'GERENTE'}};vm.runInNewContext(source.slice(start,end),ctx)
   assert.equal(ctx.routeAllowedForProfile({path:'/admin/actualizaciones',meta:{adminOnly:true}}),role==='ADMIN')
   assert.equal(ctx.routeAllowedForProfile({path:'/farmacias/planes',meta:{roles:['GERENTE']}}),true)
  }
- assert.match(source,/item\.adminOnly \? systemRole\.value==='ADMIN'/)
+ for(const area of ['FARMACIAS','OPERACIONES'])for(const role of ['ADMIN','USER'])for(const rol of ['SUPERVISOR','GERENTE']){
+  const ctx={systemRole:vue.ref(role),normalizedArea:vue.ref(area),normalizedRole:vue.ref(rol),computed:vue.computed}
+  vm.runInNewContext(source.slice(start,end),ctx)
+  assert.equal(ctx.routeAllowedForProfile({path:'/admin/actualizaciones',meta:{adminOnly:true}}),role==='ADMIN' && area==='FARMACIAS')
+  vm.runInNewContext(source.slice(source.indexOf('const farmaciasMenuDefinition'),source.indexOf('const activeMenuItem'))+';this.menu=managementMenu',ctx)
+  assert.equal(ctx.menu.value.some(item=>item.key==='app-updates'),role==='ADMIN')
+  assert.equal(ctx.routeAllowedForProfile({path:'/farmacias/personas',meta:{roles:['GERENTE']}}),area==='FARMACIAS' && (rol==='GERENTE'||role==='ADMIN'))
+ }
+ const template=parse(source).descriptor.template.content
+ assert.equal((template.match(/to="\/admin\/actualizaciones"/g)||[]).length,0,'no standalone link outside Farmacias navigation')
  const menu=source.slice(source.indexOf('const managementMenu'),source.indexOf('const activeMenuItem'))
  for(const key of ['app-updates','approvals','assignments','people','indicators','reports'])assert.ok(menu.includes("'"+key+"'"))
 })

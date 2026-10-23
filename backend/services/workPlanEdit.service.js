@@ -1,3 +1,4 @@
+import { isActiveAdmin } from './adminReadAccess.service.js'
 import { planDownloadWindow } from './planDownloadWindow.js'
 import { appendWorkPlanEvent } from './workPlanAudit.service.js'
 
@@ -42,7 +43,14 @@ async function accessiblePlan(client, planId, actor, lock = false) {
 }
 function eligible(plan) { return plan.status === 'APPROVED' && !plan.archived_at && date(plan.period_end) >= editToday() }
 export async function getEditAccess(client, planId, actor) {
-  const plan = await accessiblePlan(client,planId,actor)
+  const adminRead = isActiveAdmin(actor)
+  if (adminRead && !UUID.test(String(planId))) fail('INVALID_WORK_PLAN_ID','Identificador de plan inválido.',400)
+  const plan = adminRead
+    ? (await client.query(`SELECT p.*, false AS can_review FROM public.work_plan p
+        JOIN public.personas owner ON owner.id=p.supervisor_id
+        WHERE p.id=$1 AND owner.area::text='FARMACIAS' AND owner.activo`,[planId])).rows[0]
+    : await accessiblePlan(client,planId,actor)
+  if (!plan) fail('WORK_PLAN_NOT_FOUND','El plan no existe o no pertenece a tu estructura.',404)
   const result = await client.query('SELECT * FROM public.work_plan_edit_request WHERE plan_id=$1 ORDER BY requested_at DESC LIMIT 1',[planId])
   const request = result.rows[0] ?? null
   const owner = plan.supervisor_id === actor.id
@@ -56,14 +64,15 @@ export async function getEditAccess(client, planId, actor) {
     minDate:[editToday(),date(plan.period_start),date(request?.from_date)].sort().at(-1)}
 }
 export async function listEditRequests(client, actor) {
-  validateActor(actor)
+  const adminRead = isActiveAdmin(actor)
+  if (!adminRead) validateActor(actor)
   const result = await client.query(`SELECT r.*,o.nombre AS owner_name,p.plan_type,p.period_start,p.period_end
     FROM public.work_plan_edit_request r JOIN public.work_plan p ON p.id=r.plan_id JOIN public.personas o ON o.id=p.supervisor_id
     WHERE r.status='PENDING' AND p.status::text='APPROVED' AND p.archived_at IS NULL
       AND r.revision_number=p.revision_number AND o.activo
       AND p.period_end >= (CURRENT_TIMESTAMP AT TIME ZONE 'America/Mexico_City')::date
-      AND public.can_review_farmacias_plan($1::uuid,p.supervisor_id)
-    ORDER BY r.requested_at ASC LIMIT 200`,[actor.id])
+      AND ($2::boolean OR public.can_review_farmacias_plan($1::uuid,p.supervisor_id))
+    ORDER BY r.requested_at ASC LIMIT 200`,[actor.id,adminRead])
   return {requests:result.rows}
 }
 export async function changeEditRequest(client, {planId,actor,action,reason}) {

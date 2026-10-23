@@ -11,19 +11,19 @@
       <div v-if="access.canReview" class="actions"><button type="button" :disabled="busy" @click="act(planId,'approve')">Autorizar edición</button><button type="button" :disabled="busy" @click="act(planId,'reject')">Rechazar solicitud</button></div>
     </template>
     <p v-if="!planId && !requests.length && !error">Sin solicitudes de edición pendientes.</p>
-    <article v-for="request in requests" :key="request.id"><strong>{{ request.owner_name }}</strong><p>{{ request.plan_type==='EXTRAORDINARY'?'Plan extraordinario':'Plan ordinario' }} · {{ String(request.period_start).slice(0,10) }} — {{ String(request.period_end).slice(0,10) }}</p><p>{{ request.reason }}</p><div class="actions"><button type="button" @click="router.push({name:'farmacias-plan-detail',params:{planId:request.plan_id}})">Ver plan</button><button type="button" :disabled="busy" @click="act(request.plan_id,'approve')">Autorizar edición</button><button type="button" :disabled="busy" @click="act(request.plan_id,'reject')">Rechazar</button></div></article>
+    <article v-for="request in requests" :key="request.id"><strong>{{ request.owner_name }}</strong><p>{{ request.plan_type==='EXTRAORDINARY'?'Plan extraordinario':'Plan ordinario' }} · {{ String(request.period_start).slice(0,10) }} — {{ String(request.period_end).slice(0,10) }}</p><p>{{ request.reason }}</p><div class="actions"><button type="button" @click="router.push({name:'farmacias-plan-detail',params:{planId:request.plan_id}})">Ver plan</button><button type="button" v-if="!readonly" :disabled="busy" @click="act(request.plan_id,'approve')">Autorizar edición</button><button type="button" v-if="!readonly" :disabled="busy" @click="act(request.plan_id,'reject')">Rechazar</button></div></article>
   </section>
 </template>
 <script setup>
 import {onMounted,ref,watch} from 'vue'
 import {useRouter} from 'vue-router'
 import {getPlanEditAccess,listPlanEditRequests,changePlanEditRequest} from '../services/api.js'
-const props=defineProps({planId:{type:String,default:''},editing:Boolean,initiallyOpen:Boolean,inboxRequests:{type:Array,default:null},showEmpty:Boolean})
+const props=defineProps({planId:{type:String,default:''},editing:Boolean,initiallyOpen:Boolean,inboxRequests:{type:Array,default:null},showEmpty:Boolean,readonly:Boolean})
 const emit=defineEmits(['updated','access','refresh'])
 const router=useRouter(),access=ref(null),requests=ref([]),reason=ref(''),error=ref(''),message=ref(''),open=ref(props.initiallyOpen),busy=ref(false)
 const labels={PENDING:'Autorización pendiente',APPROVED:'Edición autorizada',REJECTED:'Solicitud rechazada',COMPLETED:'Edición finalizada'}
 async function load(){error.value='';try{if(props.planId){access.value=await getPlanEditAccess(props.planId);emit('access',access.value)}else{requests.value=props.inboxRequests ?? (await listPlanEditRequests()).requests}}catch(e){error.value=e.message||'No se pudo consultar la autorización.';access.value=null;requests.value=[];emit('access',null)}}
-async function act(id,action){if(busy.value)return;if(['approve','reject','finish'].includes(action)&&!window.confirm({approve:'¿Autorizar cambios del día vigente en adelante?',reject:'¿Rechazar esta solicitud?',finish:'¿Finalizar el permiso de edición?'}[action]))return;busy.value=true;error.value='';try{await changePlanEditRequest(id,action,reason.value.trim());reason.value='';open.value=false;message.value={request:'Solicitud enviada.',approve:'Edición autorizada.',reject:'Solicitud rechazada.',finish:'Edición finalizada.'}[action];await load();emit('updated')}catch(e){error.value=e.message||'No fue posible guardar la solicitud.'}finally{busy.value=false}}
+async function act(id,action){if(busy.value || props.readonly)return;if(['approve','reject','finish'].includes(action)&&!window.confirm({approve:'¿Autorizar cambios del día vigente en adelante?',reject:'¿Rechazar esta solicitud?',finish:'¿Finalizar el permiso de edición?'}[action]))return;busy.value=true;error.value='';try{await changePlanEditRequest(id,action,reason.value.trim());reason.value='';open.value=false;message.value={request:'Solicitud enviada.',approve:'Edición autorizada.',reject:'Solicitud rechazada.',finish:'Edición finalizada.'}[action];await load();emit('updated')}catch(e){error.value=e.message||'No fue posible guardar la solicitud.'}finally{busy.value=false}}
 function refresh(){if(!props.planId && props.inboxRequests!==null)emit('refresh');else void load()}
 onMounted(load);watch(()=>props.planId,load);watch(()=>props.inboxRequests,()=>{if(!props.planId)void load()})
 </script>

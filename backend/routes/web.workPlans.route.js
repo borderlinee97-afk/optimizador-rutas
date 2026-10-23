@@ -23,6 +23,8 @@ import {
   canAccessPersona,
 } from '../services/hierarchyAccess.service.js'
 
+import { isActiveAdmin, farmaciasReadRole } from '../services/adminReadAccess.service.js'
+
 const router =
   Router()
 
@@ -206,7 +208,7 @@ router.get(
           state,
         )
 
-      if (!hasScope) {
+      if (!isActiveAdmin(req.profile) && !hasScope) {
         return res
           .status(403)
           .json({
@@ -280,14 +282,14 @@ router.get(
               supervisor.area::text =
                 'FARMACIAS'
 
-              AND supervisor.rol::text =
-                'SUPERVISOR'
+              AND (supervisor.rol::text = 'SUPERVISOR'
+                OR ($1::text = 'ADMIN' AND supervisor.rol::text = 'COORDINADOR'))
 
               AND supervisor.activo =
                 TRUE
 
               AND (
-                (
+                $1::text = 'ADMIN' OR (
                   $1::text =
                     'DIRECTOR'
 
@@ -554,7 +556,7 @@ router.get(
             supervisor.supervisor_name ASC
           `,
           [
-            req.profile.rol,
+            farmaciasReadRole(req.profile),
             state,
             req.profile.id,
             periodStart,
@@ -1044,7 +1046,8 @@ async function loadFarmaciasProfile(
           rol,
           activo,
           superior_id,
-          pharmacy_scope_mode
+          pharmacy_scope_mode,
+          system_role
 
         FROM public.personas
 
@@ -1089,7 +1092,7 @@ async function loadFarmaciasProfile(
     }
 
     if (
-      String(
+      !isActiveAdmin(profile) && String(
         profile.area,
       ).toUpperCase() !==
       'FARMACIAS'
@@ -1109,7 +1112,7 @@ async function loadFarmaciasProfile(
       ...profile,
 
       area:
-        String(
+        isActiveAdmin(profile) ? 'FARMACIAS' : String(
           profile.area,
         )
           .trim()
@@ -1148,7 +1151,7 @@ function requireSupportedRole(
   next,
 ) {
   if (
-    !ALLOWED_ROLES.has(
+    !isActiveAdmin(req.profile) && !ALLOWED_ROLES.has(
       req.profile?.rol,
     )
   ) {

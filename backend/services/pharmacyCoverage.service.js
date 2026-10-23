@@ -2,6 +2,8 @@ import {
   pool,
 } from '../db/pool.js'
 
+import { isActiveAdmin, farmaciasReadRole } from './adminReadAccess.service.js'
+
 const UUID_PATTERN =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
@@ -53,7 +55,7 @@ export async function listPharmacyCoverages({
   state,
   actor,
 }) {
-  validateActor(
+  if (!isActiveAdmin(actor)) validateActor(
     actor,
   )
 
@@ -220,7 +222,7 @@ export async function listPharmacyCoverages({
           )
         )
 
-        AND EXISTS (
+        AND ($3::text = 'ADMIN' OR EXISTS (
           SELECT 1
 
           FROM public.person_state_scope
@@ -242,10 +244,10 @@ export async function listPharmacyCoverages({
                 farmacia.estado
               )
             )
-        )
+        ))
 
         AND (
-          (
+          $3::text = 'ADMIN' OR (
             $3::text =
               'GERENTE'
 
@@ -281,7 +283,7 @@ export async function listPharmacyCoverages({
       [
         normalizedState,
         actor.id,
-        actor.rol,
+        farmaciasReadRole(actor),
       ],
     )
 
@@ -302,11 +304,11 @@ export async function listPharmacyCoverages({
         normalizedState,
 
       canApprove:
-        actor.rol ===
+        !isActiveAdmin(actor) && actor.rol ===
         'GERENTE',
 
       canCreateDirect:
-        ['COORDINADOR', 'GERENTE'].includes(actor.rol),
+        !isActiveAdmin(actor) && ['COORDINADOR', 'GERENTE'].includes(actor.rol),
 
       canRequest:
         false,

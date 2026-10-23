@@ -1,5 +1,6 @@
 import { attachActivitiesToItems } from '../services/pharmacyActivity.service.js'
 import { Router } from 'express'
+import { isActiveAdmin } from '../services/adminReadAccess.service.js'
 import { pool } from '../db/pool.js'
 import { requireAuth } from '../middleware/requireAuth.js'
 import {
@@ -25,15 +26,15 @@ export function createFarmaciasReportsRouter(
       const p = rows[0]
       if (
         !p?.activo ||
-        p.area !== 'FARMACIAS' ||
-        !['DIRECTOR', 'GERENTE', 'COORDINADOR'].includes(p.rol)
+        (!isActiveAdmin(p) && (p.area !== 'FARMACIAS' ||
+        !['DIRECTOR', 'GERENTE', 'COORDINADOR'].includes(p.rol)))
       ) {
         return res.status(403).json({
           error:
             'Acceso exclusivo a dirección, gerencia y coordinación de Farmacias.',
         })
       }
-      req.reportActor = p
+      req.reportActor = {...p, area: 'FARMACIAS'}
       res.set('Cache-Control', 'private, no-store')
       next()
     } catch {

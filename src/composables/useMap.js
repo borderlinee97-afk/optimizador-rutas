@@ -30,6 +30,8 @@ export function useMap() {
   }
 
   let mapClickListener = null
+  let disposed = false
+  let initVersion = 0
 
   /**
    * Crea mapa y todos los marcadores de farmacias.
@@ -37,14 +39,20 @@ export function useMap() {
    * - farmacias: ref([]) con { latitud, longitud, region_sanitaria, clues, dificil_acceso, ... }
    */
   async function initMap({ getColorForRegion, farmacias }) {
+    const version = ++initVersion
+    const element = mapEl.value
+    const stillCurrent = () => !disposed && version === initVersion && mapEl.value === element && element?.isConnected !== false
+    if (!element || !stillCurrent()) return
     if (!window.google || !google.maps) {
       throw new Error('Google Maps JS API no está cargada aún (ver main.js).')
     }
 
     const { Map } = await google.maps.importLibrary('maps')
+    if (!stillCurrent()) return
     const { AdvancedMarkerElement, PinElement } = await google.maps.importLibrary('marker')
+    if (!stillCurrent()) return
 
-    map.value = new Map(mapEl.value, {
+    map.value = new Map(element, {
       center: { lat: 20.6597, lng: -103.3496 },
       zoom: 12,
       mapId: 'DEMO_MAP_ID'
@@ -179,6 +187,8 @@ export function useMap() {
   }
 
   onBeforeUnmount(() => {
+    disposed = true
+    initVersion++
     if (mapClickListener) {
       try { google.maps.event.removeListener(mapClickListener) } catch {}
       mapClickListener = null

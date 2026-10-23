@@ -14,6 +14,8 @@ import {
   requireRoles,
 } from '../middleware/operationalAccess.js'
 
+import { isActiveAdmin, farmaciasReadRole } from '../services/adminReadAccess.service.js'
+
 const router =
   Router()
 
@@ -81,6 +83,7 @@ router.get(
             persona.superior_id,
             persona.pharmacy_scope_mode,
             persona.auth_user_id,
+            persona.system_role,
 
             COALESCE(
               ARRAY_AGG(
@@ -162,7 +165,7 @@ router.get(
       }
 
       if (
-        actorArea !==
+        !isActiveAdmin(actor) && actorArea !==
         'FARMACIAS'
       ) {
         return res
@@ -177,7 +180,7 @@ router.get(
       }
 
       if (
-        !ALLOWED_DIRECTORY_ROLES.has(
+        !isActiveAdmin(actor) && !ALLOWED_DIRECTORY_ROLES.has(
           actorRole,
         )
       ) {
@@ -216,7 +219,7 @@ router.get(
           : []
 
       if (
-        requestedState &&
+        !isActiveAdmin(actor) && requestedState &&
         !actorStates.some(
           state =>
             normalizeUpper(
@@ -252,7 +255,7 @@ router.get(
                 'FARMACIAS'
 
               AND (
-                (
+                $2::text = 'ADMIN' OR (
                   $2::text =
                     'DIRECTOR'
 
@@ -600,7 +603,7 @@ router.get(
           `,
           [
             actor.id,
-            actorRole,
+            farmaciasReadRole(actor),
             filters.value.search,
             filters.value.role,
             filters.value.status,

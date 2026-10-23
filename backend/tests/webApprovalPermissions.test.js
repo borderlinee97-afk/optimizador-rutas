@@ -1,3 +1,4 @@
+import { isActiveAdmin, farmaciasReadRole } from '../services/adminReadAccess.service.js'
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import { runInNewContext } from 'node:vm'
@@ -10,7 +11,7 @@ function loadRoute(file, pool) {
     .replace(/import\s+[\s\S]*?from\s+'[^']+'\s*/g, '')
     .replace(/export default router\s*$/, '')
   const context = {
-    pool, console,
+    pool, console, isActiveAdmin, farmaciasReadRole,
     Router: () => ({ use() {}, get(...args) { routes.push(args) }, post() {} }),
     requireAuth() {},
     canAccessPersona: async () => true,

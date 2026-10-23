@@ -1,3 +1,4 @@
+import { isActiveAdmin } from '../services/adminReadAccess.service.js'
 import { Router } from 'express'
 import { pool } from '../db/pool.js'
 import { requireAuth } from '../middleware/requireAuth.js'
@@ -8,10 +9,11 @@ router.use((req,res,next)=> /^\/(?:edit-requests$|[^/]+\/edit-request(?:\/|$))/.
 router.use(requireAuth)
 router.use(async (req,res,next) => {
   try {
-    const result=await pool.query(`SELECT id,area::text,rol::text,activo FROM public.personas WHERE auth_user_id=$1 AND activo LIMIT 1`,[req.auth.user.id])
+    const result=await pool.query(`SELECT id,area::text,rol::text,activo,system_role FROM public.personas WHERE auth_user_id=$1 AND activo LIMIT 1`,[req.auth.user.id])
     const profile=result.rows[0]
-    if (!profile || profile.area!=='FARMACIAS' || !['SUPERVISOR','COORDINADOR','GERENTE'].includes(profile.rol)) return res.status(403).json({error:'Tu perfil no puede gestionar solicitudes de edición.',code:'EDIT_ROLE_REQUIRED'})
-    req.editActor={...profile,channel:req.originalUrl.startsWith('/api/web/')?'WEB':'MOBILE'}
+    const adminRead = req.method==='GET' && req.originalUrl.startsWith('/api/web/') && isActiveAdmin(profile)
+    if (!profile || (!adminRead && (profile.area!=='FARMACIAS' || !['SUPERVISOR','COORDINADOR','GERENTE'].includes(profile.rol)))) return res.status(403).json({error:'Tu perfil no puede gestionar solicitudes de edición.',code:'EDIT_ROLE_REQUIRED'})
+    req.editActor={...profile,area:adminRead?'FARMACIAS':profile.area,system_role:adminRead?profile.system_role:undefined,channel:req.originalUrl.startsWith('/api/web/')?'WEB':'MOBILE'}
     next()
   } catch(error) { next(error) }
 })
