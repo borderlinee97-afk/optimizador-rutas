@@ -1,4 +1,5 @@
 import { WorkPlanEditAccess } from '../../src/components/WorkPlanEditAccess'
+import { KeyboardAwareScrollView as ScrollView } from '../../src/components/KeyboardAwareScrollView'
 import { AvailabilityPanel } from '../../src/components/AvailabilityPanel'
 import {
 
@@ -35,8 +36,6 @@ import {
   Pressable,
 
   RefreshControl,
-
-  ScrollView,
 
   Text,
 

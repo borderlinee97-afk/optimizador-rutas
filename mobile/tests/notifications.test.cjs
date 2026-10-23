@@ -70,3 +70,5 @@ test('Offline banner is hidden on an online network even with preserved legacy d
  assert.equal(OfflineStatus(),null);network={isConnected:null,isInternetReachable:null};assert.equal(OfflineStatus(),null)
  network={isConnected:false,isInternetReachable:false};assert.ok(OfflineStatus())
 })
+
+test('task alerts open Agenda only for their account and valid task id',()=>{const s=notificationsHarness().service;for(const kind of ['TASK_ASSIGNED','TASK_REMINDER']){assert.equal(s.notificationDestination({kind,taskId:B,recipientAuthId:A},A,'SUPERVISOR'),'/(tabs)/tasks');assert.equal(s.notificationDestination({kind,taskId:B,recipientAuthId:B},A,'SUPERVISOR'),null);assert.equal(s.notificationDestination({kind,taskId:'bad',recipientAuthId:A},A,'SUPERVISOR'),null)}})

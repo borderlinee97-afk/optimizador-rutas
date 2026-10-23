@@ -131,3 +131,37 @@ test('Additional activity rules reject missing check-in, closed visit, invalid i
  assert.throws(()=>h.queue(v,'ACTIVITY_ADDED',{activityType:'Nueva'}),/check-in/)
  h.close()
 })
+
+
+test('explicit retry includes failed photos before refreshing today, without changing evidence identifiers', async () => {
+ const h=harness(),v=h.visit();h.queue(v,'CHECK_IN');await h.service.syncVisitExecution(A);h.photo(v)
+ h.storage.db.runSync("UPDATE evidence_queue SET status='FAILED',last_error='old upload limit'")
+ const original=h.storage.db.getFirstSync('SELECT evidence_id,local_uri FROM evidence_queue')
+ let refreshed=0
+ await h.service.retryPendingVisitSync(A,async()=>{
+  refreshed++;assert.equal(h.service.executionSummary().length,0)
+  assert.equal(h.storage.db.getFirstSync('SELECT status FROM evidence_queue').status,'READY')
+ })
+ assert.equal(refreshed,1)
+ assert.deepEqual(h.storage.db.getFirstSync('SELECT evidence_id,local_uri FROM evidence_queue'),original)
+ h.close()
+})
+
+test('a permanent server conflict remains pending for review; retry does not discard or falsely acknowledge it',async()=>{
+ const h=harness(),v=h.visit();const event=h.queue(v,'CHECK_IN')
+ h.fail(new ApiError('Visita cerrada administrativamente',409,'ITEM_NOT_IN_PROGRESS'))
+ await h.service.retryPendingVisitSync(A,async()=>{})
+ const rows=h.service.executionSummary();assert.equal(rows.length,1);assert.equal(rows[0].id,event.id)
+ assert.equal(rows[0].status,'FAILED');assert.match(rows[0].last_error,/administrativamente/)
+ h.close()
+})
+
+test('manual sync does not refresh another account after a switch during execution upload',async()=>{
+ const h=harness(),v=h.visit();h.queue(v,'CHECK_IN');h.photo(v)
+ let release,refreshed=0;h.hold(new Promise(r=>release=r))
+ const sync=h.service.retryPendingVisitSync(A,async()=>{refreshed++})
+ await new Promise(r=>setImmediate(r));h.switchUser(B);release();await sync
+ assert.equal(refreshed,0);assert.equal(h.log.filter(x=>x.startsWith('PHOTO:')).length,0)
+ h.switchUser(A);assert.equal(h.storage.db.getFirstSync('SELECT status FROM evidence_queue').status,'PENDING')
+ h.close()
+})

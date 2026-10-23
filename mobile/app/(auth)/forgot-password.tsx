@@ -1,3 +1,4 @@
+import { KeyboardAwareScrollView as ScrollView } from '../../src/components/KeyboardAwareScrollView'
 import { Link } from 'expo-router'
 import { useState } from 'react'
 import {
@@ -6,7 +7,6 @@ import {
   Platform,
   Pressable,
   SafeAreaView,
-  ScrollView,
   Text,
   TextInput,
   View,

@@ -137,3 +137,19 @@ export function retryFailedVisitExecution(userId:string,itemId?:string) {
     }catch{/* Preserve legacy/malformed records for explicit review. */}
   }
 }
+
+
+// Explicit user retry: include failed photos, then resume events waiting for that evidence.
+// Keep the existing cache guard; nothing is discarded or falsely marked as accepted.
+export async function retryPendingVisitSync(userId: string, refresh: () => Promise<void>, itemId?: string) {
+  const database = db
+  const current = () => isDatabaseActive(userId) && db === database && getDatabaseUserId(database) === userId && !isLegacyRecoveryActive(database)
+  if (!current()) return
+  retryFailedVisitExecution(userId, itemId)
+  await syncVisitExecution(userId)
+  if (!current()) return
+  await syncPendingEvidence('', true, itemId ? { planItemId: itemId } : undefined)
+  if (!current()) return
+  await syncVisitExecution(userId)
+  if (current()) await refresh()
+}

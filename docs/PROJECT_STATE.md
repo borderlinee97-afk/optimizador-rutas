@@ -1,5 +1,25 @@
 # APP DE RUTAS — estado del proyecto
 
+## Vacaciones desplegables y visibilidad del teclado (2026-10-22)
+
+- Vacaciones queda cerrado por defecto en móvil y web. Etiquetas persistentes,
+  fechas con formato explícito, motivo obligatorio e instrucciones de envío y
+  seguimiento; se elimina la leyenda de Puebla sin modificar sus permisos.
+- En móvil, teclado numérico y guiones automáticos conservan las fechas ISO de
+  la API. Se mantienen la identidad de cada cuenta, UUID de reintento, bloqueo
+  offline y decisiones de aprobación/rechazo existentes.
+- KeyboardAwareScrollView desplaza el campo enfocado tras abrir/redimensionar
+  el teclado o cambiar de campo. Usa mediciones de pantalla, espacio al pie y
+  limpieza de eventos; ignora campos de otras pantallas y listas horizontales.
+  Los formularios y modales existentes sólo sustituyen su import de ScrollView,
+  incluidos la nota de actividad, actividades adicionales, vacaciones y acceso.
+- Validación: TypeScript móvil sin errores, build web correcto, siete pruebas
+  enfocadas de teclado y prueba simulada de desplegado, fechas, envío, reintento,
+  bloqueo offline, cambio de cuenta, aprobación y rechazo.
+- Pendiente: prueba física del teclado en una nueva APK preview. No se ha hecho
+  commit, push, despliegue ni compilación de APK en este bloque.
+
+
 ## Seguimiento de visitas, agenda y acceso — publicación autorizada (2026-10-20)
 
 - Farmacias pendientes por responsable y asignaciones del periodo: última visita
@@ -579,6 +599,14 @@ El encargo reutilizable está en `docs/CODEX_HANDOFF.md`.
 - Fuente aislada desde 330b90f: solo cambios de evidencias y teclado. En reset-password.tsx y work-plans/[id].tsx se preparan versiones sin los ajustes previos ajenos. Los cambios pendientes del checkout se conservan.
 - Verificacion de la fuente aislada aprobada: TypeScript, sintaxis backend, ocho pruebas de tickets/politica y 27 pruebas de evidencias/reintentos. Sin nuevas migraciones ni cambios de datos.
 
+### Resultado de publicacion: evidencias y teclado
+
+- Commit: 83749b0e4fc32808c4a833dae4fcc310b43a31a4, origin/main. Solo evidencias, teclado, pruebas y registro; los otros cambios locales permanecen pendientes.
+- Backend Render: dep-dbclddks728c73angebg live, mismo commit, despliegue automatico. Salud HTTP 200 (ok=true/db=true), politica de evidencias sin autenticacion HTTP 401 y logs posteriores revisados sin errores.
+- APK preview: c25a091e-ee81-40bb-a0c4-0f2eca39a3f1, Expo app-de-rutas/borderline97. Fuente limpia verificada contra el commit; entorno preview y firma existentes. Se envio una sola compilacion con --no-wait; en la unica consulta de confirmacion ya figuraba IN_PROGRESS (supero la cola). Por peticion del usuario se detuvo ahi el seguimiento, sin esperar el resultado ni descargar la APK.
+- Enlace: https://expo.dev/accounts/borderline97/projects/app-de-rutas/builds/c25a091e-ee81-40bb-a0c4-0f2eca39a3f1
+- Pendiente del usuario: resultado de compilacion e instalacion/prueba del teclado y evidencias en Android. No hay comprobacion fisica de la nueva APK por el agente.
+
 ## 2026-10-22 - Solicitud de edición autorizada de planes vigentes
 
 - Planes ordinarios y extraordinarios aprobados: el responsable solicita edición con motivo; aprueban los mismos coordinadores/gerentes autorizados para revisar ese plan (ambos coordinadores de Puebla incluidos; planes de coordinador, sólo su gerente). Sin autoaprobación.
@@ -589,6 +617,14 @@ El encargo reutilizable está en `docs/CODEX_HANDOFF.md`.
 - Validación: 28 pruebas focalizadas aprobadas, incluidas migración real en PostgreSQL local desechable, jerarquía real de Puebla, decisiones concurrentes, cierre/revisión/caducidad, cinco intentos de escritura retroactiva y formularios web compilados con API simulada. Web build, TypeScript móvil, sintaxis y diff check aprobados. Prueba con cuentas reales pendiente; no se generaron solicitudes productivas para validar.
 - Supabase dry-run: exclusivamente esta migración pendiente; conexión local al mismo proyecto actualizada a pooler IPv4 por incompatibilidad IPv6, sin modificar configuración remota.
 
+### Publicación de edición autorizada
+
+- Commit fc1407947446a11b8d6209bc32adb232f50e69b9 publicado en origin/main: 21 archivos limitados a este bloque. Los hunks móviles y de documentación se aislaron para preservar y excluir los cambios anteriores. Fuente exacta preparada para publicación: build web y TypeScript móvil aprobados.
+- Supabase: únicamente la migración 20261022120000 aplicada; dry-run posterior sin pendientes. Sin seeds ni cambios de registros existentes.
+- Vercel: estado success del mismo commit; web HTTP 200 y bundle publicado contiene solicitar/finalizar edición y bandeja de solicitudes.
+- Render: dep-dbd7m7ou01pc73bra4u0 live con el mismo commit; salud HTTP 200 (ok=true,db=true). Endpoints nuevos web/móvil sin credenciales devuelven 401; revisión breve de logs posteriores sin errores de aplicación. No se crearon solicitudes productivas ni se usaron cuentas reales en la comprobación.
+- Móvil: código preparado y validado, sin compilación de APK ni publicación OTA. Validación final con usuarios reales de solicitud, autorización, edición del día vigente/futuro y cierre pendiente del usuario.
+
 ## 2026-10-22 - Corrección de entrada a edición web de planes aprobados
 
 - Observación del usuario: los planes extraordinarios de hoy sólo mostraban Ver detalle. Se agrega Solicitar edición en Mis planes para planes aprobados ordinarios/extraordinarios cuyo periodo no terminó; abre la solicitud en la misma fila y conserva la autorización requerida. No muestra el acceso para planes archivados o vencidos.
@@ -596,15 +632,61 @@ El encargo reutilizable está en `docs/CODEX_HANDOFF.md`.
 - Nueve pruebas web aprobadas, incluidas cinco regresiones del editor real compilado: apertura y guardado hoy/futuro en ambos tipos, bloqueo retroactivo y falta de autorización. Build web y diff check aprobados. Sin cambios de backend, migraciones ni lógica móvil.
 - APK preview solicitada del commit fc14079: build 2b4d54c0-9bf7-4a03-bf13-c757cd416286, Expo app-de-rutas/borderline97. Fuente aislada verificada contra 107 archivos móviles del commit (sólo finales de línea normalizados). Perfil preview, firma y entorno existentes; envío único --no-wait. Una sola consulta posterior confirmó IN_QUEUE y se detuvo el seguimiento como pidió el usuario. Enlace: https://expo.dev/accounts/borderline97/projects/app-de-rutas/builds/2b4d54c0-9bf7-4a03-bf13-c757cd416286
 
+- Publicación de la corrección web: commit 86fa8d9aac5f1431f5419ce69ed84a5494f71598, sólo cinco archivos del bloque. Vercel success, HTTP 200; bundle publicado verificado con el nuevo acceso de Mis planes y el guard de fecha del editor. [skip render] conserva el backend sin redesplegar. Sin nuevas migraciones ni segunda compilación móvil. El seguimiento de Expo se detuvo al confirmar IN_QUEUE; no se consultó nuevamente.
+
+
+## 2026-10-23 - Actualización de APK desde la propia app (local, sin publicación)
+
+- El usuario precisó que no desea compartir enlaces ni abrir el navegador para actualizar. Se sustituyó la página/enlace de la primera implementación local por descarga privada, progreso y apertura directa del instalador Android al pulsar Actualizar. El usuario confirma Android; si falta permiso, se solicita una vez y al regresar se continúa sin repetir la descarga. No se promete instalación silenciosa.
+- El responsable prueba y aprueba una APK exacta antes de promoverla. El preparador recibe esa APK y metadatos de su build preview Android FINISHED del proyecto EAS existente; verifica SHA-256 y tamaño idénticos contra el artefacto permanente de Expo y sólo entonces prepara el manifiesto local con código creciente. No publica automáticamente builds de pruebas. Manifiesto inicial sin release: no se promovió ninguna build previa.
+- Backend: sólo `/api/app/android/release` y `/api/app/android/download?versionCode=N`, metadatos mínimos y descarga fijada al código vigente. Sin HTML, navegador, escritura pública, cambios de Auth, Supabase o usuarios; no-store limitado a rutas nuevas. Artefactos sólo desde HTTPS Expo, sin links firmados temporales en el manifiesto.
+- Móvil: aviso discreto y consulta desde Perfil; comprobación independiente, diferida diez segundos y con límites de reintentos. La descarga se inicia sólo por el usuario y no bloquea el trabajo offline. Reutiliza copia completa al volver de permisos/cancelación; rechaza transferencia incompleta, APK retirada o validación fallida. Timeout de consulta y vigilancia de descarga sin avances.
+- Módulo Android local InternalApkUpdater: permiso REQUEST_INSTALL_PACKAGES y FileProvider no exportado limitado a cache/app-updates. Valida tamaño, SHA-256 aprobado, paquete, versión futura exacta y mismos certificados antes de entregar URI de sólo lectura al instalador. No desinstala. Tras arrancar la nueva versión, elimina exclusivamente copias privadas de actualización ya instaladas. No toca SQLite, evidencias, sesiones, planes ni colas.
+- EAS: mismo paquete/entorno/firma, numeración remota e incremento automático preview. Consultar/inicializar contador por encima de toda APK distribuida antes de la primera compilación. Sin cambios al contador remoto ni build enviado. Las APK existentes requieren una primera actualización manual para incorporar el sistema.
+- Validación: 16 pruebas focalizadas aprobadas (5 backend, 5 consulta/provider, 6 descarga/política nativa); incluye compilación/ejecución de la política Java real con JDK y comprobaciones de integridad, firma, versión y ruta. Expo autolinking detecta el módulo local. TypeScript, sintaxis JS y diff check aprobados. Build web aprobado en el bloque anterior; sin cambios web posteriores. No sustituye prueba del instalador ni compilación Android.
+- Documentación operativa en docs/mobile/INTERNAL_APK_UPDATES.md, incluida promoción por aprobación expresa, retirada, alcance de los endpoints públicos y prueba física pendiente. Cambios locales previos conservados. Sin commit, push, despliegue, migración ni nueva APK. Pendiente: primera compilación autorizada y actualización real sobre la anterior conservando pendientes offline.
+
+
 ## 2026-10-23 - Cierre administrativo puntual y solicitudes de edición en Aprobaciones
 
 - Se ejecutó exclusivamente el cierre de la visita indicado por el usuario, en el proyecto Supabase verificado, mediante estado terminal existente SKIPPED y marcador CIERRE_ADMINISTRATIVO_NO_FINALIZADA. Se conservó el check-in y se mantuvieron salida/duración sin registrar; no se completaron actividades ni eliminaron evidencias. Respaldo privado fuera del repositorio antes de escribir, evento de auditoría con actor de soporte sin atribuir la acción al supervisor, guardas de concurrencia sobre estado/entrada/salida/updated_at y verificación posterior. No se aplicó cierre a otras visitas.
 - Reportes: indicador notCompleted/No finalizada para cierres administrativos identificados; incluido en resumen, detalle/historial y CSV/PDF. La visita permanece en no realizadas y no suma cumplimiento, cobertura o tiempo sin salida comprobada. Detalle del plan usa la misma etiqueta. Sin nuevo estado en la APK ni migración.
 - Aprobaciones web: se reutiliza listEditRequests y can_review_farmacias_plan para agregar solicitudes de edición ordinarias/extraordinarias al endpoint, contador total y nueva tarjeta Ediciones de plan. El componente existente muestra responsable, periodo, motivo, Ver plan, Autorizar/Rechazar y estado vacío; refresco y decisión actualizan la bandeja y contadores. No cambia jerarquías ni habilita edición de días anteriores. La pantalla móvil ya incluía su bandeja; no se modificó ni compiló.
 - Validación: 18 pruebas focalizadas aprobadas entre bandeja/jerarquía, componente de autorización y presentación de reportes; incluye página real de Aprobaciones compilada y regresión del cierre sin horas/cobertura inventadas. Build web, sintaxis backend y diff check aprobados. Advertencia de tamaño de bundle ya existente.
-- Cambio de datos aplicado por autorización expresa. Usuario autorizó publicar únicamente este bloque de web/backend. No requiere migraciones ni compilación APK; se excluye el sistema de actualizaciones internas y todos los cambios móviles pendientes. Se preservaron los cambios locales anteriores, incluido el sistema de actualización de APK aún sin publicar. Ningún dato productivo, credencial o respaldo operativo se añadió al código versionado.
+- Cambio de datos aplicado por autorización expresa. Web/backend publicados por autorización posterior del usuario en c308157. Sin nuevas migraciones ni compilación APK; sistema de actualizaciones internas excluido. Se preservaron los cambios locales anteriores, incluido el sistema de actualización de APK aún sin publicar. Ningún dato productivo, credencial o respaldo operativo se añadió al código versionado.
 
 ### Publicación autorizada de Aprobaciones e indicador
 
 - Fuente: origin/main 86fa8d9. Commit limitado a los nueve archivos funcionales/de prueba de este bloque y este registro. Sin backend/index.js, archivos de actualización, configuración de Expo/EAS, código móvil, cambios previos de vacaciones ni datos/respaldos productivos. Se validará la fuente preparada antes de enviarla a main.
 - Destinos existentes: Vercel optimizador-rutas-theta.vercel.app y Render optimizador-rutas-api.onrender.com, rama main, workspace My Workspace ya autorizado. No se cambia configuración ni se generan nuevas APK. Seguimiento hasta publicación y verificación de salud.
+
+
+### Resultado de publicación: Aprobaciones e indicador No finalizada
+
+- Commit c3081574e8aa67af7caaf794d4329495276cb26d enviado a origin/main. Diez archivos del bloque autorizado; fuente exacta aislada validada con 18 pruebas, build web y sintaxis. Sin cambios móviles ni backend/index.js, canal de actualizaciones, Expo/EAS, vacaciones pendientes ni datos productivos en el commit.
+- Vercel: success para ese commit, deployment 8wKEnfAoqxKStmbABiJQTQrw23ui. Web pública y bundle /assets/index-Bfxo-eaK.js HTTP 200; contiene Ediciones de plan, Solicitudes de edición, No finalizada y notCompleted.
+- Render optimizador-rutas-api: despliegue automático dep-dbdq054s728c7380t0m0 live, mismo commit. Salud posterior HTTP 200 con ok=true/db=true; solicitudes sin sesión a Aprobaciones y edición HTTP 401. Revisión breve de logs de aplicación posteriores sin entradas de error. No se disparó un despliegue manual duplicado ni se alteró la configuración.
+- Sistema de actualizaciones excluido por comprobación del árbol del commit y de la fuente publicada; el guard genérico devuelve 401 incluso a rutas API desconocidas, por lo que ese HTTP no se usa para afirmar la existencia del actualizador. No se generó APK ni se aplicaron nuevas migraciones o escrituras de datos durante esta publicación.
+- Pendiente del usuario: refrescar la web y comprobar con su sesión habitual la bandeja/indicador. No se aprobaron solicitudes reales ni se iniciaron sesiones ajenas durante las comprobaciones. Este resultado se registra localmente sin otro commit/despliegue sólo de documentación.
+
+
+## 2026-10-23 - Recuperacion de sincronizacion pendiente en Android
+
+- Diagnostico puntual: el plan diario existe en el servidor y aparece en otro telefono. El boton global de reintento solo reactivaba eventos de ejecucion; las fotografias FAILED quedaban fuera del lote automatico y su error no se mostraba en el aviso global. No se deduce la composicion exacta de los 13 pendientes a partir de la captura.
+- Correccion movil: el reintento explicito incluye fotografias fallidas y vuelve a procesar eventos que esperan evidencia antes de refrescar el plan. Un reintento manual durante un lote automatico no pierde la ampliacion de alcance. Conserva identificadores, archivos, confirmacion READY por servidor, separacion por usuario y proteccion de cache con pendientes. Muestra errores de fotos y deshabilita el boton mientras sincroniza. Un conflicto de visita cerrada permanece visible; no se reabre la visita ni se simula aceptacion.
+- Verificacion: TypeScript aprobado. 41 pruebas de evidencias/ejecucion y dos del aviso aprobadas; en la fuente aislada tambien se comprobaron teclado, recuperacion, notificaciones y cache semanal (71 comprobaciones en total, incluida repeticion individual de una prueba cuyo archivo de referencia no se habia exportado inicialmente). Comprobacion de diff sin errores. No se modifica backend, Supabase ni datos productivos para este bloque.
+- El usuario confirmo que lo necesario ya esta guardado en el servidor. Se explico que Borrar datos elimina exclusivamente informacion local, incluida la cola no enviada, y requiere iniciar sesion con internet y volver a descargar el plan. No se ejecuto borrado remoto ni local del telefono desde las herramientas.
+- Nueva APK preview autorizada por el usuario: fuente aislada de HEAD c308157 con las mejoras moviles previamente acordadas (vacaciones, teclado, recuperacion, regiones sanitarias, tareas/notificaciones) y esta correccion. Se conserva modulo nativo de autenticacion offline, paquete mx.appderutas.supervision y configuracion preview/firma de EAS existentes. Se excluyen expresamente el actualizador interno, sus permisos/modulo/dependencias y cambios web/backend. Fuente verificada archivo a archivo; sin credenciales locales. Sin commit, push ni despliegue.
+- Envio de una sola compilacion preview en curso. Pendiente: identificador de Expo y prueba fisica de instalacion sobre la anterior, reintento en linea, descarga del plan, check-in y sincronizacion al salir de modo avion. No se afirma recuperacion de los 13 registros sin confirmacion desde el dispositivo.
+
+- Resultado: una sola compilacion enviada y unica consulta de confirmacion IN_QUEUE: 72791b09-9446-4337-9610-9d43221c0284, preview Android, version 1.0.0/codigo 1, misma firma remota existente. Enlace https://expo.dev/accounts/borderline97/projects/app-de-rutas/builds/72791b09-9446-4337-9610-9d43221c0284 . Se detuvo el seguimiento en cola; no se espero ni descargo el artefacto. Pruebas adicionales de autenticacion/inicio offline aprobadas en la fuente aislada. Sin publicacion de backend/web ni actualizador interno.
+
+
+## 2026-10-23 - Publicacion autorizada del actualizador y todas las mejoras moviles acordadas
+
+- El usuario autorizo expresamente publicar e incluir el actualizador interno y compilar una nueva APK preview con todo lo acordado; detener seguimiento al quedar en cola de Expo. Se publica el canal de consulta/descarga en el backend existente y las mejoras previas de vacaciones en web/movil, teclado, recuperacion, seleccion de regiones sanitarias, notificaciones de Agenda y reintento protegido de evidencias. No se cambian rutas logisticas, identidades, asignaciones ni base de datos.
+- Manifiesto inicial conservado con release:null: publicar el sistema no aprueba ni promueve una APK a los usuarios. La promocion posterior requiere la APK exacta probada y aprobada por el usuario, con hash/tamano verificados. Instalacion Android con consentimiento, misma firma y paquete; no se desinstala ni se borran sesiones/SQLite/evidencias/pendientes.
+- Validacion previa: 16 pruebas focalizadas del actualizador aprobadas, incluida compilacion y ejecucion de la politica Java real; TypeScript movil, sintaxis de los archivos backend nuevos y build web aprobados. Pruebas previas del bloque de sincronizacion y las mejoras moviles preservadas. No se ejecuta una bateria general ni se crean registros productivos de prueba.
+- Se verifico origin/main igual a HEAD c308157 antes de preparar la publicacion. Render existente srv-d79i0m6dqaus73dgq3sg, workspace My Workspace previamente confirmado, rama main y despliegue automatico por commit. Vercel mantiene su proyecto actual.
+- Versiones: las 17 compilaciones Android existentes registran versionCode 1; consulta del contador remoto sin valor. Se inicializa desde ese ultimo codigo para que preview autoIncrement produzca uno mayor. No se cambia keystore ni nombre de paquete. Fuente a compilar: commit autorizado, sin archivos .env, credenciales ni respaldos operativos.
+- Pendientes de cierre: commit/push autorizado, verificacion de publicacion web/backend y unico envio de APK completa, con parada al confirmar cola. Prueba real del instalador y conservacion de datos en Android a cargo del usuario; no se afirma aprobacion de una build por haber compilado.

@@ -12,7 +12,7 @@ function harness(options = {}) {
   const ticket = { ok: true, evidence: { id: 'e1', status: 'READY' }, upload: { path: 'p', token: 'signed' } }
   const db = {
     getFirstSync: () => options.pendingCheckIn ? {id:'pending-check-in'} : null,
-    getAllSync: (_sql, args) => row.status !== 'FAILED' || args?.[0] ? [row] : [],
+    getAllSync: (_sql, args) => row.status !== 'READY' && (row.status !== 'FAILED' || args?.[0]) ? [row] : [],
     runSync(sql, args) {
       if (sql.includes("status = 'UPLOADING'")) row.status = 'UPLOADING'
       if (sql.includes("status = 'READY'")) row.status = 'READY'
@@ -23,7 +23,7 @@ function harness(options = {}) {
     },
   }
   const session = { user: { id: options.sessionOwner ?? 'owner' }, access_token: 'fresh', expires_at: Date.now() / 1000 + (options.expired ? -10 : 3600) }
-  const dbModule = { db, getDatabaseUserId: () => 'owner' }
+  const dbModule = { db, getDatabaseUserId: () => 'owner', isDatabaseActive: () => dbModule.db === db }
   const modules = {
     '../../storage/db': dbModule, 'react-native': { Platform: { OS: 'android' } },
     'expo-file-system': { File: class { async arrayBuffer() {
@@ -44,7 +44,7 @@ function harness(options = {}) {
       },
     },
     '../lib/supabase': { supabase: {
-      auth: { getSession: async () => ({ data: { session } }), refreshSession: async () => {
+      auth: { getSession: async () => { if (options.sessionGate) await options.sessionGate; return { data: { session } } }, refreshSession: async () => {
         calls.push('refresh'); return { data: { session: { ...session, access_token: 'renewed' } } }
       } },
       storage: { from: () => ({ uploadToSignedUrl: async (_path, _token, body) => {
@@ -57,7 +57,7 @@ function harness(options = {}) {
   const source = ts.transpileModule(fs.readFileSync(require.resolve('../src/services/evidenceSync.ts'), 'utf8'),
     { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } }).outputText
   vm.runInNewContext(source, { exports, require: name => modules[name], Date, Error, Uint8Array })
-  return { row, calls, sync: exports.syncPendingEvidence }
+  return { row, calls, sync: exports.syncPendingEvidence, switchDatabase() { dbModule.db = {} } }
 }
 
 test('native bytes reach Storage and READY requires backend confirmation', async () => {
@@ -159,3 +159,30 @@ for(const code of ['EVIDENCE_ACTIVITY_LIMIT_REACHED','EVIDENCE_ITEM_LIMIT_REACHE
     assert.equal(h.row.status,'READY');assert.equal(h.row.evidence_id,originalId);assert.equal(h.row.local_uri,originalUri)
   })
 }
+
+
+test('manual retry requested during an automatic batch retries FAILED photos after that batch', async () => {
+  let release; const options = { http: 403, sessionGate: new Promise(resolve => { release = resolve }) }
+  const h = harness(options), automatic = h.sync('token'), manual = h.sync('token', true)
+  release(); await automatic
+  assert.equal(h.row.status, 'FAILED')
+  delete options.http
+  await manual
+  assert.equal(h.row.status, 'READY')
+  assert.equal(h.calls.filter(c => c === 'storage').length, 1)
+})
+
+test('a global manual retry is not swallowed by an automatic batch for another visit', async () => {
+  const h = harness({ status: 'FAILED' })
+  const automatic = h.sync('token', false, { planItemId: 'other-visit' })
+  await Promise.all([automatic, h.sync('token', true)])
+  assert.equal(h.row.status, 'READY')
+  assert.equal(h.calls.filter(c => c === 'storage').length, 1)
+})
+
+test('queued manual retry stops after account database changes', async () => {
+  const h = harness({ status: 'FAILED' })
+  const automatic = h.sync('token'), manual = h.sync('token', true)
+  h.switchDatabase(); await Promise.all([automatic, manual])
+  assert.equal(h.row.status, 'FAILED'); assert.deepEqual(h.calls, [])
+})

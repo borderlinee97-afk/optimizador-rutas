@@ -1,3 +1,4 @@
+import { AppUpdateCard } from '../../src/components/AppUpdateCard'
 import {
   ActivityIndicator,
   Alert,
@@ -143,6 +144,8 @@ export default function ProfileScreen() {
             }
           />
         </View>
+
+        <AppUpdateCard />
 
         <Pressable
           className="mt-6 h-14 items-center justify-center rounded-2xl border border-red-200 bg-red-50"

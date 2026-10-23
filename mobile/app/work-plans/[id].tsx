@@ -1,4 +1,5 @@
 import { WorkPlanEditAccess, type EditAccess } from '../../src/components/WorkPlanEditAccess'
+import { KeyboardAwareScrollView as ScrollView } from '../../src/components/KeyboardAwareScrollView'
 import {
   Ionicons,
 } from '@expo/vector-icons'
@@ -25,7 +26,6 @@ import {
   Modal,
   Pressable,
   RefreshControl,
-  ScrollView,
   Switch,
   Text,
   TextInput,
@@ -300,7 +300,7 @@ export default function WorkPlanDetailScreen() {
       false,
     )
 
-  const [catalogKind, setCatalogKind] = useState<'UNITS' | 'CEDIS'>('UNITS')
+  const [catalogKind, setCatalogKind] = useState<'UNITS' | 'CEDIS' | 'REG_SAN'>('UNITS')
   const catalogRequest = useRef(0)
 
   const [
@@ -850,7 +850,7 @@ export default function WorkPlanDetailScreen() {
       'EDIT',
     )
     ++catalogRequest.current
-    setCatalogKind(item.locationName?.trim().toUpperCase() === 'ALMACENES' ? 'CEDIS' : 'UNITS')
+    setCatalogKind(item.locationName?.trim().toUpperCase() === 'ALMACENES' ? 'CEDIS' : item.locationName?.trim().toUpperCase()==='REGIONES SANITARIAS'?'REG_SAN':'UNITS')
 
     setEditingItem(
       item,
@@ -2328,7 +2328,7 @@ export default function WorkPlanDetailScreen() {
               </View>
 
               <View className="mt-5 flex-row gap-2">
-                {([{ kind: 'UNITS', label: 'Unidades asignadas' }, { kind: 'CEDIS', label: 'CEDIS' }] as const).map(option => (
+                {([{ kind: 'UNITS', label: 'Unidades asignadas' }, { kind: 'CEDIS', label: 'CEDIS' }, {kind:'REG_SAN',label:'Reg. sanitarias'}] as const).map(option => (
                   <Pressable
                     key={option.kind}
                     accessibilityRole="button"

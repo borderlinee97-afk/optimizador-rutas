@@ -1,7 +1,8 @@
+import { KeyboardAwareScrollView as ScrollView } from '../../src/components/KeyboardAwareScrollView'
 import { Ionicons } from '@expo/vector-icons'
 import { useFocusEffect } from 'expo-router'
 import { useCallback, useMemo, useState } from 'react'
-import { KeyboardAvoidingView, Platform, ActivityIndicator, Alert, Modal, Pressable, ScrollView, Switch, Text, TextInput, View } from 'react-native'
+import { KeyboardAvoidingView, Platform, ActivityIndicator, Alert, Modal, Pressable, Switch, Text, TextInput, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 
 import { EvidenceCapture } from '../../src/components/EvidenceCapture'

@@ -1,5 +1,6 @@
+import { KeyboardAwareScrollView as ScrollView } from './KeyboardAwareScrollView'
 import { useEffect, useState } from 'react'
-import { ActivityIndicator, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, Text, TextInput, View } from 'react-native'
+import { ActivityIndicator, KeyboardAvoidingView, Modal, Platform, Pressable, Text, TextInput, View } from 'react-native'
 
 type Props = { visible:boolean; busy:boolean; onClose:()=>void; onSave:(activityType:string,note:string)=>Promise<void> }
 

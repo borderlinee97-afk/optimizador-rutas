@@ -1,3 +1,4 @@
+import androidReleaseRouter from './routes/androidRelease.route.js'
 import bulkCancellationRouter from './routes/web.workPlanBulkCancellation.route.js'
 import farmaciasReportsRouter from './routes/web.farmaciasReports.route.js'
 import mobileNotificationsRouter from './routes/mobile.notifications.route.js'
@@ -341,6 +342,9 @@ app.use(
 // ============================================================
 // HEALTH
 // ============================================================
+
+// Public APK distribution; contains only release metadata, never user/session data.
+app.use(androidReleaseRouter)
 
 app.get(
   '/api/__ping',

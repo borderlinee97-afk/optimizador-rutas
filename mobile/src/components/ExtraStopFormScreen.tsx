@@ -1,3 +1,4 @@
+import { KeyboardAwareScrollView as ScrollView } from './KeyboardAwareScrollView'
 import { Ionicons } from '@expo/vector-icons'
 import {
   type Href,
@@ -14,7 +15,6 @@ import {
   KeyboardAvoidingView,
   Platform,
   Pressable,
-  ScrollView,
   StyleSheet,
   Text,
   TextInput,

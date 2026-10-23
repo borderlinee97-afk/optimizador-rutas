@@ -1,3 +1,4 @@
+import { KeyboardAwareScrollView as ScrollView } from '../../src/components/KeyboardAwareScrollView'
 import { useNetInfo } from '@react-native-community/netinfo'
 import { hasPendingVisitExecution, queueVisitExecution } from '../../src/services/executionSync'
 import { AddVisitActivityModal } from '../../src/components/AddVisitActivityModal'
@@ -18,7 +19,6 @@ import {
   Linking,
   Modal,
   Pressable,
-  ScrollView,
   Text,
   TextInput,
   View,

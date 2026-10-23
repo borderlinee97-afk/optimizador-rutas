@@ -1,10 +1,10 @@
+import { KeyboardAwareScrollView as ScrollView } from '../../src/components/KeyboardAwareScrollView'
 import * as Linking from 'expo-linking'
 import { router } from 'expo-router'
 import { useEffect, useState } from 'react'
 import {
   KeyboardAvoidingView,
   Platform,
-  ScrollView,
   ActivityIndicator,
   Alert,
   Pressable,
@@ -15,37 +15,35 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context'
 
 import { supabase } from '../../src/lib/supabase'
+import {createRecoveryCodeExchange} from '../../src/services/passwordRecovery'
+const exchangeRecoveryCode=createRecoveryCodeExchange(code=>supabase.auth.exchangeCodeForSession(code))
 
 export default function ResetPasswordScreen() {
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [ready, setReady] = useState(false)
+  const [resetError,setResetError]=useState('')
   const [busy, setBusy] = useState(false)
 
   useEffect(() => {
+    let active=true
     async function acceptUrl(url: string | null) {
-      if (!url) {
-        setReady(true)
-        return
+      try {
+        const code=url?Linking.parse(url).queryParams?.code:null
+        if(typeof code==='string'&&code)await exchangeRecoveryCode(code)
+        const {data,error}=await supabase.auth.getUser()
+        if(error||!data.user)throw new Error('El enlace no es válido o ya expiró. Solicita uno nuevo.')
+        if(active){setResetError('');setReady(true)}
+      } catch(error) {
+        if(active){setResetError(error instanceof Error?error.message:'Solicita un enlace nuevo.');setReady(false)}
       }
-
-      const code = Linking.parse(url).queryParams?.code
-      if (typeof code === 'string' && code) {
-        const { error } = await supabase.auth.exchangeCodeForSession(code)
-        if (error) {
-          Alert.alert('Enlace no válido', error.message)
-        }
-      }
-
-      setReady(true)
     }
-
     void Linking.getInitialURL().then(acceptUrl)
     const subscription = Linking.addEventListener('url', event => {
       void acceptUrl(event.url)
     })
 
-    return () => subscription.remove()
+    return () => {active=false;subscription.remove()}
   }, [])
 
   async function updatePassword() {
@@ -63,6 +61,9 @@ export default function ResetPasswordScreen() {
       setBusy(true)
       const { error } = await supabase.auth.updateUser({ password })
       if (error) throw error
+      // The next online login renews the offline credential with the new password.
+      await supabase.auth.signOut({scope:'local'})
+      setPassword('');setConfirmPassword('')
 
       Alert.alert('Contraseña actualizada', 'Ya puedes ingresar con tu nueva contraseña.', [
         { text: 'Continuar', onPress: () => router.replace('/login') },
@@ -77,6 +78,7 @@ export default function ResetPasswordScreen() {
     }
   }
 
+  if(resetError)return <SafeAreaView className="flex-1 justify-center bg-white px-6"><Text className="text-xl font-bold">No fue posible validar el enlace</Text><Text className="mt-4">{resetError}</Text><Pressable className="mt-5 rounded-xl bg-sky-700 p-4" onPress={()=>router.replace('/forgot-password')}><Text className="text-white">Solicitar otro enlace</Text></Pressable></SafeAreaView>
   if (!ready) {
     return (
       <SafeAreaView className="flex-1 items-center justify-center bg-surface">

@@ -1,3 +1,4 @@
+import { KeyboardAwareScrollView as ScrollView } from './KeyboardAwareScrollView'
 import { Ionicons } from '@expo/vector-icons'
 import {
   ActivityIndicator,
@@ -5,7 +6,6 @@ import {
   Modal,
   Platform,
   Pressable,
-  ScrollView,
   Text,
   TextInput,
   View,

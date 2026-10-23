@@ -524,7 +524,7 @@ export interface UpdateWorkPlanItemPayload {
 }
 
 export interface PharmacyCatalogQuery {
-  kind?: 'UNITS' | 'CEDIS'
+  kind?: 'UNITS' | 'CEDIS' | 'REG_SAN'
   search?: string
   region?: string
   project?: string
@@ -947,7 +947,7 @@ export function getPharmacyCatalog(
   const params =
     new URLSearchParams()
 
-  addQueryParameter(params, 'kind', query.kind)
+  addQueryParameter(params, 'kind', query.kind==='UNITS'?'UNITS_ONLY':query.kind)
 
   addQueryParameter(
     params,

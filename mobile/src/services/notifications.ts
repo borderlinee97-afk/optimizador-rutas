@@ -56,6 +56,7 @@ export async function registerNotifications(accessToken: string, isCurrent: () =
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 export function notificationDestination(data: Record<string, unknown>, userId: string, role: string) {
+  if(data.recipientAuthId===userId&&['TASK_ASSIGNED','TASK_REMINDER'].includes(String(data.kind))&&typeof data.taskId==='string'&&UUID.test(data.taskId))return '/(tabs)/tasks'
   if (data.recipientAuthId !== userId || typeof data.planId !== 'string' || !UUID.test(data.planId)) return null
   if (data.kind === 'PLAN_SUBMITTED' && ['COORDINADOR', 'GERENTE'].includes(role)) return '/(tabs)/approvals'
   if (data.kind === 'PLAN_APPROVED' && ['SUPERVISOR', 'COORDINADOR'].includes(role)) return `/work-plans/${data.planId}`

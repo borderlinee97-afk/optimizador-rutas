@@ -1,3 +1,5 @@
+import { AppUpdateProvider } from '../src/components/AppUpdateProvider'
+import { AppUpdateCard } from '../src/components/AppUpdateCard'
 import '../global.css'
 
 import {
@@ -6,7 +8,7 @@ import {
   ThemeProvider,
 } from '@react-navigation/native'
 import { useFonts } from 'expo-font'
-import { Stack } from 'expo-router'
+import { Stack,useSegments } from 'expo-router'
 import * as SplashScreen from 'expo-splash-screen'
 import { useEffect } from 'react'
 import 'react-native-reanimated'
@@ -60,9 +62,11 @@ export default function RootLayout() {
   }
 
   return (
+    <AppUpdateProvider>
     <AuthProvider>
       <AccountNavigator />
     </AuthProvider>
+    </AppUpdateProvider>
   )
 }
 
@@ -73,6 +77,8 @@ function AccountNavigator() {
 }
 
 function RootNavigator() {
+  const segments=useSegments()
+  const resettingPassword=String(segments.at(-1))==='reset-password'
   const colorScheme =
     useColorScheme()
 
@@ -113,6 +119,7 @@ function RootNavigator() {
     >
       <View style={{ flex: 1 }}>
       <OfflineStatus />
+      <AppUpdateCard compact />
       <Stack
         screenOptions={{
           headerShown:
@@ -121,7 +128,7 @@ function RootNavigator() {
       >
         <Stack.Protected
           guard={
-            !session
+            !session || resettingPassword
           }
         >
           <Stack.Screen
@@ -131,7 +138,7 @@ function RootNavigator() {
 
         <Stack.Protected
           guard={Boolean(
-            session &&
+            session && !resettingPassword &&
             !profile,
           )}
         >
@@ -142,7 +149,7 @@ function RootNavigator() {
 
         <Stack.Protected
           guard={Boolean(
-            session &&
+            session && !resettingPassword &&
             profile,
           )}
         >

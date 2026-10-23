@@ -1,3 +1,4 @@
+import { KeyboardAwareScrollView as ScrollView } from '../../src/components/KeyboardAwareScrollView'
 import { AvailabilityPanel } from '../../src/components/AvailabilityPanel'
 import { Ionicons } from '@expo/vector-icons'
 import {
@@ -18,7 +19,6 @@ import {
   Modal,
   Pressable,
   RefreshControl,
-  ScrollView,
   Text,
   TextInput,
   View,

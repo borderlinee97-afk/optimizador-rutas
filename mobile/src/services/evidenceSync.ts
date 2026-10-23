@@ -193,21 +193,35 @@ export function listLocalEvidence({
   )
 }
 
-const activeSyncs = new WeakMap<typeof db, Promise<{ synced: number; pending: number; failed: number }>>()
+type EvidenceSyncResult = { synced: number; pending: number; failed: number }
+type ActiveEvidenceSync = { promise: Promise<EvidenceSyncResult>; retryFailed: boolean; planItemId?: string }
+const activeSyncs = new WeakMap<typeof db, ActiveEvidenceSync>()
 
 export function syncPendingEvidence(
   accessToken: string,
   retryFailed = false,
   scope?: { planItemId: string },
-) {
+): Promise<EvidenceSyncResult> {
   const database = db
+  const owner = getDatabaseUserId(database)
   const previous = activeSyncs.get(database)
-  if (previous) return previous
-  const activeSync = processPendingEvidence(accessToken, retryFailed, database, scope).finally(() => {
+  if (previous) {
+    const includesRetry = previous.retryFailed || !retryFailed
+    const includesScope = !previous.planItemId || previous.planItemId === scope?.planItemId
+    if (includesRetry && includesScope) return previous.promise
+    // An explicit retry must not silently join a narrower automatic batch that skips FAILED photos.
+    return previous.promise.then(() => {
+      if (!owner || db !== database || !isDatabaseActive(owner) || getDatabaseUserId(database) !== owner) {
+        return { synced: 0, pending: 0, failed: 0 }
+      }
+      return syncPendingEvidence(accessToken, retryFailed, scope)
+    })
+  }
+  const promise = processPendingEvidence(accessToken, retryFailed, database, scope).finally(() => {
     activeSyncs.delete(database)
   })
-  activeSyncs.set(database, activeSync)
-  return activeSync
+  activeSyncs.set(database, { promise, retryFailed, planItemId: scope?.planItemId })
+  return promise
 }
 
 async function processPendingEvidence(
