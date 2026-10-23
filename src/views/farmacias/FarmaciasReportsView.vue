@@ -402,6 +402,7 @@ import {
   getFarmaciasReportExport,
 } from '../../services/api.js'
 import {
+  reportVisitStatus,
   formatRecordedAt,
   formatPresence,
   formatPercent,
@@ -535,6 +536,11 @@ const kpis = computed(() => {
       label: 'Visitas finalizadas',
       value: n(s.completedVisits),
       note: `${s.pharmacyVisits} a farmacias · ${s.warehouseVisits} a CEDIS · ${s.extraStops} adicionales`,
+    },
+    {
+      label: 'No finalizadas',
+      value: n(s.notCompleted),
+      note: 'Cierre administrativo sin salida; incluidas en las visitas no realizadas, sin sumar horas ni cobertura',
     },
     {
       label: 'Cobertura propia',
@@ -698,7 +704,7 @@ const detailRows = computed(() => {
         formatRecordedAt(v.checkOutAt),
         cell(formatPresence(v.dwellSeconds), [v.executionIssue]),
         cell(
-          statusLabel(v.status),
+          reportVisitStatus(v),
           [
             `${v.activities.filter((a) => a.status === 'DONE').length} / ${v.activities.length} actividades completadas`,
           ],
@@ -810,7 +816,7 @@ const historyRows = computed(
           v.coverageId ? 'Cobertura temporal' : 'Visita propia / adicional',
           v.coverageTitular ? ['Titular: ' + v.coverageTitular] : []
         ),
-        statusLabel(v.status),
+        reportVisitStatus(v),
       ])
     ) || []
 )

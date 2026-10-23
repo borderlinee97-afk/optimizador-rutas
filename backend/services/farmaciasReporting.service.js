@@ -53,13 +53,17 @@ export function executionDetails(row) {
     !!checkInAt &&
     !!checkOutAt &&
     Date.parse(checkOutAt) >= Date.parse(checkInAt)
+  const notCompleted = row.status === 'SKIPPED' && !!checkInAt && !checkOutAt
+    && String(row.skip_reason ?? '').startsWith('CIERRE_ADMINISTRATIVO_NO_FINALIZADA:')
   return {
+    notCompleted,
     checkInAt,
     checkOutAt,
     dwellSeconds: valid
       ? Math.floor((Date.parse(checkOutAt) - Date.parse(checkInAt)) / 1000)
       : null,
     executionIssue:
+      notCompleted ? 'Cierre administrativo: visita no finalizada; sin salida registrada' :
       checkOutAt && !checkInAt
         ? 'Salida sin entrada'
         : checkInAt && checkOutAt && !valid
@@ -567,6 +571,7 @@ export function buildReport(data, filters, allVisits = false) {
           inRange(v.scheduledDate, a, b)
       ).length,
       longVisits: completed.filter((v) => v.dwellSeconds > 12 * 3600).length,
+      notCompleted: records.filter((v) => v.notCompleted && inRange(v.scheduledDate, a, b)).length,
       skipped: records.filter(
         (v) => v.status === 'SKIPPED' && inRange(v.scheduledDate, a, b)
       ).length,
@@ -946,7 +951,7 @@ export function reportCsv(report, dataset) {
         v.unitKind,
         v.scheduledDate,
         v.scheduledTime,
-        v.status,
+        v.notCompleted ? 'NO_FINALIZADA' : v.status,
         local(v.checkInAt),
         local(v.checkOutAt),
         v.dwellSeconds == null ? null : v.dwellSeconds / 60,

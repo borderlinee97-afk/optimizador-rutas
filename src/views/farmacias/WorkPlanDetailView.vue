@@ -360,7 +360,7 @@
                       >
                         {{
                           itemStatusLabel(
-                            item.status
+                            item.status, item
                           )
                         }}
                       </span>
@@ -1056,7 +1056,7 @@
 import WorkPlanEditAccess from '../../components/WorkPlanEditAccess.vue'
 import CancelRemainingVisits from '../../components/CancelRemainingVisits.vue'
 import VisitExecutionSummary from '../../components/VisitExecutionSummary.vue'
-import { formatRecordedAt } from '../../utils/farmaciasReports.js'
+import { formatRecordedAt, isAdministrativelyUnfinished } from '../../utils/farmaciasReports.js'
 import {
   computed,
   onMounted,
@@ -1716,8 +1716,9 @@ function statusLabel(
 }
 
 function itemStatusLabel(
-  status
+  status, item = null
 ) {
+  if (isAdministrativelyUnfinished(item)) return 'No finalizada'
   const labels = {
     PENDING:
       'Pendiente',

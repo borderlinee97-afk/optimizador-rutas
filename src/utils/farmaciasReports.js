@@ -1,3 +1,12 @@
+export function isAdministrativelyUnfinished(visit) {
+  return visit?.notCompleted === true || (visit?.status === 'SKIPPED'
+    && Boolean(visit.checkInAt || visit.check_in_at) && !visit.checkOutAt && !visit.check_out_at
+    && String(visit.skipReason ?? visit.skip_reason ?? '').startsWith('CIERRE_ADMINISTRATIVO_NO_FINALIZADA:'))
+}
+export function reportVisitStatus(visit) {
+  if (isAdministrativelyUnfinished(visit)) return 'No finalizada'
+  return ({DONE:'Finalizada',PENDING:'Pendiente',IN_PROGRESS:'En curso',SKIPPED:'Omitida',CANCELLED:'Cancelada',RESCHEDULED:'Reprogramada'})[visit?.status] || visit?.status || 'Sin estado'
+}
 export const operatingTimeZone = 'America/Mexico_City'
 export function formatRecordedAt(value) {
   if (!value || !Number.isFinite(new Date(value).getTime())) return '—'
@@ -96,6 +105,7 @@ export async function exportReportPdf(report, filters) {
     head: [
       [
         'Visitas finalizadas',
+        'No finalizadas (cierre administrativo)',
         'Cobertura propia',
         'Cobertura con apoyo',
         'Revisitas',
@@ -106,6 +116,7 @@ export async function exportReportPdf(report, filters) {
     body: [
       [
         s.completedVisits,
+        s.notCompleted ?? 0,
         formatPercent(s.personalCoveragePct),
         formatPercent(s.serviceCoveragePct),
         s.repeatVisits,

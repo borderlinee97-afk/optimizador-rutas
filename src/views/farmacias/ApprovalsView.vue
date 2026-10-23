@@ -18,7 +18,7 @@
           <p>
             {{
               canDecide
-                ? 'Revisa y resuelve planes, cancelaciones y coberturas pendientes dentro de tu estructura.'
+                ? 'Revisa y resuelve planes, solicitudes de edición, cancelaciones y coberturas pendientes dentro de tu estructura.'
                 : 'Consulta las solicitudes pendientes de los supervisores y unidades de tu coordinación.'
             }}
           </p>
@@ -86,7 +86,7 @@
           </strong>
 
           <span>
-            Revisando planes, cancelaciones y coberturas...
+            Revisando planes, ediciones, cancelaciones y coberturas...
           </span>
         </div>
       </div>
@@ -133,6 +133,12 @@
             <small>
               Planes por revisar
             </small>
+          </article>
+
+          <article class="metric">
+            <span>Ediciones de plan</span>
+            <strong>{{ counts.editRequests }}</strong>
+            <small>Solicitudes por autorizar</small>
           </article>
 
           <article class="metric cancellation">
@@ -184,6 +190,14 @@
             </span>
           </div>
         </div>
+
+        <WorkPlanEditAccess
+          v-if="canDecide"
+          :inbox-requests="editRequests"
+          show-empty
+          @refresh="loadApprovals({ silent: true })"
+          @updated="loadApprovals({ silent: true })"
+        />
 
         <!-- PLANES -->
 
@@ -1009,6 +1023,7 @@
 </template>
 
 <script setup>
+import WorkPlanEditAccess from '../../components/WorkPlanEditAccess.vue'
 import {
   computed,
   onMounted,
@@ -1082,6 +1097,7 @@ const canDecide =
 const counts =
   computed(
     () => ({
+      editRequests: Number(response.value?.counts?.editRequests || 0),
       ordinaryPlans:
         Number(
           response.value
@@ -1133,6 +1149,8 @@ const plans =
         ? response.value.plans
         : []
   )
+
+const editRequests = computed(() => Array.isArray(response.value?.editRequests) ? response.value.editRequests : [])
 
 const cancellationRequests =
   computed(
@@ -1857,7 +1875,7 @@ function formatDateTime(
   display: grid;
   grid-template-columns:
     repeat(
-      5,
+      6,
       minmax(0, 1fr)
     );
   gap: 10px;

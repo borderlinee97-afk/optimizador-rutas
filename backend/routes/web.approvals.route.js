@@ -1,3 +1,4 @@
+import { listEditRequests } from '../services/workPlanEdit.service.js'
 import {
   Router,
 } from 'express'
@@ -64,6 +65,7 @@ router.get(
         plansResult,
         cancellationsResult,
         coveragesResult,
+        editsResult,
       ] =
         await Promise.all([
           getPendingPlans(
@@ -77,6 +79,8 @@ router.get(
           getPendingCoverages(
             req.profile,
           ),
+
+          listEditRequests(pool, req.profile),
         ])
 
       const plans =
@@ -108,7 +112,10 @@ router.get(
             'EXTRAORDINARY',
         )
 
+      const editRequests = editsResult.requests
+
       const counts = {
+        editRequests: editRequests.length,
         ordinaryPlans:
           ordinaryPlans.length,
 
@@ -124,7 +131,8 @@ router.get(
         total:
           plans.length +
           cancellationRequests.length +
-          coverageRequests.length,
+          coverageRequests.length +
+          editRequests.length,
       }
 
       return res.json({
@@ -158,6 +166,8 @@ router.get(
         cancellationRequests,
 
         coverageRequests,
+
+        editRequests,
       })
     } catch (
       error
