@@ -48,13 +48,13 @@ export function AvailabilityPanel() {
     </Pressable>
   )
   return (
-    <View className="my-4 overflow-hidden rounded-2xl border border-slate-200 bg-white">
+    <View className="my-4 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
       <Pressable accessibilityRole="button" accessibilityLabel={expanded?'Ocultar vacaciones':'Mostrar vacaciones'}
         accessibilityHint="Despliega el formulario y el seguimiento de solicitudes"
         accessibilityState={{expanded}} onPress={()=>setExpanded(value=>!value)}
         className="min-h-[76px] flex-row items-center gap-3 p-4">
         <View className="h-11 w-11 items-center justify-center rounded-xl bg-blue-50">
-          <Ionicons name="calendar-outline" size={23} color="#0f64ad" />
+          <Ionicons name="calendar-outline" size={23} color="#0f6bea" />
         </View>
         <View className="flex-1">
           <Text className="text-lg font-bold text-slate-900">Vacaciones</Text>
@@ -97,7 +97,7 @@ export function AvailabilityPanel() {
           <Text accessibilityRole="header" className="flex-1 font-bold text-slate-900">{data.canRequest?'Mis solicitudes':'Solicitudes del equipo'}</Text>
           <Pressable accessibilityRole="button" accessibilityLabel="Actualizar solicitudes de vacaciones" disabled={busy}
             onPress={()=>{void load()}} className="min-h-[44px] flex-row items-center gap-2 rounded-lg px-2">
-            {busy?<ActivityIndicator size="small" color="#0f64ad" />:<Ionicons name="refresh-outline" size={17} color="#0f64ad" />}
+            {busy?<ActivityIndicator size="small" color="#0f6bea" />:<Ionicons name="refresh-outline" size={17} color="#0f6bea" />}
             <Text className="font-semibold text-primary-600">Actualizar</Text>
           </Pressable>
         </View>

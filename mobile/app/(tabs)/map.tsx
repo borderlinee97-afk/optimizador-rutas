@@ -183,7 +183,7 @@ export default function MapScreen() {
       <SafeAreaView className="flex-1 items-center justify-center bg-surface">
         <ActivityIndicator
           size="large"
-          color="#0f64ad"
+          color="#0f6bea"
         />
 
         <Text className="mt-4 text-sm text-slate-500">
@@ -216,7 +216,7 @@ export default function MapScreen() {
           </View>
 
           <Pressable
-            className="h-12 w-12 items-center justify-center rounded-2xl border border-slate-200 bg-white"
+            className="h-12 w-12 items-center justify-center rounded-2xl border border-slate-200 bg-white shadow-sm"
             onPress={() => {
               void refresh()
             }}
@@ -225,13 +225,13 @@ export default function MapScreen() {
             {syncing ? (
               <ActivityIndicator
                 size="small"
-                color="#0f64ad"
+                color="#0f6bea"
               />
             ) : (
               <Ionicons
                 name="refresh"
                 size={21}
-                color="#0f64ad"
+                color="#0f6bea"
               />
             )}
           </Pressable>
@@ -398,7 +398,7 @@ export default function MapScreen() {
                         <Ionicons
                           name="chevron-forward"
                           size={21}
-                          color="#94a3b8"
+                          color="#657590"
                         />
                       ) : null}
                     </View>
@@ -483,7 +483,7 @@ export default function MapScreen() {
 
         {items.length >
         locations.length ? (
-          <View className="mt-5 flex-row rounded-3xl border border-slate-200 bg-white p-5">
+          <View className="mt-5 flex-row rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
             <Ionicons
               name="alert-circle-outline"
               size={22}

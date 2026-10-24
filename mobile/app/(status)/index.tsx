@@ -42,7 +42,7 @@ export default function AccountStatusScreen() {
   return (
     <SafeAreaView className="flex-1 bg-surface">
       <View className="flex-1 justify-center px-6">
-        <View className="rounded-3xl border border-slate-200 bg-white p-6">
+        <View className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
           <View className="mb-5 h-14 w-14 items-center justify-center rounded-2xl bg-amber-100">
             <Text className="text-2xl">!</Text>
           </View>

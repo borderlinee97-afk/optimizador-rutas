@@ -418,7 +418,7 @@ export default function TasksScreen() {
           <ActivityIndicator
             className="mt-10"
             size="large"
-            color="#0f64ad"
+            color="#0f6bea"
           />
         ) : groups.length === 0 ? (
           <Empty />
@@ -689,7 +689,7 @@ function TaskCard({
 }) {
   return (
     <Pressable
-      className="mb-3 rounded-3xl border border-slate-200 bg-white p-5"
+      className="mb-3 rounded-3xl border border-slate-200 bg-white p-5 shadow-sm"
       onPress={onOpen}
     >
       <View className="flex-row items-start justify-between gap-3">
@@ -786,7 +786,7 @@ function ChipSelect({
 
 function Empty() {
   return (
-    <View className="mt-6 rounded-3xl border border-slate-200 bg-white p-6">
+    <View className="mt-6 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
       <Text className="text-center font-bold text-slate-800">
         Agenda al día
       </Text>

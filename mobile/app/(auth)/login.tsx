@@ -85,7 +85,7 @@ export default function LoginScreen() {
               </Text>
             </View>
 
-            <View className="rounded-3xl border border-slate-200 bg-white p-5">
+            <View className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
               {sessionEndReason === 'server_invalidated' ? (
                 <Text className="mb-4 text-sm text-danger">{profileError || 'La sesión dejó de ser válida. Vuelve a iniciar sesión.'}</Text>
               ) : null}
@@ -99,7 +99,7 @@ export default function LoginScreen() {
                   value={email}
                   onChangeText={setEmail}
                   placeholder="nombre@empresa.com"
-                  placeholderTextColor="#94a3b8"
+                  placeholderTextColor="#657590"
                   keyboardType="email-address"
                   autoCapitalize="none"
                   autoCorrect={false}
@@ -119,7 +119,7 @@ export default function LoginScreen() {
                     value={password}
                     onChangeText={setPassword}
                     placeholder="Ingresa tu contraseña"
-                    placeholderTextColor="#94a3b8"
+                    placeholderTextColor="#657590"
                     secureTextEntry={!showPassword}
                     autoCapitalize="none"
                     editable={!submitting}

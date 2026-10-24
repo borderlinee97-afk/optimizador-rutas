@@ -80,7 +80,7 @@ export default function ProfileScreen() {
           Perfil
         </Text>
 
-        <View className="mt-6 items-center rounded-3xl border border-slate-200 bg-white p-6">
+        <View className="mt-6 items-center rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
           <View className="h-20 w-20 items-center justify-center rounded-full bg-primary-600">
             <Text className="text-2xl font-bold text-white">
               {getInitials(profile?.nombre)}
@@ -112,7 +112,7 @@ export default function ProfileScreen() {
           ) : null}
         </View>
 
-        <View className="mt-5 rounded-3xl border border-slate-200 bg-white">
+        <View className="mt-5 rounded-3xl border border-slate-200 bg-white shadow-sm">
           <ProfileRow
             label="Estado de la cuenta"
             value={

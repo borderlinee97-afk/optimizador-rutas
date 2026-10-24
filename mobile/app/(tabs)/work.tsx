@@ -241,7 +241,7 @@ export default function WorkScreen() {
       <SafeAreaView className="flex-1 items-center justify-center bg-surface">
         <ActivityIndicator
           size="large"
-          color="#0f64ad"
+          color="#0f6bea"
         />
 
         <Text className="mt-4 text-sm text-slate-500">
@@ -282,7 +282,7 @@ export default function WorkScreen() {
           </View>
 
           <Pressable
-            className="h-12 items-center justify-center rounded-2xl border border-slate-200 bg-white px-4"
+            className="h-12 items-center justify-center rounded-2xl border border-slate-200 bg-white px-4 shadow-sm"
             onPress={() => {
               void refresh()
             }}
@@ -293,7 +293,7 @@ export default function WorkScreen() {
             {syncing ? (
               <ActivityIndicator
                 size="small"
-                color="#0f64ad"
+                color="#0f6bea"
               />
             ) : (
               <Text className="text-sm font-bold text-primary-600">
@@ -338,7 +338,7 @@ export default function WorkScreen() {
               />
             </View>
 
-            <View className="mt-4 rounded-3xl border border-slate-200 bg-white p-4">
+            <View className="mt-4 rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
               <Text className="text-xs font-bold uppercase tracking-wide text-slate-500">
                 Actividades de hoy
               </Text>
@@ -1108,7 +1108,7 @@ function SummaryCard({
   containerClass: string
 }) {
   return (
-    <View className="flex-1 rounded-2xl border border-slate-200 bg-white p-3">
+    <View className="flex-1 rounded-2xl border border-slate-200 bg-white p-3 shadow-sm">
       <View
         className={`h-9 w-9 items-center justify-center rounded-xl ${containerClass}`}
       >

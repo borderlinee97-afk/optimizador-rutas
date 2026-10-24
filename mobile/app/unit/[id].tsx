@@ -1729,7 +1729,7 @@ export default function UnitDetailScreen() {
       <SafeAreaView className="flex-1 items-center justify-center bg-surface">
         <ActivityIndicator
           size="large"
-          color="#0f64ad"
+          color="#0f6bea"
         />
 
         <Text className="mt-4 text-sm text-slate-500">
@@ -1934,7 +1934,7 @@ export default function UnitDetailScreen() {
           Información de la actividad
         </Text>
 
-        <View className="rounded-3xl border border-slate-200 bg-white">
+        <View className="rounded-3xl border border-slate-200 bg-white shadow-sm">
           <InfoRow
             icon="calendar-outline"
             label="Fecha programada"
@@ -2087,7 +2087,7 @@ export default function UnitDetailScreen() {
               Dirección
             </Text>
 
-            <View className="rounded-3xl border border-slate-200 bg-white p-5">
+            <View className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
               <View className="flex-row">
                 <Ionicons
                   name="location-outline"
@@ -2125,7 +2125,7 @@ export default function UnitDetailScreen() {
                 <Text className="ml-2 font-bold text-primary-700">Agregar actividad adicional</Text>
               </Pressable>
             ) : null}
-            <View className="rounded-3xl border border-slate-200 bg-white p-4">
+            <View className="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
               {activities.length >
               0 ? (
                 <>
@@ -2378,7 +2378,7 @@ export default function UnitDetailScreen() {
           Registro de ejecución
         </Text>
 
-        <View className="rounded-3xl border border-slate-200 bg-white">
+        <View className="rounded-3xl border border-slate-200 bg-white shadow-sm">
           <InfoRow
             icon="log-in-outline"
             label="Check-in"
@@ -2432,7 +2432,7 @@ export default function UnitDetailScreen() {
         </View>
 
         <Pressable
-          className="mt-5 flex-row items-center rounded-3xl border border-slate-200 bg-white p-5"
+          className="mt-5 flex-row items-center rounded-3xl border border-slate-200 bg-white p-5 shadow-sm"
           onPress={
             goToMaps
           }
@@ -2464,7 +2464,7 @@ export default function UnitDetailScreen() {
           <Ionicons
             name="open-outline"
             size={22}
-            color="#94a3b8"
+            color="#657590"
           />
         </Pressable>
 
@@ -2647,7 +2647,7 @@ export default function UnitDetailScreen() {
             </Pressable>
 
             {canRequestCancellation ? (
-              <View className="mt-5 rounded-3xl border border-slate-200 bg-white p-5">
+              <View className="mt-5 rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
                 <Text className="text-base font-bold text-slate-900">
                   No puedo realizarla como estaba programada
                 </Text>
@@ -3208,7 +3208,7 @@ export default function UnitDetailScreen() {
                     setActivitySkipReason
                   }
                   placeholder="Describe por qué no fue posible realizarla"
-                  placeholderTextColor="#94a3b8"
+                  placeholderTextColor="#657590"
                   multiline
                   maxLength={1000}
                   editable={
@@ -3234,7 +3234,7 @@ export default function UnitDetailScreen() {
                   setActivityExecutionNote
                 }
                 placeholder="Agrega observaciones si es necesario"
-                placeholderTextColor="#94a3b8"
+                placeholderTextColor="#657590"
                 multiline
                 maxLength={2000}
                 editable={

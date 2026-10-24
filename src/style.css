@@ -188,3 +188,213 @@ textarea:disabled {
     transition-duration: 0.01ms !important;
   }
 }
+/* Route visual refresh. Presentation only; scoped away from printed documents. */
+@media screen {
+  #app .farmacias-layout {
+    --color-background: #f3f7fd;
+    --color-surface-muted: #f1f5fc;
+    --color-border: #e3ebf6;
+    --color-text: #101c35;
+    --color-text-secondary: #596f91;
+    --color-primary: #0f6bea;
+    --color-primary-dark: #0759c7;
+    --color-primary-soft: #eaf3ff;
+    --radius-md: 12px;
+    --radius-lg: 18px;
+    --radius-xl: 24px;
+    --topbar-height: 96px;
+    --shadow-sm: 0 2px 8px rgba(32, 65, 116, .035);
+    --shadow-md: 0 6px 24px rgba(32, 65, 116, .055);
+    --shadow-lg: 0 12px 40px rgba(32, 65, 116, .09);
+    background: radial-gradient(ellipse at 80% 0, #eaf3ff 0, #f3f7fd 52%);
+  }
+
+  #app .farmacias-layout .app-sidebar {
+    top: 14px; bottom: 14px; left: 12px;
+    width: calc(var(--shell-sidebar-width) - 16px);
+    border: 1px solid var(--color-border);
+    border-radius: 22px;
+    box-shadow: var(--shadow-md);
+  }
+  #app .farmacias-layout .sidebar-header {
+    min-height: 82px;
+    border-bottom-color: transparent;
+    padding-inline: 12px;
+  }
+  #app .farmacias-layout .sidebar-brand-mark {
+    border-radius: 13px;
+    background: linear-gradient(145deg, #1471ee, #075ccf);
+    box-shadow: 0 5px 12px #0f6bea24;
+  }
+  #app .farmacias-layout .sidebar-brand-copy strong { color: #0d1b35; font-weight: 780; }
+  #app .farmacias-layout .sidebar-toggle {
+    border-color: #e6edf8;
+    border-radius: 10px;
+    background: #f8fbff;
+  }
+  #app .farmacias-layout .sidebar-navigation { padding: 8px 10px 20px; }
+  #app .farmacias-layout .sidebar-section-label {
+    color: #657899;
+    font-size: 10px;
+    letter-spacing: .09em;
+    padding-inline: 12px;
+  }
+  #app .farmacias-layout .sidebar-nav-item {
+    min-height: 44px;
+    border: 1px solid transparent;
+    border-radius: 12px;
+    color: #344f78;
+    padding-inline: 11px;
+    margin-block: 3px;
+    transition: background-color 160ms, border-color 160ms, color 160ms;
+  }
+  #app .farmacias-layout .sidebar-nav-item:hover { background: #f4f8ff; color: #0a5ed4; }
+  #app .farmacias-layout .sidebar-nav-item.router-link-active {
+    background: linear-gradient(100deg, #e6f0ff, #f1f6ff);
+    border-color: #dceaff;
+    color: #0862db;
+    box-shadow: none;
+    font-weight: 700;
+  }
+  #app .farmacias-layout .sidebar-nav-icon svg { stroke-width: 1.8; }
+  #app .farmacias-layout .sidebar-footer { padding: 14px; }
+  #app .farmacias-layout .sidebar-footer-badge {
+    width: 100%; border: 1px solid #e7eef8; border-radius: 12px;
+    padding: 10px; background: #fafcff; color: #506889;
+  }
+  #app .farmacias-layout .app-topbar {
+    top: 14px; right: 20px; left: calc(var(--shell-sidebar-width) + 12px);
+    min-height: 66px; padding: 12px 20px;
+    border: 1px solid var(--color-border); border-radius: 20px;
+    box-shadow: var(--shadow-sm); background: rgba(255,255,255,.96);
+  }
+  #app .farmacias-layout .topbar-page-title { font-size: 19px; font-weight: 780; letter-spacing: -.035em; }
+  #app .farmacias-layout .breadcrumbs { color: #667b9b; font-size: 11px; }
+  #app .farmacias-layout .session-avatar { border-radius: 50%; background: #e9f2ff; color: #0b65e2; }
+  #app .farmacias-layout .session-info strong { font-size: 12px; }
+  #app .farmacias-layout .session-info span { color: #5c7192; }
+  #app .farmacias-layout .topbar-logout { border-color: #e2eaf6; border-radius: 12px; min-height: 40px; }
+  #app .farmacias-layout .area-switcher { border-color: #e5edf8; border-radius: 12px; background: #f4f8fe; }
+  #app .farmacias-layout .area-switch-button { border-radius: 9px; }
+  #app .farmacias-layout .area-switch-button.active { background: #fff; color: #0b65e2; box-shadow: var(--shadow-sm); }
+  #app .farmacias-layout .farmacias-main {
+    left: calc(var(--shell-sidebar-width) + 12px); right: 20px; bottom: 16px;
+    border: 1px solid #e3ebf5; border-radius: 24px;
+    background: #f3f7fd; isolation: isolate;
+  }
+
+  /* Existing pages retain their data, controls, grid breakpoints and navigation. */
+  #app .farmacias-layout :is(.plans-page,.detail-page,.agenda-page,.approvals-page,.assignments-page,.people-page,.reports-page,.supervisor-plans) {
+    background: transparent;
+  }
+  #app .farmacias-layout :is(.plans-header,.agenda-header,.approvals-header,.page-header,.people-hero,.heading) h1 {
+    color: #101b34; font-size: clamp(24px, 2vw, 31px); font-weight: 780; letter-spacing: -.045em; line-height: 1.2;
+  }
+  #app .farmacias-layout :is(.plans-header,.agenda-header,.approvals-header,.page-header,.people-hero,.heading) p {
+    color: #5a7091; line-height: 1.65;
+  }
+  #app .farmacias-layout :is(.plans-kicker,.page-kicker,.people-kicker,.kicker,.hero-kicker,.eyebrow) {
+    color: #0d67dc; letter-spacing: .065em; font-weight: 700;
+  }
+  #app .farmacias-layout :is(.metric-card,.summary-card,.kpi,.metric) {
+    background: #fff; border: 1px solid #e4ecf7; border-radius: 20px;
+    box-shadow: var(--shadow-sm); padding: 20px;
+  }
+  #app .farmacias-layout :is(.metric-card,.summary-card,.kpi,.metric) strong {
+    color: #101c35; font-weight: 780; letter-spacing: -.04em;
+  }
+  #app .farmacias-layout :is(.metric-card,.summary-card,.kpi,.metric) :is(span,small) { color: #526c91; }
+  #app .farmacias-layout :is(.metric-card.primary,.kpi.blue,.metric.total) { border-color: #d5e5ff; background: linear-gradient(135deg,#fff,#f6faff); }
+  #app .farmacias-layout :is(.metric-card.warning,.metric-card.orange) strong { color: #a96509; }
+  #app .farmacias-layout :is(.metric-card.danger) strong { color: #b83a4c; }
+
+  #app .farmacias-layout :is(.plans-card,.agenda-card,.revisions-card,.filter-card,.filters-card,.task-card,.plan-card,.people-panel,.person-card,.panel,.approval-section,.coverage-card,.cancellation-card,.coverage-summary,.coordinator-card,.card) {
+    border-color: #e3ebf6; border-radius: 20px; box-shadow: var(--shadow-sm);
+  }
+  #app .farmacias-layout :is(.task-card,.plan-card,.person-card) { background: #fff; }
+  #app .farmacias-layout :is(.task-card,.plan-card,.person-card):hover { border-color: #cbdcf5; box-shadow: var(--shadow-md); }
+  #app .farmacias-layout :is(.period-toolbar,.toolbar,.filters,.filter-card,.filters-card) { border-color: #e3ebf6; border-radius: 18px; }
+  #app .farmacias-layout :is(.plan-tabs,.view-tabs,.type-selector,.module-tabs,.detail-tabs) { gap: 6px; }
+  #app .farmacias-layout :is(.plan-tabs,.view-tabs,.type-selector,.module-tabs,.detail-tabs) :is(button,a) { border-radius: 12px; }
+  #app .farmacias-layout :is(.plan-tabs,.view-tabs,.type-selector,.module-tabs,.detail-tabs) :is(button,a):is(.active,.selected) {
+    color: #075dcf; border-color: #cfe1fc; background: #eaf3ff;
+  }
+  #app .farmacias-layout :is(.primary,.primary-button,.review-plan-button,.save-button) {
+    background: #0f6bea; border-color: #0f6bea; color: #fff; border-radius: 13px;
+    box-shadow: 0 4px 10px #0f6bea16;
+  }
+  #app .farmacias-layout :is(.primary,.primary-button,.review-plan-button,.save-button):hover:not(:disabled) { background: #095ece; border-color: #095ece; }
+  #app .farmacias-layout :is(.primary,.secondary,.danger,.primary-button,.refresh-button,.review-plan-button,.save-button,.clear-button,.clear-filters) { min-height: 42px; }
+  #app .farmacias-layout :is(.secondary,.refresh-button,.clear-button,.clear-filters,.period-arrow,.current-period-button) {
+    border-color: #e1eaf6; border-radius: 12px; background: #fff; color: #31567f;
+  }
+  #app .farmacias-layout :is(.approve-button,.reject-button) { border-radius: 13px; min-height: 44px; }
+  #app .farmacias-layout :is(.status-badge,.item-status,.type-badge,.badge,.status,.priority) { border-radius: 999px; }
+  #app .farmacias-layout :is(input,select,textarea):not([type=checkbox]):not([type=radio]):not([type=range]):not([type=color]):not([type=file]) {
+    border-color: #dce6f4; border-radius: 12px; color: #172740;
+  }
+  #app .farmacias-layout :is(input,select,textarea):not([type=checkbox]):not([type=radio]):not([type=range]):not([type=color]):not([type=file]):focus {
+    border-color: #4189ee; box-shadow: 0 0 0 3px #dfeeff;
+  }
+  #app .farmacias-layout :is(input,textarea)::placeholder { color: #687e9f; }
+  #app .farmacias-layout :is(.table-header,.panel-header,.section-heading) { border-color: #e6edf7; background: #fcfdff; }
+  #app .farmacias-layout :is(th,.day-header) { background: #f2f6fd; color: #354e74; border-color: #e5edf7; }
+  #app .farmacias-layout :is(td,.plan-row,.visit-row,.person-row) { border-color: #eaf0f8; }
+  #app .farmacias-layout :is(.plan-row.clickable,.person-row):hover { background: #f7faff; }
+  #app .farmacias-layout :is(.day-header strong,.visit-main strong,.section-heading strong) { color: #13233f; }
+  #app .farmacias-layout .visit-time { color: #0b63da; }
+  #app .farmacias-layout .activity-box { border-radius: 16px; border-color: #e4edf9; background: #f8fbff; }
+  #app .farmacias-layout .execution-summary { border-radius: 16px; border-color: #dbe8fa; background: #f6faff; }
+  #app .farmacias-layout .execution-grid dd { color: #182e4e; font-variant-numeric: tabular-nums; }
+  #app .farmacias-layout .report-hero {
+    border: 1px solid #e1eaf7; border-radius: 22px;
+    background: linear-gradient(115deg,#fff,#f1f7ff); color: #101c35; box-shadow: var(--shadow-sm);
+  }
+  #app .farmacias-layout .report-hero h1 { color: #101c35; font-weight: 780; letter-spacing: -.04em; }
+  #app .farmacias-layout .report-hero p { color: #596f91; }
+  #app .farmacias-layout .hero-actions button { border-color: #dbe6f6; background: #fff; color: #195cae; border-radius: 12px; }
+  #app .farmacias-layout .hero-actions button:hover:not(:disabled) { background: #eaf3ff; }
+  #app .farmacias-layout .context-strip span { border-color: #e2eaf6; border-radius: 11px; background: #f8fbff; }
+  #app .farmacias-layout :is(.modal,.history-dialog) { border-color: #dce6f5; border-radius: 24px; box-shadow: var(--shadow-lg); }
+
+  /* Custom map chrome only; Google controls, road colours and marker data are untouched. */
+  #app .farmacias-layout .structure { border: 1px solid #dfe9f7; border-radius: 20px; box-shadow: var(--shadow-lg); background: #fff; }
+  #app .farmacias-layout .structure-header { background: #fff; border-bottom-color: #edf2fa; padding: 18px; }
+  #app .farmacias-layout .structure-header-icon { border-radius: 13px; background: #eaf3ff; color: #0b65df; }
+  #app .farmacias-layout .person-hero { border-radius: 14px; background: #f4f8ff; }
+  #app .farmacias-layout .state-chip { border-radius: 11px; border-color: #e4edf8; }
+  #app .farmacias-layout .state-chip.active { border-color: #bcd6fb; background: #eaf3ff; color: #075dd2; }
+  #app .farmacias-layout .map-tool-button { border-color: #dfe8f5; border-radius: 12px; background: #fff; box-shadow: var(--shadow-sm); }
+  #app .farmacias-layout .map-tool-button.active { background: #eaf3ff; color: #0862d7; border-color: #cee1fc; }
+  #app .farmacias-layout :is(.row-avatar,.person-avatar,.avatar,.coordinator-avatar) { border-radius: 50%; }
+
+  /* Authentication is also restyled, without touching its form or recovery flow. */
+  #app :is(.login-page,.auth-loading) { background: radial-gradient(ellipse at 25% 15%,#e7f2ff,#f4f8fe 65%); }
+  #app .login-card { border: 1px solid #e2ebf8; border-radius: 26px; box-shadow: 0 20px 70px #23487a12; }
+  #app .login-brand { background: linear-gradient(135deg,#fff,#f1f7ff); }
+  #app .login-brand h1 { color: #101d37; letter-spacing: -.035em; }
+  #app :is(.brand-icon,.loading-logo) { border-radius: 18px; background: #0f6bea; }
+  #app .login-form input { border-radius: 13px; border-color: #dce6f4; background: #fbfdff; }
+  #app .login-form button[type=submit] { border-radius: 13px; background: #0f6bea; }
+}
+
+@media screen and (max-width: 900px) {
+  #app .farmacias-layout { --topbar-height: 82px; }
+  #app .farmacias-layout .app-sidebar { top: 8px; bottom: 8px; left: 6px; width: calc(var(--shell-sidebar-width) - 8px); border-radius: 18px; }
+  #app .farmacias-layout .sidebar-header { padding: 10px 6px; }
+  #app .farmacias-layout .sidebar-navigation { padding: 8px 6px; }
+  #app .farmacias-layout .sidebar-nav-item { padding: 0; min-height: 44px; }
+  #app .farmacias-layout .sidebar-footer { padding: 10px 6px; }
+  #app .farmacias-layout .sidebar-footer-badge { justify-content: center; padding: 10px 0; }
+  #app .farmacias-layout .app-topbar { top: 8px; right: 10px; left: calc(var(--shell-sidebar-width) + 6px); min-height: 62px; padding: 10px 12px; border-radius: 16px; gap: 10px; }
+  #app .farmacias-layout .farmacias-main { right: 10px; bottom: 8px; left: calc(var(--shell-sidebar-width) + 6px); border-radius: 18px; }
+  #app .farmacias-layout .topbar-page-title { font-size: 16px; }
+  #app .farmacias-layout :is(.metric-card,.summary-card,.kpi,.metric) { padding: 16px; border-radius: 17px; }
+}
+@media screen and (max-width: 600px) {
+  #app .farmacias-layout .app-topbar { right: 6px; padding-inline: 10px; }
+  #app .farmacias-layout .farmacias-main { right: 6px; }
+  #app .farmacias-layout :is(.plans-card,.agenda-card,.revisions-card,.filter-card,.filters-card,.task-card,.plan-card,.panel,.card) { border-radius: 16px; }
+  #app .farmacias-layout .report-hero { padding: 20px; border-radius: 18px; }
+  #app .farmacias-layout .report-hero h1 { font-size: 24px; }
+}

@@ -566,9 +566,9 @@ export default function WorkPlansScreen() {
             onRefresh={() => {
               void handleRefresh()
             }}
-            tintColor="#0f64ad"
+            tintColor="#0f6bea"
             colors={[
-              '#0f64ad',
+              '#0f6bea',
             ]}
           />
         }
@@ -613,7 +613,7 @@ export default function WorkPlansScreen() {
               ordinaryPlans.length
             }
             icon="calendar-outline"
-            iconColor="#0f64ad"
+            iconColor="#0f6bea"
           />
 
           <SummaryCard
@@ -675,7 +675,7 @@ export default function WorkPlansScreen() {
           <View className="mt-12 items-center">
             <ActivityIndicator
               size="large"
-              color="#0f64ad"
+              color="#0f6bea"
             />
 
             <Text className="mt-4 text-sm text-slate-500">
@@ -692,7 +692,7 @@ export default function WorkPlansScreen() {
               <Ionicons
                 name="calendar-outline"
                 size={30}
-                color="#0f64ad"
+                color="#0f6bea"
               />
             </View>
 
@@ -893,7 +893,7 @@ export default function WorkPlansScreen() {
                         <Ionicons
                           name="chevron-back"
                           size={22}
-                          color="#0f64ad"
+                          color="#0f6bea"
                         />
                       </Pressable>
 
@@ -933,7 +933,7 @@ export default function WorkPlansScreen() {
                         <Ionicons
                           name="chevron-forward"
                           size={22}
-                          color="#0f64ad"
+                          color="#0f6bea"
                         />
                       </Pressable>
                     </View>
@@ -1102,7 +1102,7 @@ function PlanCard({
     'ORDINARY'
 
   return (
-    <View className="rounded-3xl border border-slate-200 bg-white p-5">
+    <View className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
       <View className="flex-row items-start">
         <View
           className={`h-12 w-12 items-center justify-center rounded-2xl ${
@@ -1120,7 +1120,7 @@ function PlanCard({
             size={24}
             color={
               isOrdinary
-                ? '#0f64ad'
+                ? '#0f6bea'
                 : '#6d28d9'
             }
           />
@@ -1276,7 +1276,7 @@ function SummaryCard({
   iconColor: string
 }) {
   return (
-    <View className="flex-1 rounded-2xl border border-slate-200 bg-white p-3">
+    <View className="flex-1 rounded-2xl border border-slate-200 bg-white p-3 shadow-sm">
       <Ionicons
         name={icon}
         size={20}
@@ -1348,7 +1348,7 @@ function PlanTypeButton({
         size={21}
         color={
           selected
-            ? '#0f64ad'
+            ? '#0f6bea'
             : '#64748b'
         }
       />

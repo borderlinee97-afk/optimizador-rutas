@@ -207,7 +207,7 @@ export function SkipVisitModal({
                     ? 'Describe el motivo...'
                     : 'Agrega información adicional, si aplica...'
                 }
-                placeholderTextColor="#94a3b8"
+                placeholderTextColor="#657590"
                 multiline
                 textAlignVertical="top"
                 maxLength={1000}
@@ -222,7 +222,7 @@ export function SkipVisitModal({
 
               <View className="mt-6 flex-row gap-3">
                 <Pressable
-                  className="h-14 flex-1 items-center justify-center rounded-2xl border border-slate-300 bg-white"
+                  className="h-14 flex-1 items-center justify-center rounded-2xl border border-slate-300 bg-white shadow-sm"
                   onPress={onClose}
                   disabled={loading}
                 >

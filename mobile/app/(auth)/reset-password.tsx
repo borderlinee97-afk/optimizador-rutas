@@ -82,14 +82,14 @@ export default function ResetPasswordScreen() {
   if (!ready) {
     return (
       <SafeAreaView className="flex-1 items-center justify-center bg-surface">
-        <ActivityIndicator size="large" color="#0f64ad" />
+        <ActivityIndicator size="large" color="#0f6bea" />
       </SafeAreaView>
     )
   }
 
   return (
     <SafeAreaView className="flex-1 bg-surface px-6 pt-16">
-      <KeyboardAvoidingView style={{flex:1}} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}><ScrollView keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag" contentContainerStyle={{flexGrow:1,paddingBottom:24}}><View className="mx-auto w-full max-w-md rounded-3xl border border-slate-200 bg-white p-6">
+      <KeyboardAvoidingView style={{flex:1}} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}><ScrollView keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag" contentContainerStyle={{flexGrow:1,paddingBottom:24}}><View className="mx-auto w-full max-w-md rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
         <Text className="text-2xl font-bold text-slate-900">Nueva contraseña</Text>
         <Text className="mt-2 text-sm text-slate-500">Usa al menos 12 caracteres y no la compartas.</Text>
         <TextInput

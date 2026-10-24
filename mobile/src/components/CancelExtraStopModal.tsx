@@ -241,7 +241,7 @@ export function CancelExtraStopModal({
                     ? 'Describe el motivo de cancelación...'
                     : 'Agrega información complementaria...'
                 }
-                placeholderTextColor="#94a3b8"
+                placeholderTextColor="#657590"
                 multiline
                 maxLength={1000}
                 textAlignVertical="top"
@@ -298,7 +298,7 @@ export function CancelExtraStopModal({
               </Pressable>
 
               <Pressable
-                className="mt-3 h-14 items-center justify-center rounded-2xl border border-slate-200 bg-white"
+                className="mt-3 h-14 items-center justify-center rounded-2xl border border-slate-200 bg-white shadow-sm"
                 onPress={onClose}
                 disabled={loading}
               >

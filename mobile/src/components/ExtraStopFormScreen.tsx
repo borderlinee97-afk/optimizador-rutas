@@ -1133,7 +1133,7 @@ export function ExtraStopFormScreen({
       <SafeAreaView className="flex-1 items-center justify-center bg-surface">
         <ActivityIndicator
           size="large"
-          color="#0f64ad"
+          color="#0f6bea"
         />
 
         <Text className="mt-4 text-sm text-slate-500">
@@ -1279,7 +1279,7 @@ export function ExtraStopFormScreen({
           <TextInput
             className="h-14 rounded-2xl border border-slate-200 bg-white px-4 text-base text-slate-800"
             placeholder="Ej. Presidencia Municipal"
-            placeholderTextColor="#94a3b8"
+            placeholderTextColor="#657590"
             value={name}
             onChangeText={
               setName
@@ -1296,7 +1296,7 @@ export function ExtraStopFormScreen({
             Buscar ubicación
           </Text>
 
-          <View className="flex-row items-center rounded-2xl border border-slate-200 bg-white px-4">
+          <View className="flex-row items-center rounded-2xl border border-slate-200 bg-white px-4 shadow-sm">
             <Ionicons
               name="search-outline"
               size={21}
@@ -1306,7 +1306,7 @@ export function ExtraStopFormScreen({
             <TextInput
               className="h-14 flex-1 px-3 text-base text-slate-800"
               placeholder="Busca el lugar en Google Maps"
-              placeholderTextColor="#94a3b8"
+              placeholderTextColor="#657590"
               value={
                 locationQuery
               }
@@ -1326,7 +1326,7 @@ export function ExtraStopFormScreen({
             resolvingPlace ? (
               <ActivityIndicator
                 size="small"
-                color="#0f64ad"
+                color="#0f6bea"
               />
             ) : locationQuery ? (
               <Pressable
@@ -1340,7 +1340,7 @@ export function ExtraStopFormScreen({
                 <Ionicons
                   name="close-circle"
                   size={21}
-                  color="#94a3b8"
+                  color="#657590"
                 />
               </Pressable>
             ) : null}
@@ -1348,7 +1348,7 @@ export function ExtraStopFormScreen({
 
           {predictions.length >
           0 ? (
-            <View className="mt-2 overflow-hidden rounded-2xl border border-slate-200 bg-white">
+            <View className="mt-2 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
               {predictions.map(
                 (
                   prediction,
@@ -1377,7 +1377,7 @@ export function ExtraStopFormScreen({
                     <Ionicons
                       name="location-outline"
                       size={21}
-                      color="#0f64ad"
+                      color="#0f6bea"
                     />
 
                     <View className="ml-3 flex-1">
@@ -1405,7 +1405,7 @@ export function ExtraStopFormScreen({
             </View>
           ) : null}
 
-          <View className="mt-5 overflow-hidden rounded-3xl border border-slate-200 bg-white">
+          <View className="mt-5 overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
             <MapView
               ref={mapRef}
               style={
@@ -1623,7 +1623,7 @@ export function ExtraStopFormScreen({
           <TextInput
             className="min-h-[110px] rounded-2xl border border-slate-200 bg-white px-4 py-3 text-base text-slate-800"
             placeholder="Ej. Entregar documentación solicitada por Coordinación"
-            placeholderTextColor="#94a3b8"
+            placeholderTextColor="#657590"
             multiline
             textAlignVertical="top"
             maxLength={1000}
@@ -1642,11 +1642,11 @@ export function ExtraStopFormScreen({
             Tiempo estimado
           </Text>
 
-          <View className="flex-row items-center rounded-2xl border border-slate-200 bg-white px-4">
+          <View className="flex-row items-center rounded-2xl border border-slate-200 bg-white px-4 shadow-sm">
             <TextInput
               className="h-14 flex-1 text-base text-slate-800"
               placeholder="Ej. 20"
-              placeholderTextColor="#94a3b8"
+              placeholderTextColor="#657590"
               keyboardType="number-pad"
               maxLength={3}
               value={

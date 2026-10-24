@@ -963,7 +963,7 @@ export default function NewHierarchyAssignmentScreen() {
       <SafeAreaView className="flex-1 items-center justify-center bg-surface">
         <ActivityIndicator
           size="large"
-          color="#0f64ad"
+          color="#0f6bea"
         />
 
         <Text className="mt-4 text-sm text-slate-500">
@@ -1083,7 +1083,7 @@ export default function NewHierarchyAssignmentScreen() {
             setScheduledDate
           }
           placeholder="AAAA-MM-DD"
-          placeholderTextColor="#94a3b8"
+          placeholderTextColor="#657590"
           autoCapitalize="none"
         />
 
@@ -1101,7 +1101,7 @@ export default function NewHierarchyAssignmentScreen() {
             setScheduledTime
           }
           placeholder="HH:MM"
-          placeholderTextColor="#94a3b8"
+          placeholderTextColor="#657590"
           keyboardType="numbers-and-punctuation"
         />
 
@@ -1155,7 +1155,7 @@ export default function NewHierarchyAssignmentScreen() {
                   setPharmacySearch
                 }
                 placeholder="Nombre, CLUES, región..."
-                placeholderTextColor="#94a3b8"
+                placeholderTextColor="#657590"
                 returnKeyType="search"
                 onSubmitEditing={() => {
                   void handlePharmacySearch()
@@ -1250,7 +1250,7 @@ export default function NewHierarchyAssignmentScreen() {
           <View className="mt-5">
             <FieldLabel text="Buscar ubicación en Google Maps"/>
 
-            <View className="flex-row items-center rounded-2xl border border-slate-200 bg-white px-4">
+            <View className="flex-row items-center rounded-2xl border border-slate-200 bg-white px-4 shadow-sm">
               <Ionicons
                 name="search-outline"
                 size={20}
@@ -1280,21 +1280,21 @@ export default function NewHierarchyAssignmentScreen() {
                   )
                 }}
                 placeholder="Ej. Secretaría de Salud"
-                placeholderTextColor="#94a3b8"
+                placeholderTextColor="#657590"
               />
 
               {searchingPlaces ||
               resolvingPlace ? (
                 <ActivityIndicator
                   size="small"
-                  color="#0f64ad"
+                  color="#0f6bea"
                 />
               ) : null}
             </View>
 
             {placePredictions.length >
             0 ? (
-              <View className="mt-2 overflow-hidden rounded-2xl border border-slate-200 bg-white">
+              <View className="mt-2 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
                 {placePredictions.map(
                   (
                     prediction,
@@ -1350,7 +1350,7 @@ export default function NewHierarchyAssignmentScreen() {
                 setFreePointName
               }
               placeholder="Nombre del lugar"
-              placeholderTextColor="#94a3b8"
+              placeholderTextColor="#657590"
             />
 
             <FieldLabel
@@ -1368,7 +1368,7 @@ export default function NewHierarchyAssignmentScreen() {
               }
               multiline
               placeholder="Dirección del lugar"
-              placeholderTextColor="#94a3b8"
+              placeholderTextColor="#657590"
             />
 
             <View className="mt-4 flex-row gap-3">
@@ -1385,7 +1385,7 @@ export default function NewHierarchyAssignmentScreen() {
                   }
                   keyboardType="numbers-and-punctuation"
                   placeholder="20.000000"
-                  placeholderTextColor="#94a3b8"
+                  placeholderTextColor="#657590"
                 />
               </View>
 
@@ -1402,7 +1402,7 @@ export default function NewHierarchyAssignmentScreen() {
                   }
                   keyboardType="numbers-and-punctuation"
                   placeholder="-103.000000"
-                  placeholderTextColor="#94a3b8"
+                  placeholderTextColor="#657590"
                 />
               </View>
             </View>
@@ -1469,7 +1469,7 @@ export default function NewHierarchyAssignmentScreen() {
               }
               keyboardType="number-pad"
               placeholder="Ej. 30"
-              placeholderTextColor="#94a3b8"
+              placeholderTextColor="#657590"
             />
           </View>
         )}
@@ -1493,7 +1493,7 @@ export default function NewHierarchyAssignmentScreen() {
             1000
           }
           placeholder="Describe qué debe realizar la persona durante esta visita."
-          placeholderTextColor="#94a3b8"
+          placeholderTextColor="#657590"
         />
 
         {selectedTarget ? (
@@ -1618,7 +1618,7 @@ function ModeButton({
         size={23}
         color={
           active
-            ? '#0f64ad'
+            ? '#0f6bea'
             : '#64748b'
         }
       />

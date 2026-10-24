@@ -1661,11 +1661,11 @@ export default function ApprovalsScreen() {
 
             }}
 
-            tintColor="#0f64ad"
+            tintColor="#0f6bea"
 
             colors={[
 
-              '#0f64ad',
+              '#0f6bea',
 
             ]}
 
@@ -1739,7 +1739,7 @@ export default function ApprovalsScreen() {
 
               icon="calendar-outline"
 
-              iconColor="#0f64ad"
+              iconColor="#0f6bea"
 
             />
 
@@ -1803,7 +1803,7 @@ export default function ApprovalsScreen() {
 
               size="large"
 
-              color="#0f64ad"
+              color="#0f6bea"
 
             />
 
@@ -1967,7 +1967,7 @@ export default function ApprovalsScreen() {
 
                   size={22}
 
-                  color="#0f64ad"
+                  color="#0f6bea"
 
                 />
 
@@ -2139,7 +2139,7 @@ export default function ApprovalsScreen() {
 
                 size="large"
 
-                color="#0f64ad"
+                color="#0f6bea"
 
               />
 
@@ -2325,7 +2325,7 @@ export default function ApprovalsScreen() {
 
               placeholder="Explica qué debe corregirse..."
 
-              placeholderTextColor="#94a3b8"
+              placeholderTextColor="#657590"
 
               multiline
 
@@ -2365,7 +2365,7 @@ export default function ApprovalsScreen() {
 
               <Pressable
 
-                className="h-13 flex-1 items-center justify-center rounded-2xl border border-slate-200 bg-white py-4"
+                className="h-13 flex-1 items-center justify-center rounded-2xl border border-slate-200 bg-white py-4 shadow-sm"
 
                 onPress={
 
@@ -2609,7 +2609,7 @@ export default function ApprovalsScreen() {
 
               placeholder="Explica por qué debe mantenerse la visita..."
 
-              placeholderTextColor="#94a3b8"
+              placeholderTextColor="#657590"
 
               multiline
 
@@ -2649,7 +2649,7 @@ export default function ApprovalsScreen() {
 
               <Pressable
 
-                className="h-14 flex-1 items-center justify-center rounded-2xl border border-slate-200 bg-white"
+                className="h-14 flex-1 items-center justify-center rounded-2xl border border-slate-200 bg-white shadow-sm"
 
                 onPress={
 
@@ -2791,7 +2791,7 @@ function CancellationRequestCard({
 
   return (
 
-    <View className="rounded-3xl border border-rose-200 bg-white p-5">
+    <View className="rounded-3xl border border-rose-200 bg-white p-5 shadow-sm">
 
       <View className="flex-row items-start">
 
@@ -3115,7 +3115,7 @@ function ApprovalCard({
 
     <Pressable
 
-      className="rounded-3xl border border-slate-200 bg-white p-5"
+      className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm"
 
       onPress={
 
@@ -3179,7 +3179,7 @@ function ApprovalCard({
 
           size={21}
 
-          color="#94a3b8"
+          color="#657590"
 
         />
 
@@ -3303,7 +3303,7 @@ function ApprovalCard({
 
           size={18}
 
-          color="#0f64ad"
+          color="#0f6bea"
 
         />
 
@@ -3523,7 +3523,7 @@ function ApprovalDetail({
 
           <Pressable
 
-            className="h-11 w-11 items-center justify-center rounded-2xl border border-slate-200 bg-white"
+            className="h-11 w-11 items-center justify-center rounded-2xl border border-slate-200 bg-white shadow-sm"
 
             onPress={
 
@@ -3583,7 +3583,7 @@ function ApprovalDetail({
 
 
 
-        <View className="mt-5 rounded-3xl border border-slate-200 bg-white p-5">
+        <View className="mt-5 rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
 
           <View className="flex-row items-start">
 
@@ -3595,7 +3595,7 @@ function ApprovalDetail({
 
                 size={23}
 
-                color="#0f64ad"
+                color="#0f6bea"
 
               />
 
@@ -4187,7 +4187,7 @@ function ReviewVisitCard({
 
   return (
 
-    <View className="rounded-3xl border border-slate-200 bg-white p-5">
+    <View className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
 
       <View className="flex-row items-start">
 
@@ -4567,7 +4567,7 @@ function MetricCard({
 
   return (
 
-    <View className="flex-1 rounded-2xl border border-slate-200 bg-white p-3">
+    <View className="flex-1 rounded-2xl border border-slate-200 bg-white p-3 shadow-sm">
 
       <Ionicons
 
@@ -4695,7 +4695,7 @@ function SummaryBox({
 
   return (
 
-    <View className="flex-1 rounded-2xl border border-slate-200 bg-white p-4">
+    <View className="flex-1 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
 
       <Text className="text-xl font-bold text-slate-900">
 

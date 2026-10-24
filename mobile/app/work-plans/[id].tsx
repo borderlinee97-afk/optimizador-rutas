@@ -1732,7 +1732,7 @@ export default function WorkPlanDetailScreen() {
       <SafeAreaView className="flex-1 items-center justify-center bg-surface">
         <ActivityIndicator
           size="large"
-          color="#0f64ad"
+          color="#0f6bea"
         />
 
         <Text className="mt-4 text-sm text-slate-500">
@@ -1807,15 +1807,15 @@ export default function WorkPlanDetailScreen() {
               void handleRefresh()
             }}
             colors={[
-              '#0f64ad',
+              '#0f6bea',
             ]}
-            tintColor="#0f64ad"
+            tintColor="#0f6bea"
           />
         }
       >
         <View className="flex-row items-center">
           <Pressable
-            className="h-11 w-11 items-center justify-center rounded-2xl border border-slate-200 bg-white"
+            className="h-11 w-11 items-center justify-center rounded-2xl border border-slate-200 bg-white shadow-sm"
             onPress={() =>
               router.back()
             }
@@ -1847,7 +1847,7 @@ export default function WorkPlanDetailScreen() {
           </View>
         </View>
 
-        <View className="mt-5 rounded-3xl border border-slate-200 bg-white p-5">
+        <View className="mt-5 rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
           <View className="flex-row items-start justify-between">
             <View className="mr-4 flex-1">
               <Text className="text-xs font-bold uppercase tracking-wide text-slate-500">
@@ -2199,7 +2199,7 @@ export default function WorkPlanDetailScreen() {
         ) : null}
 
         {editable && plan.status !== 'APPROVED' ? (
-          <View className="mt-8 rounded-3xl border border-slate-200 bg-white p-5">
+          <View className="mt-8 rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
             <View className="flex-row items-start">
               <View className="h-12 w-12 items-center justify-center rounded-2xl bg-blue-100">
                 <Ionicons
@@ -2369,7 +2369,7 @@ export default function WorkPlanDetailScreen() {
                     setSearch
                   }
                   placeholder={catalogKind === 'CEDIS' ? 'Nombre o referencia del almacén...' : 'Nombre, CLUES, región, proyecto...'}
-                  placeholderTextColor="#94a3b8"
+                  placeholderTextColor="#657590"
                   autoCapitalize="none"
                   autoCorrect={
                     false
@@ -2387,7 +2387,7 @@ export default function WorkPlanDetailScreen() {
                     <Ionicons
                       name="close-circle"
                       size={20}
-                      color="#94a3b8"
+                      color="#657590"
                     />
                   </Pressable>
                 ) : null}
@@ -2488,7 +2488,7 @@ export default function WorkPlanDetailScreen() {
                 <View className="items-center py-8">
                   <ActivityIndicator
                     size="small"
-                    color="#0f64ad"
+                    color="#0f6bea"
                   />
                 </View>
               ) : (
@@ -2578,7 +2578,7 @@ export default function WorkPlanDetailScreen() {
                                 size={21}
                                 color={
                                   unavailable
-                                    ? '#94a3b8'
+                                    ? '#657590'
                                     : selected
                                       ? '#ffffff'
                                       : pharmacy.accessType ===
@@ -2705,7 +2705,7 @@ export default function WorkPlanDetailScreen() {
                       <Ionicons
                         name="search-outline"
                         size={28}
-                        color="#94a3b8"
+                        color="#657590"
                       />
 
                       <Text className="mt-3 font-bold text-slate-700">
@@ -2862,7 +2862,7 @@ export default function WorkPlanDetailScreen() {
                         key={
                           activity.key
                         }
-                        className="rounded-2xl border border-slate-200 bg-white p-4"
+                        className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"
                       >
                         <View className="flex-row items-center justify-between">
                           <Text className="text-xs font-bold uppercase tracking-wide text-slate-500">
@@ -2958,7 +2958,7 @@ export default function WorkPlanDetailScreen() {
                               )
                           }
                           placeholder="Ej. Revisión de inventario"
-                          placeholderTextColor="#94a3b8"
+                          placeholderTextColor="#657590"
                           maxLength={160}
                           editable={
                             !saving
@@ -2979,7 +2979,7 @@ export default function WorkPlanDetailScreen() {
                               )
                           }
                           placeholder="Nota opcional"
-                          placeholderTextColor="#94a3b8"
+                          placeholderTextColor="#657590"
                           maxLength={1000}
                           multiline
                           textAlignVertical="top"
@@ -3024,8 +3024,8 @@ export default function WorkPlanDetailScreen() {
                     color={
                       activities.length >=
                       MAX_VISIT_ACTIVITIES
-                        ? '#94a3b8'
-                        : '#0f64ad'
+                        ? '#657590'
+                        : '#0f6bea'
                     }
                   />
 

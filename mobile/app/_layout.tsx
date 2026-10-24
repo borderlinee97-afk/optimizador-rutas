@@ -24,6 +24,7 @@ import {
 import { NotificationBridge } from '../src/components/NotificationBridge'
 import { OfflineStatus } from '../src/components/OfflineStatus'
 import { View } from 'react-native'
+import { StatusBar } from 'expo-status-bar'
 
 export {
   ErrorBoundary,
@@ -117,7 +118,8 @@ function RootNavigator() {
           : DefaultTheme
       }
     >
-      <View style={{ flex: 1 }}>
+      <View style={{ flex: 1, backgroundColor: '#f3f7fd' }}>
+      <StatusBar style="dark" />
       <OfflineStatus />
       <AppUpdateCard compact />
       <Stack

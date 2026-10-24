@@ -580,7 +580,7 @@ export function VisitResolutionModal({
                       setScheduledTime
                     }
                     placeholder="09:30"
-                    placeholderTextColor="#94a3b8"
+                    placeholderTextColor="#657590"
                     maxLength={5}
                     editable={
                       !loading
@@ -697,7 +697,7 @@ export function VisitResolutionModal({
                   ? 'Agrega información sobre la reprogramación...'
                   : 'Explica por qué solicitas cancelar la visita...'
               }
-              placeholderTextColor="#94a3b8"
+              placeholderTextColor="#657590"
               multiline
               textAlignVertical="top"
               maxLength={1000}

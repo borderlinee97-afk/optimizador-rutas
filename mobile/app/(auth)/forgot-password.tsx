@@ -76,7 +76,7 @@ export default function ForgotPasswordScreen() {
               para crear una nueva contraseña.
             </Text>
 
-            <View className="mt-8 rounded-3xl border border-slate-200 bg-white p-5">
+            <View className="mt-8 rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
               <Text className="mb-2 text-sm font-semibold text-slate-700">
                 Correo electrónico
               </Text>
@@ -86,7 +86,7 @@ export default function ForgotPasswordScreen() {
                 value={email}
                 onChangeText={setEmail}
                 placeholder="nombre@empresa.com"
-                placeholderTextColor="#94a3b8"
+                placeholderTextColor="#657590"
                 keyboardType="email-address"
                 autoCapitalize="none"
                 autoCorrect={false}

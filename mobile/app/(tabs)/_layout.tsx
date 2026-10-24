@@ -89,14 +89,14 @@ export default function TabLayout() {
             true,
 
           tabBarActiveTintColor:
-            '#0f64ad',
+            '#0f6bea',
 
           tabBarInactiveTintColor:
-            '#64748b',
+            '#5d7393',
 
           sceneStyle: {
             backgroundColor:
-              '#f5f7fa',
+              '#f3f7fd',
           },
 
           tabBarIcon: ({
@@ -118,6 +118,9 @@ export default function TabLayout() {
               }
             />
           ),
+
+          tabBarActiveBackgroundColor: '#edf5ff',
+          tabBarItemStyle: { borderRadius: 16, marginHorizontal: 3 },
 
           tabBarLabelStyle: {
             fontSize:
@@ -145,7 +148,7 @@ export default function TabLayout() {
               1,
 
             borderTopColor:
-              '#e2e8f0',
+              '#e3ebf7',
 
             backgroundColor:
               '#ffffff',
