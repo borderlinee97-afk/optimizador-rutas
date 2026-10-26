@@ -94,7 +94,7 @@ export default function HomeScreen() {
       <SafeAreaView className="flex-1 items-center justify-center bg-surface">
         <ActivityIndicator
           size="large"
-          color="#0f6bea"
+          color="#147b9d"
         />
 
         <Text className="mt-4 text-sm text-slate-500">
@@ -114,13 +114,14 @@ export default function HomeScreen() {
         contentContainerClassName="mx-auto w-full max-w-3xl px-5 pb-10 pt-5"
         showsVerticalScrollIndicator={false}
       >
+        <Text className="mb-5 text-xl font-semibold tracking-tight text-slate-900">App de Rutas</Text>
         <View className="mb-6 flex-row items-start justify-between">
           <View className="flex-1 pr-4">
             <Text className="text-sm font-semibold uppercase tracking-wider text-primary-600">
               {areaLabel}
             </Text>
 
-            <Text className="mt-1 text-3xl font-bold text-slate-900">
+            <Text className="mt-1 text-3xl font-semibold text-slate-900">
               Hola, {getFirstName(profile?.nombre)}
             </Text>
 
@@ -130,7 +131,7 @@ export default function HomeScreen() {
           </View>
 
           <View className="rounded-full bg-primary-100 px-3 py-2">
-            <Text className="text-xs font-bold text-primary-700">
+            <Text className="text-xs font-semibold text-primary-700">
               {roleLabel}
             </Text>
           </View>
@@ -143,7 +144,7 @@ export default function HomeScreen() {
                 Jornada de hoy
               </Text>
 
-              <Text className="mt-1 text-2xl font-bold text-slate-900">
+              <Text className="mt-1 text-2xl font-semibold text-slate-900">
                 Resumen de actividades
               </Text>
             </View>
@@ -158,13 +159,13 @@ export default function HomeScreen() {
               {syncing ? (
                 <ActivityIndicator
                   size="small"
-                  color="#0f6bea"
+                  color="#147b9d"
                 />
               ) : (
                 <Ionicons
                   name="refresh"
                   size={20}
-                  color="#0f6bea"
+                  color="#147b9d"
                 />
               )}
             </Pressable>
@@ -193,14 +194,14 @@ export default function HomeScreen() {
                 Avance de la jornada
               </Text>
 
-              <Text className="text-sm font-bold text-primary-600">
+              <Text className="text-sm font-semibold text-primary-600">
                 {summary.progress}%
               </Text>
             </View>
 
             <View className="mt-2 h-2 overflow-hidden rounded-full bg-slate-100">
               <View
-                className="h-full rounded-full bg-primary-600"
+                className="h-full rounded-full bg-brand-600"
                 style={{
                   width:
                     `${summary.progress}%`,
@@ -228,7 +229,7 @@ export default function HomeScreen() {
             />
 
             <View className="ml-3 flex-1">
-              <Text className="font-bold text-amber-800">
+              <Text className="font-semibold text-amber-800">
                 Sincronización pendiente
               </Text>
 
@@ -250,12 +251,12 @@ export default function HomeScreen() {
 
         {activeVisit ? (
           <>
-            <Text className="mb-3 mt-7 text-lg font-bold text-slate-900">
+            <Text className="mb-3 mt-7 text-lg font-semibold text-slate-900">
               Visita activa
             </Text>
 
             <Pressable
-              className="rounded-3xl border border-blue-200 bg-blue-50 p-5"
+              className="rounded-3xl border border-emerald-200 bg-white p-5"
               onPress={() => {
                 router.push(
                   `/unit/${encodeURIComponent(
@@ -265,20 +266,20 @@ export default function HomeScreen() {
               }}
             >
               <View className="flex-row items-center">
-                <View className="h-12 w-12 items-center justify-center rounded-2xl bg-blue-100">
+                <View className="h-12 w-12 items-center justify-center rounded-2xl bg-brand-50">
                   <Ionicons
                     name="navigate-circle-outline"
                     size={27}
-                    color="#1d4ed8"
+                    color="#0e6788"
                   />
                 </View>
 
                 <View className="ml-4 flex-1">
-                  <Text className="text-xs font-bold uppercase tracking-wide text-blue-600">
+                  <Text className="text-xs font-semibold uppercase tracking-wide text-blue-600">
                     En progreso
                   </Text>
 
-                  <Text className="mt-1 text-base font-bold text-blue-900">
+                  <Text className="mt-1 text-base font-semibold text-blue-900">
                     {activeVisit.name ??
                       'Farmacia programada'}
                   </Text>
@@ -292,7 +293,7 @@ export default function HomeScreen() {
                 <Ionicons
                   name="chevron-forward"
                   size={22}
-                  color="#2563eb"
+                  color="#147b9d"
                 />
               </View>
             </Pressable>
@@ -306,11 +307,11 @@ export default function HomeScreen() {
                 <Ionicons
                   name="calendar-outline"
                   size={27}
-                  color="#64748b"
+                  color="#53646d"
                 />
               </View>
 
-              <Text className="mt-4 text-center text-lg font-bold text-slate-800">
+              <Text className="mt-4 text-center text-lg font-semibold text-slate-800">
                 Sin plan autorizado
               </Text>
 
@@ -322,7 +323,7 @@ export default function HomeScreen() {
           </View>
         ) : null}
 
-        <Text className="mb-3 mt-7 text-lg font-bold text-slate-900">
+        <Text className="mb-3 mt-7 text-lg font-semibold text-slate-900">
           Acciones principales
         </Text>
 
@@ -336,12 +337,12 @@ export default function HomeScreen() {
             <Ionicons
               name="briefcase-outline"
               size={24}
-              color="#0f6bea"
+              color="#147b9d"
             />
           </View>
 
           <View className="flex-1">
-            <Text className="text-base font-bold text-slate-900">
+            <Text className="text-base font-semibold text-slate-900">
               Consultar trabajo
             </Text>
 
@@ -354,7 +355,7 @@ export default function HomeScreen() {
           <Ionicons
             name="chevron-forward"
             size={22}
-            color="#657590"
+            color="#667980"
           />
         </Pressable>
 
@@ -368,12 +369,12 @@ export default function HomeScreen() {
             <Ionicons
               name="map-outline"
               size={24}
-              color="#047857"
+              color="#237347"
             />
           </View>
 
           <View className="flex-1">
-            <Text className="text-base font-bold text-slate-900">
+            <Text className="text-base font-semibold text-slate-900">
               Ver ubicaciones
             </Text>
 
@@ -386,7 +387,7 @@ export default function HomeScreen() {
           <Ionicons
             name="chevron-forward"
             size={22}
-            color="#657590"
+            color="#667980"
           />
         </Pressable>
 
@@ -409,8 +410,8 @@ function SummaryCard({
   label: string
 }) {
   return (
-    <View className="flex-1 rounded-2xl border border-primary-100 bg-primary-50 px-3 py-4">
-      <Text className="text-2xl font-bold text-slate-900">
+    <View className="flex-1 bg-white px-3 py-3">
+      <Text className="text-2xl font-semibold text-slate-900">
         {value}
       </Text>
 

@@ -67,7 +67,7 @@ export default function ForgotPasswordScreen() {
           keyboardShouldPersistTaps="handled"
          keyboardDismissMode="on-drag">
           <View className="mx-auto w-full max-w-md">
-            <Text className="text-3xl font-bold text-slate-900">
+            <Text className="text-3xl font-semibold text-slate-900">
               Recuperar contraseña
             </Text>
 
@@ -86,7 +86,7 @@ export default function ForgotPasswordScreen() {
                 value={email}
                 onChangeText={setEmail}
                 placeholder="nombre@empresa.com"
-                placeholderTextColor="#657590"
+                placeholderTextColor="#667980"
                 keyboardType="email-address"
                 autoCapitalize="none"
                 autoCorrect={false}
@@ -119,7 +119,7 @@ export default function ForgotPasswordScreen() {
                 {submitting ? (
                   <ActivityIndicator color="#ffffff" />
                 ) : (
-                  <Text className="text-base font-bold text-white">
+                  <Text className="text-base font-semibold text-white">
                     Enviar instrucciones
                   </Text>
                 )}

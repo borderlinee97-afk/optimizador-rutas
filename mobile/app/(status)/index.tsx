@@ -47,7 +47,7 @@ export default function AccountStatusScreen() {
             <Text className="text-2xl">!</Text>
           </View>
 
-          <Text className="text-2xl font-bold text-slate-900">
+          <Text className="text-2xl font-semibold text-slate-900">
             {accessState === 'offline' ? 'SIN CONEXIÓN' : accessState === 'unauthorized' ? 'Acceso no autorizado' : 'Acceso pendiente'}
           </Text>
 
@@ -73,7 +73,7 @@ export default function AccountStatusScreen() {
             {retrying ? (
               <ActivityIndicator color="#ffffff" />
             ) : (
-              <Text className="text-base font-bold text-white">
+              <Text className="text-base font-semibold text-white">
                 Intentar nuevamente
               </Text>
             )}

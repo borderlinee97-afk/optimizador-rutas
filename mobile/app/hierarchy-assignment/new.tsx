@@ -945,7 +945,7 @@ export default function NewHierarchyAssignmentScreen() {
           color="#b45309"
         />
 
-        <Text className="mt-4 text-center text-xl font-bold text-slate-900">
+        <Text className="mt-4 text-center text-xl font-semibold text-slate-900">
           Acceso restringido
         </Text>
 
@@ -963,7 +963,7 @@ export default function NewHierarchyAssignmentScreen() {
       <SafeAreaView className="flex-1 items-center justify-center bg-surface">
         <ActivityIndicator
           size="large"
-          color="#0f6bea"
+          color="#147b9d"
         />
 
         <Text className="mt-4 text-sm text-slate-500">
@@ -1002,7 +1002,7 @@ export default function NewHierarchyAssignmentScreen() {
           </Pressable>
 
           <View className="flex-1">
-            <Text className="text-3xl font-bold text-slate-900">
+            <Text className="text-3xl font-semibold text-slate-900">
               Asignar visita
             </Text>
 
@@ -1049,7 +1049,7 @@ export default function NewHierarchyAssignmentScreen() {
                       )
                     }
                   >
-                    <Text className="font-bold text-slate-900">
+                    <Text className="font-semibold text-slate-900">
                       {
                         member.name
                       }
@@ -1083,7 +1083,7 @@ export default function NewHierarchyAssignmentScreen() {
             setScheduledDate
           }
           placeholder="AAAA-MM-DD"
-          placeholderTextColor="#657590"
+          placeholderTextColor="#667980"
           autoCapitalize="none"
         />
 
@@ -1101,7 +1101,7 @@ export default function NewHierarchyAssignmentScreen() {
             setScheduledTime
           }
           placeholder="HH:MM"
-          placeholderTextColor="#657590"
+          placeholderTextColor="#667980"
           keyboardType="numbers-and-punctuation"
         />
 
@@ -1155,7 +1155,7 @@ export default function NewHierarchyAssignmentScreen() {
                   setPharmacySearch
                 }
                 placeholder="Nombre, CLUES, región..."
-                placeholderTextColor="#657590"
+                placeholderTextColor="#667980"
                 returnKeyType="search"
                 onSubmitEditing={() => {
                   void handlePharmacySearch()
@@ -1211,14 +1211,14 @@ export default function NewHierarchyAssignmentScreen() {
                         )
                       }
                     >
-                      <Text className="font-bold text-slate-900">
+                      <Text className="font-semibold text-slate-900">
                         {
                           pharmacy.name
                         }
                       </Text>
 
                       {pharmacy.clues ? (
-                        <Text className="mt-1 text-xs font-bold text-primary-700">
+                        <Text className="mt-1 text-xs font-semibold text-primary-700">
                           CLUES: {
                             pharmacy.clues
                           }
@@ -1254,7 +1254,7 @@ export default function NewHierarchyAssignmentScreen() {
               <Ionicons
                 name="search-outline"
                 size={20}
-                color="#64748b"
+                color="#53646d"
               />
 
               <TextInput
@@ -1280,14 +1280,14 @@ export default function NewHierarchyAssignmentScreen() {
                   )
                 }}
                 placeholder="Ej. Secretaría de Salud"
-                placeholderTextColor="#657590"
+                placeholderTextColor="#667980"
               />
 
               {searchingPlaces ||
               resolvingPlace ? (
                 <ActivityIndicator
                   size="small"
-                  color="#0f6bea"
+                  color="#147b9d"
                 />
               ) : null}
             </View>
@@ -1317,7 +1317,7 @@ export default function NewHierarchyAssignmentScreen() {
                         )
                       }}
                     >
-                      <Text className="font-bold text-slate-900">
+                      <Text className="font-semibold text-slate-900">
                         {
                           prediction.mainText
                         }
@@ -1350,7 +1350,7 @@ export default function NewHierarchyAssignmentScreen() {
                 setFreePointName
               }
               placeholder="Nombre del lugar"
-              placeholderTextColor="#657590"
+              placeholderTextColor="#667980"
             />
 
             <FieldLabel
@@ -1368,7 +1368,7 @@ export default function NewHierarchyAssignmentScreen() {
               }
               multiline
               placeholder="Dirección del lugar"
-              placeholderTextColor="#657590"
+              placeholderTextColor="#667980"
             />
 
             <View className="mt-4 flex-row gap-3">
@@ -1385,7 +1385,7 @@ export default function NewHierarchyAssignmentScreen() {
                   }
                   keyboardType="numbers-and-punctuation"
                   placeholder="20.000000"
-                  placeholderTextColor="#657590"
+                  placeholderTextColor="#667980"
                 />
               </View>
 
@@ -1402,7 +1402,7 @@ export default function NewHierarchyAssignmentScreen() {
                   }
                   keyboardType="numbers-and-punctuation"
                   placeholder="-103.000000"
-                  placeholderTextColor="#657590"
+                  placeholderTextColor="#667980"
                 />
               </View>
             </View>
@@ -1440,7 +1440,7 @@ export default function NewHierarchyAssignmentScreen() {
                       <Text
                         className={
                           selected
-                            ? 'text-sm font-bold text-primary-700'
+                            ? 'text-sm font-semibold text-primary-700'
                             : 'text-sm font-semibold text-slate-600'
                         }
                       >
@@ -1469,7 +1469,7 @@ export default function NewHierarchyAssignmentScreen() {
               }
               keyboardType="number-pad"
               placeholder="Ej. 30"
-              placeholderTextColor="#657590"
+              placeholderTextColor="#667980"
             />
           </View>
         )}
@@ -1493,16 +1493,16 @@ export default function NewHierarchyAssignmentScreen() {
             1000
           }
           placeholder="Describe qué debe realizar la persona durante esta visita."
-          placeholderTextColor="#657590"
+          placeholderTextColor="#667980"
         />
 
         {selectedTarget ? (
           <View className="mt-6 rounded-2xl bg-slate-100 p-4">
-            <Text className="text-xs font-bold uppercase tracking-wide text-slate-400">
+            <Text className="text-xs font-semibold uppercase tracking-wide text-slate-400">
               Se asignará a
             </Text>
 
-            <Text className="mt-1 font-bold text-slate-800">
+            <Text className="mt-1 font-semibold text-slate-800">
               {
                 selectedTarget.name
               }
@@ -1535,7 +1535,7 @@ export default function NewHierarchyAssignmentScreen() {
                 color="#ffffff"
               />
 
-              <Text className="ml-2 text-base font-bold text-white">
+              <Text className="ml-2 text-base font-semibold text-white">
                 Asignar visita
               </Text>
             </>
@@ -1556,12 +1556,12 @@ function SectionTitle({
   return (
     <View className="mb-3 mt-7 flex-row items-center">
       <View className="h-7 w-7 items-center justify-center rounded-full bg-primary-100">
-        <Text className="text-xs font-bold text-primary-700">
+        <Text className="text-xs font-semibold text-primary-700">
           {number}
         </Text>
       </View>
 
-      <Text className="ml-2 text-base font-bold text-slate-900">
+      <Text className="ml-2 text-base font-semibold text-slate-900">
         {title}
       </Text>
     </View>
@@ -1577,7 +1577,7 @@ function FieldLabel({
 }) {
   return (
     <Text
-      className={`mb-2 text-sm font-bold text-slate-700 ${
+      className={`mb-2 text-sm font-semibold text-slate-700 ${
         top
           ? 'mt-4'
           : ''
@@ -1618,13 +1618,13 @@ function ModeButton({
         size={23}
         color={
           active
-            ? '#0f6bea'
-            : '#64748b'
+            ? '#147b9d'
+            : '#53646d'
         }
       />
 
       <Text
-        className={`mt-2 text-sm font-bold ${
+        className={`mt-2 text-sm font-semibold ${
           active
             ? 'text-primary-700'
             : 'text-slate-600'

@@ -289,7 +289,7 @@ export default function TasksScreen() {
       >
         <View className="flex-row items-start justify-between gap-3">
           <View className="flex-1">
-            <Text className="text-3xl font-bold text-slate-900">
+            <Text className="text-3xl font-semibold text-slate-900">
               Agenda
             </Text>
 
@@ -302,7 +302,7 @@ export default function TasksScreen() {
             className="rounded-xl bg-sky-700 px-4 py-3"
             onPress={() => setCreateVisible(true)}
           >
-            <Text className="text-xs font-bold text-white">
+            <Text className="text-xs font-semibold text-white">
               Nueva
             </Text>
           </Pressable>
@@ -334,7 +334,7 @@ export default function TasksScreen() {
                 onPress={() => void retryFailedMutations()}
                 disabled={Boolean(busyId)}
               >
-                <Text className="text-xs font-bold text-rose-800">
+                <Text className="text-xs font-semibold text-rose-800">
                   Reintentar
                 </Text>
               </Pressable>
@@ -344,7 +344,7 @@ export default function TasksScreen() {
                 onPress={confirmDiscardFailedMutations}
                 disabled={Boolean(busyId)}
               >
-                <Text className="text-xs font-bold text-rose-800">
+                <Text className="text-xs font-semibold text-rose-800">
                   Descartar
                 </Text>
               </Pressable>
@@ -363,7 +363,7 @@ export default function TasksScreen() {
                 onPress={() => setMode(option)}
               >
                 <Text
-                  className={`text-center text-xs font-bold ${
+                  className={`text-center text-xs font-semibold ${
                     mode === option
                       ? 'text-sky-800'
                       : 'text-slate-600'
@@ -418,7 +418,7 @@ export default function TasksScreen() {
           <ActivityIndicator
             className="mt-10"
             size="large"
-            color="#0f6bea"
+            color="#147b9d"
           />
         ) : groups.length === 0 ? (
           <Empty />
@@ -428,7 +428,7 @@ export default function TasksScreen() {
               key={group.key}
               className="mt-6"
             >
-              <Text className="mb-2 text-xs font-bold uppercase tracking-wider text-slate-500">
+              <Text className="mb-2 text-xs font-semibold uppercase tracking-wider text-slate-500">
                 {group.label} · {group.tasks.length}
               </Text>
 
@@ -460,7 +460,7 @@ export default function TasksScreen() {
             contentContainerClassName="pb-10"
            keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag">
             <View className="flex-row justify-between">
-              <Text className="flex-1 text-xl font-bold text-slate-900">
+              <Text className="flex-1 text-xl font-semibold text-slate-900">
                 {detail?.task.title}
               </Text>
 
@@ -505,7 +505,7 @@ export default function TasksScreen() {
                 : 'Pendiente'}
             </Text>
 
-            <Text className="mt-6 font-bold text-slate-900">
+            <Text className="mt-6 font-semibold text-slate-900">
               Evidencias · {detail?.evidence.length ?? 0}
             </Text>
 
@@ -521,7 +521,7 @@ export default function TasksScreen() {
               />
             ) : null}
 
-            <Text className="mt-6 font-bold text-slate-900">
+            <Text className="mt-6 font-semibold text-slate-900">
               Comentarios
             </Text>
 
@@ -530,7 +530,7 @@ export default function TasksScreen() {
                 key={item.id}
                 className="mt-2 rounded-xl bg-slate-50 p-3"
               >
-                <Text className="text-xs font-bold text-slate-700">
+                <Text className="text-xs font-semibold text-slate-700">
                   {item.author_name ?? 'Usuario'}
                 </Text>
 
@@ -557,7 +557,7 @@ export default function TasksScreen() {
               disabled={!comment.trim() || Boolean(busyId)}
             />
 
-            <Text className="mt-6 font-bold text-slate-900">
+            <Text className="mt-6 font-semibold text-slate-900">
               Historial
             </Text>
 
@@ -588,7 +588,7 @@ export default function TasksScreen() {
       >
         <KeyboardAvoidingView className="flex-1 justify-end bg-black/40" behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
           <ScrollView className="rounded-t-[28px] bg-white p-5 pb-9" style={{maxHeight:"90%",flexShrink:1,flexGrow:0}} contentContainerStyle={{paddingBottom:24}} keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag">
-            <Text className="text-lg font-bold text-slate-900">
+            <Text className="text-lg font-semibold text-slate-900">
               Nueva tarea personal
             </Text>
 
@@ -610,7 +610,7 @@ export default function TasksScreen() {
               textAlignVertical="top"
             />
 
-            <Text className="mt-4 text-xs font-bold text-slate-500">
+            <Text className="mt-4 text-xs font-semibold text-slate-500">
               Prioridad
             </Text>
 
@@ -627,7 +627,7 @@ export default function TasksScreen() {
                     onPress={() => setNewPriority(value)}
                   >
                     <Text
-                      className={`text-xs font-bold ${
+                      className={`text-xs font-semibold ${
                         newPriority === value
                           ? 'text-white'
                           : 'text-slate-600'
@@ -694,7 +694,7 @@ function TaskCard({
     >
       <View className="flex-row items-start justify-between gap-3">
         <View className="flex-1">
-          <Text className="text-base font-bold text-slate-900">
+          <Text className="text-base font-semibold text-slate-900">
             {task.title}
           </Text>
 
@@ -709,7 +709,7 @@ function TaskCard({
             PRIORITY_STYLES[task.priority]
           }`}
         >
-          <Text className="text-[10px] font-bold text-slate-800">
+          <Text className="text-[10px] font-semibold text-slate-800">
             {PRIORITY_LABELS[task.priority]}
           </Text>
         </View>
@@ -777,7 +777,7 @@ function ChipSelect({
         {label}
       </Text>
 
-      <Text className="mt-1 text-xs font-bold text-slate-700">
+      <Text className="mt-1 text-xs font-semibold text-slate-700">
         {labels[value]}
       </Text>
     </Pressable>
@@ -787,7 +787,7 @@ function ChipSelect({
 function Empty() {
   return (
     <View className="mt-6 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-      <Text className="text-center font-bold text-slate-800">
+      <Text className="text-center font-semibold text-slate-800">
         Agenda al día
       </Text>
 
@@ -816,7 +816,7 @@ function MiniButton({
       }}
       disabled={disabled}
     >
-      <Text className="text-xs font-bold text-sky-700">
+      <Text className="text-xs font-semibold text-sky-700">
         {label}
       </Text>
     </Pressable>
@@ -849,7 +849,7 @@ function TaskButton({
         color="#fff"
       />
 
-      <Text className="ml-1.5 text-xs font-bold text-white">
+      <Text className="ml-1.5 text-xs font-semibold text-white">
         {label}
       </Text>
     </Pressable>

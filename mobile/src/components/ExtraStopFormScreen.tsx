@@ -1133,7 +1133,7 @@ export function ExtraStopFormScreen({
       <SafeAreaView className="flex-1 items-center justify-center bg-surface">
         <ActivityIndicator
           size="large"
-          color="#0f6bea"
+          color="#147b9d"
         />
 
         <Text className="mt-4 text-sm text-slate-500">
@@ -1157,7 +1157,7 @@ export function ExtraStopFormScreen({
             />
           </View>
 
-          <Text className="mt-5 text-center text-2xl font-bold text-slate-900">
+          <Text className="mt-5 text-center text-2xl font-semibold text-slate-900">
             No es posible editar
           </Text>
 
@@ -1173,7 +1173,7 @@ export function ExtraStopFormScreen({
               )
             }
           >
-            <Text className="text-base font-bold text-white">
+            <Text className="text-base font-semibold text-white">
               Regresar a Trabajo
             </Text>
           </Pressable>
@@ -1220,7 +1220,7 @@ export function ExtraStopFormScreen({
               Plan de trabajo
             </Text>
 
-            <Text className="text-lg font-bold text-slate-900">
+            <Text className="text-lg font-semibold text-slate-900">
               {isEditMode
                 ? 'Editar parada'
                 : 'Agregar parada'}
@@ -1253,7 +1253,7 @@ export function ExtraStopFormScreen({
               Parada adicional
             </Text>
 
-            <Text className="mt-1 text-2xl font-bold text-white">
+            <Text className="mt-1 text-2xl font-semibold text-white">
               {isEditMode
                 ? 'Actualiza la actividad'
                 : '¿A dónde debes ir?'}
@@ -1272,14 +1272,14 @@ export function ExtraStopFormScreen({
             </Text>
           </View>
 
-          <Text className="mb-2 mt-6 text-sm font-bold text-slate-800">
+          <Text className="mb-2 mt-6 text-sm font-semibold text-slate-800">
             Nombre de la parada *
           </Text>
 
           <TextInput
             className="h-14 rounded-2xl border border-slate-200 bg-white px-4 text-base text-slate-800"
             placeholder="Ej. Presidencia Municipal"
-            placeholderTextColor="#657590"
+            placeholderTextColor="#667980"
             value={name}
             onChangeText={
               setName
@@ -1292,7 +1292,7 @@ export function ExtraStopFormScreen({
             {name.length}/150
           </Text>
 
-          <Text className="mb-2 mt-5 text-sm font-bold text-slate-800">
+          <Text className="mb-2 mt-5 text-sm font-semibold text-slate-800">
             Buscar ubicación
           </Text>
 
@@ -1300,13 +1300,13 @@ export function ExtraStopFormScreen({
             <Ionicons
               name="search-outline"
               size={21}
-              color="#64748b"
+              color="#53646d"
             />
 
             <TextInput
               className="h-14 flex-1 px-3 text-base text-slate-800"
               placeholder="Busca el lugar en Google Maps"
-              placeholderTextColor="#657590"
+              placeholderTextColor="#667980"
               value={
                 locationQuery
               }
@@ -1326,7 +1326,7 @@ export function ExtraStopFormScreen({
             resolvingPlace ? (
               <ActivityIndicator
                 size="small"
-                color="#0f6bea"
+                color="#147b9d"
               />
             ) : locationQuery ? (
               <Pressable
@@ -1340,7 +1340,7 @@ export function ExtraStopFormScreen({
                 <Ionicons
                   name="close-circle"
                   size={21}
-                  color="#657590"
+                  color="#667980"
                 />
               </Pressable>
             ) : null}
@@ -1377,11 +1377,11 @@ export function ExtraStopFormScreen({
                     <Ionicons
                       name="location-outline"
                       size={21}
-                      color="#0f6bea"
+                      color="#147b9d"
                     />
 
                     <View className="ml-3 flex-1">
-                      <Text className="text-sm font-bold text-slate-800">
+                      <Text className="text-sm font-semibold text-slate-800">
                         {
                           prediction.mainText
                         }
@@ -1493,17 +1493,17 @@ export function ExtraStopFormScreen({
               >
                 {resolvingAddress ? (
                   <ActivityIndicator
-                    color="#047857"
+                    color="#237347"
                   />
                 ) : (
                   <>
                     <Ionicons
                       name="locate-outline"
                       size={20}
-                      color="#047857"
+                      color="#237347"
                     />
 
-                    <Text className="ml-2 font-bold text-emerald-700">
+                    <Text className="ml-2 font-semibold text-emerald-700">
                       Usar mi ubicación actual
                     </Text>
                   </>
@@ -1518,11 +1518,11 @@ export function ExtraStopFormScreen({
                 <Ionicons
                   name="pin-outline"
                   size={24}
-                  color="#1d4ed8"
+                  color="#0e6788"
                 />
 
                 <View className="ml-3 flex-1">
-                  <Text className="text-base font-bold text-blue-900">
+                  <Text className="text-base font-semibold text-blue-900">
                     {name.trim() ||
                       selectedPlace.name}
                   </Text>
@@ -1551,7 +1551,7 @@ export function ExtraStopFormScreen({
             </View>
           ) : null}
 
-          <Text className="mb-2 mt-6 text-sm font-bold text-slate-800">
+          <Text className="mb-2 mt-6 text-sm font-semibold text-slate-800">
             Tipo de actividad
           </Text>
 
@@ -1616,14 +1616,14 @@ export function ExtraStopFormScreen({
             )}
           </View>
 
-          <Text className="mb-2 mt-6 text-sm font-bold text-slate-800">
+          <Text className="mb-2 mt-6 text-sm font-semibold text-slate-800">
             Motivo de la parada *
           </Text>
 
           <TextInput
             className="min-h-[110px] rounded-2xl border border-slate-200 bg-white px-4 py-3 text-base text-slate-800"
             placeholder="Ej. Entregar documentación solicitada por Coordinación"
-            placeholderTextColor="#657590"
+            placeholderTextColor="#667980"
             multiline
             textAlignVertical="top"
             maxLength={1000}
@@ -1638,7 +1638,7 @@ export function ExtraStopFormScreen({
             {reason.length}/1000
           </Text>
 
-          <Text className="mb-2 mt-5 text-sm font-bold text-slate-800">
+          <Text className="mb-2 mt-5 text-sm font-semibold text-slate-800">
             Tiempo estimado
           </Text>
 
@@ -1646,7 +1646,7 @@ export function ExtraStopFormScreen({
             <TextInput
               className="h-14 flex-1 text-base text-slate-800"
               placeholder="Ej. 20"
-              placeholderTextColor="#657590"
+              placeholderTextColor="#667980"
               keyboardType="number-pad"
               maxLength={3}
               value={
@@ -1701,7 +1701,7 @@ export function ExtraStopFormScreen({
                   color="#ffffff"
                 />
 
-                <Text className="ml-2 text-base font-bold text-white">
+                <Text className="ml-2 text-base font-semibold text-white">
                   {isEditMode
                     ? 'Guardar cambios'
                     : 'Agregar al plan de trabajo'}

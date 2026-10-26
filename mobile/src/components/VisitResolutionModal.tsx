@@ -438,7 +438,7 @@ export function VisitResolutionModal({
             </View>
 
             <View className="ml-3 flex-1">
-              <Text className="text-lg font-bold text-slate-900">
+              <Text className="text-lg font-semibold text-slate-900">
                 {isReschedule
                   ? 'Reprogramar visita'
                   : 'Solicitar cancelación'}
@@ -474,7 +474,7 @@ export function VisitResolutionModal({
            keyboardDismissMode="on-drag">
             {isReschedule ? (
               <>
-                <Text className="mt-5 text-sm font-bold text-slate-800">
+                <Text className="mt-5 text-sm font-semibold text-slate-800">
                   Nueva fecha *
                 </Text>
 
@@ -521,13 +521,13 @@ export function VisitResolutionModal({
                                 color={
                                   selected
                                     ? '#6d28d9'
-                                    : '#64748b'
+                                    : '#53646d'
                                 }
                               />
                             </View>
 
                             <Text
-                              className={`ml-3 flex-1 text-sm font-bold ${
+                              className={`ml-3 flex-1 text-sm font-semibold ${
                                 selected
                                   ? 'text-violet-800'
                                   : 'text-slate-700'
@@ -552,7 +552,7 @@ export function VisitResolutionModal({
                   </View>
                 ) : (
                   <View className="mt-3 rounded-2xl border border-amber-200 bg-amber-50 p-4">
-                    <Text className="font-bold text-amber-800">
+                    <Text className="font-semibold text-amber-800">
                       No hay otro día disponible esta semana
                     </Text>
 
@@ -562,7 +562,7 @@ export function VisitResolutionModal({
                   </View>
                 )}
 
-                <Text className="mt-5 text-sm font-bold text-slate-800">
+                <Text className="mt-5 text-sm font-semibold text-slate-800">
                   Nueva hora
                 </Text>
 
@@ -580,7 +580,7 @@ export function VisitResolutionModal({
                       setScheduledTime
                     }
                     placeholder="09:30"
-                    placeholderTextColor="#657590"
+                    placeholderTextColor="#667980"
                     maxLength={5}
                     editable={
                       !loading
@@ -601,7 +601,7 @@ export function VisitResolutionModal({
                       loading
                     }
                   >
-                    <Text className="text-sm font-bold text-slate-600">
+                    <Text className="text-sm font-semibold text-slate-600">
                       Sin hora
                     </Text>
                   </Pressable>
@@ -609,7 +609,7 @@ export function VisitResolutionModal({
               </>
             ) : null}
 
-            <Text className="mt-5 text-sm font-bold text-slate-800">
+            <Text className="mt-5 text-sm font-semibold text-slate-800">
               Motivo *
             </Text>
 
@@ -676,7 +676,7 @@ export function VisitResolutionModal({
               )}
             </View>
 
-            <Text className="mt-5 text-sm font-bold text-slate-800">
+            <Text className="mt-5 text-sm font-semibold text-slate-800">
               Observaciones
               {reason ===
               'OTHER'
@@ -697,7 +697,7 @@ export function VisitResolutionModal({
                   ? 'Agrega información sobre la reprogramación...'
                   : 'Explica por qué solicitas cancelar la visita...'
               }
-              placeholderTextColor="#657590"
+              placeholderTextColor="#667980"
               multiline
               textAlignVertical="top"
               maxLength={1000}
@@ -753,7 +753,7 @@ export function VisitResolutionModal({
                     color="#ffffff"
                   />
 
-                  <Text className="ml-2 text-base font-bold text-white">
+                  <Text className="ml-2 text-base font-semibold text-white">
                     {isReschedule
                       ? 'Confirmar reprogramación'
                       : 'Enviar solicitud'}

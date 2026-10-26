@@ -41,11 +41,11 @@ export function VisitSyncStatus({ itemId }: { itemId?: string }) {
   }
   if (profile?.area !== 'FARMACIAS' || (!summary.pending && !retryError)) return null
   return <View accessibilityLiveRegion="polite" className="mb-4 rounded-2xl border border-slate-300 bg-slate-50 p-4">
-    <Text className="font-bold text-slate-900">Guardado en este celular · Pendiente de sincronización</Text>
+    <Text className="font-semibold text-slate-900">Guardado en este celular · Pendiente de sincronización</Text>
     <Text className="mt-1 text-sm text-slate-700">{summary.pending} registros o fotos pendientes{summary.failed ? ` · ${summary.failed} con error` : ''}. El servidor confirmará su aceptación al sincronizar.</Text>
     {retryError || summary.error ? <Text className="mt-2 text-sm text-red-800">{retryError || summary.error}</Text> : null}
     {accessState === 'online' ? <Pressable disabled={syncing || retrying} onPress={() => { void retry() }}>
-      <Text className="mt-2 font-bold text-primary-700">{syncing || retrying ? 'Sincronizando…' : 'Reintentar sincronización'}</Text>
+      <Text className="mt-2 font-semibold text-primary-700">{syncing || retrying ? 'Sincronizando…' : 'Reintentar sincronización'}</Text>
     </Pressable> : null}
   </View>
 }

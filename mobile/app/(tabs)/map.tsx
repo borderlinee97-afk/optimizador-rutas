@@ -49,14 +49,14 @@ const STATUS_CONFIG: Record<
     containerClass: 'bg-blue-100',
     textClass: 'text-blue-700',
     icon: 'navigate-circle-outline',
-    iconColor: '#1d4ed8',
+    iconColor: '#0e6788',
   },
   DONE: {
     label: 'Finalizada',
     containerClass: 'bg-emerald-100',
     textClass: 'text-emerald-700',
     icon: 'checkmark-circle-outline',
-    iconColor: '#047857',
+    iconColor: '#237347',
   },
   SKIPPED: {
     label: 'Omitida',
@@ -183,7 +183,7 @@ export default function MapScreen() {
       <SafeAreaView className="flex-1 items-center justify-center bg-surface">
         <ActivityIndicator
           size="large"
-          color="#0f6bea"
+          color="#147b9d"
         />
 
         <Text className="mt-4 text-sm text-slate-500">
@@ -205,7 +205,7 @@ export default function MapScreen() {
       >
         <View className="flex-row items-start justify-between">
           <View className="mr-4 flex-1">
-            <Text className="text-3xl font-bold text-slate-900">
+            <Text className="text-3xl font-semibold text-slate-900">
               Mapa
             </Text>
 
@@ -225,13 +225,13 @@ export default function MapScreen() {
             {syncing ? (
               <ActivityIndicator
                 size="small"
-                color="#0f6bea"
+                color="#147b9d"
               />
             ) : (
               <Ionicons
                 name="refresh"
                 size={21}
-                color="#0f6bea"
+                color="#147b9d"
               />
             )}
           </Pressable>
@@ -246,7 +246,7 @@ export default function MapScreen() {
             />
 
             <View className="ml-3 flex-1">
-              <Text className="font-bold text-amber-800">
+              <Text className="font-semibold text-amber-800">
                 Datos sin actualizar
               </Text>
 
@@ -270,11 +270,11 @@ export default function MapScreen() {
               <Ionicons
                 name="navigate-circle-outline"
                 size={25}
-                color="#1d4ed8"
+                color="#0e6788"
               />
 
               <View className="ml-3 flex-1">
-                <Text className="text-sm font-bold text-blue-800">
+                <Text className="text-sm font-semibold text-blue-800">
                   Visita activa
                 </Text>
 
@@ -335,11 +335,11 @@ export default function MapScreen() {
                           <Ionicons
                             name="lock-closed-outline"
                             size={20}
-                            color="#64748b"
+                            color="#53646d"
                           />
                         ) : (
                           <Text
-                            className={`font-bold ${
+                            className={`font-semibold ${
                               item.status ===
                               'IN_PROGRESS'
                                 ? 'text-blue-700'
@@ -352,7 +352,7 @@ export default function MapScreen() {
                       </View>
 
                       <View className="flex-1">
-                        <Text className="text-base font-bold text-slate-900">
+                        <Text className="text-base font-semibold text-slate-900">
                           {item.name ??
                             'Farmacia programada'}
                         </Text>
@@ -387,7 +387,7 @@ export default function MapScreen() {
                           />
 
                           <Text
-                            className={`ml-1 text-xs font-bold ${statusConfig.textClass}`}
+                            className={`ml-1 text-xs font-semibold ${statusConfig.textClass}`}
                           >
                             {statusConfig.label}
                           </Text>
@@ -398,7 +398,7 @@ export default function MapScreen() {
                         <Ionicons
                           name="chevron-forward"
                           size={21}
-                          color="#657590"
+                          color="#667980"
                         />
                       ) : null}
                     </View>
@@ -409,7 +409,7 @@ export default function MapScreen() {
                       Coordenadas
                     </Text>
 
-                    <Text className="mt-1 text-sm font-bold text-slate-700">
+                    <Text className="mt-1 text-sm font-semibold text-slate-700">
                       {item.lat.toFixed(6)},{' '}
                       {item.lng.toFixed(6)}
                     </Text>
@@ -435,13 +435,13 @@ export default function MapScreen() {
                       size={19}
                       color={
                         blocked
-                          ? '#64748b'
+                          ? '#53646d'
                           : '#ffffff'
                       }
                     />
 
                     <Text
-                      className={`ml-2 font-bold ${
+                      className={`ml-2 font-semibold ${
                         blocked
                           ? 'text-slate-500'
                           : 'text-white'
@@ -465,11 +465,11 @@ export default function MapScreen() {
                 <Ionicons
                   name="location-outline"
                   size={27}
-                  color="#64748b"
+                  color="#53646d"
                 />
               </View>
 
-              <Text className="mt-4 text-center text-lg font-bold text-slate-800">
+              <Text className="mt-4 text-center text-lg font-semibold text-slate-800">
                 Sin ubicaciones
               </Text>
 
@@ -487,7 +487,7 @@ export default function MapScreen() {
             <Ionicons
               name="alert-circle-outline"
               size={22}
-              color="#64748b"
+              color="#53646d"
             />
 
             <Text className="ml-3 flex-1 text-sm leading-5 text-slate-600">

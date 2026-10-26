@@ -58,7 +58,7 @@ const STATUS_CONFIG: Record<
     containerClass: 'bg-blue-100',
     textClass: 'text-blue-700',
     icon: 'navigate-circle-outline',
-    iconColor: '#1d4ed8',
+    iconColor: '#0e6788',
   },
 
   DONE: {
@@ -66,7 +66,7 @@ const STATUS_CONFIG: Record<
     containerClass: 'bg-emerald-100',
     textClass: 'text-emerald-700',
     icon: 'checkmark-circle-outline',
-    iconColor: '#047857',
+    iconColor: '#237347',
   },
 
   SKIPPED: {
@@ -241,7 +241,7 @@ export default function WorkScreen() {
       <SafeAreaView className="flex-1 items-center justify-center bg-surface">
         <ActivityIndicator
           size="large"
-          color="#0f6bea"
+          color="#147b9d"
         />
 
         <Text className="mt-4 text-sm text-slate-500">
@@ -270,8 +270,8 @@ export default function WorkScreen() {
         <VisitSyncStatus />
         <View className="flex-row items-start justify-between">
           <View className="mr-4 flex-1">
-            <Text className="text-3xl font-bold text-slate-900">
-              Trabajo
+            <Text className="text-3xl font-semibold text-slate-900">
+              Mi trabajo
             </Text>
 
             <Text className="mt-2 text-base leading-6 text-slate-500">
@@ -293,10 +293,10 @@ export default function WorkScreen() {
             {syncing ? (
               <ActivityIndicator
                 size="small"
-                color="#0f6bea"
+                color="#147b9d"
               />
             ) : (
-              <Text className="text-sm font-bold text-primary-600">
+              <Text className="text-sm font-semibold text-primary-600">
                 Actualizar
               </Text>
             )}
@@ -323,7 +323,7 @@ export default function WorkScreen() {
                   completedCount
                 }
                 icon="checkmark-circle-outline"
-                iconColor="#047857"
+                iconColor="#237347"
                 containerClass="bg-emerald-100"
               />
 
@@ -339,7 +339,7 @@ export default function WorkScreen() {
             </View>
 
             <View className="mt-4 rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
-              <Text className="text-xs font-bold uppercase tracking-wide text-slate-500">
+              <Text className="text-xs font-semibold uppercase tracking-wide text-slate-500">
                 Actividades de hoy
               </Text>
 
@@ -399,12 +399,12 @@ export default function WorkScreen() {
          */}
         {canManageOwnPlans ? (
           <Pressable
-            className="mt-5 flex-row items-center rounded-3xl border border-blue-200 bg-blue-50 p-5"
+            className="mt-5 flex-row items-center rounded-2xl border border-slate-200 bg-white p-4"
             onPress={
               openWorkPlans
             }
           >
-            <View className="h-12 w-12 items-center justify-center rounded-2xl bg-blue-600">
+            <View className="h-10 w-10 items-center justify-center rounded-xl bg-brand-600">
               <Ionicons
                 name="calendar-outline"
                 size={25}
@@ -413,11 +413,11 @@ export default function WorkScreen() {
             </View>
 
             <View className="ml-4 flex-1">
-              <Text className="text-base font-bold text-blue-900">
+              <Text className="text-base font-semibold text-blue-900">
                 Mis planes de trabajo
               </Text>
 
-              <Text className="mt-1 text-sm leading-5 text-blue-700">
+              <Text className="hidden">
                 Crea borradores, consulta
                 aprobaciones y revisa los planes
                 rechazados.
@@ -427,7 +427,7 @@ export default function WorkScreen() {
             <Ionicons
               name="chevron-forward"
               size={22}
-              color="#60a5fa"
+              color="#6a9fb4"
             />
           </Pressable>
         ) : null}
@@ -438,12 +438,12 @@ export default function WorkScreen() {
          */}
         {isSupervisor ? (
           <Pressable
-            className="mt-4 flex-row items-center rounded-3xl border border-primary-200 bg-primary-50 p-5"
+            className="mt-3 flex-row items-center rounded-2xl border border-slate-200 bg-white p-4"
             onPress={
               openNewExtraStop
             }
           >
-            <View className="h-12 w-12 items-center justify-center rounded-2xl bg-primary-600">
+            <View className="h-10 w-10 items-center justify-center rounded-xl bg-primary-600">
               <Ionicons
                 name="add"
                 size={27}
@@ -452,11 +452,11 @@ export default function WorkScreen() {
             </View>
 
             <View className="ml-4 flex-1">
-              <Text className="text-base font-bold text-primary-900">
+              <Text className="text-base font-semibold text-primary-900">
                 Agregar parada adicional
               </Text>
 
-              <Text className="mt-1 text-sm leading-5 text-primary-700">
+              <Text className="hidden">
                 Registra una entrega, pago,
                 trámite o actividad surgida
                 durante la ejecución.
@@ -466,7 +466,7 @@ export default function WorkScreen() {
             <Ionicons
               name="chevron-forward"
               size={22}
-              color="#60a5fa"
+              color="#6a9fb4"
             />
           </Pressable>
         ) : null}
@@ -492,7 +492,7 @@ export default function WorkScreen() {
               </View>
 
               <View className="ml-4 flex-1">
-                <Text className="text-base font-bold text-indigo-900">
+                <Text className="text-base font-semibold text-indigo-900">
                   Asignar visita
                 </Text>
 
@@ -519,7 +519,7 @@ export default function WorkScreen() {
               </View>
 
               <View className="ml-4 flex-1">
-                <Text className="text-base font-bold text-indigo-900">
+                <Text className="text-base font-semibold text-indigo-900">
                   Trabajo asignado
                 </Text>
 
@@ -534,7 +534,7 @@ export default function WorkScreen() {
 
         {error ? (
           <View className="mt-5 rounded-2xl border border-amber-200 bg-amber-50 p-4">
-            <Text className="font-bold text-amber-800">
+            <Text className="font-semibold text-amber-800">
               Sincronización pendiente
             </Text>
 
@@ -565,12 +565,12 @@ export default function WorkScreen() {
               <Ionicons
                 name="navigate-circle-outline"
                 size={25}
-                color="#1d4ed8"
+                color="#0e6788"
               />
             </View>
 
             <View className="ml-3 flex-1">
-              <Text className="text-sm font-bold text-blue-800">
+              <Text className="text-sm font-semibold text-blue-800">
                 Actividad en progreso
               </Text>
 
@@ -586,7 +586,7 @@ export default function WorkScreen() {
             <Ionicons
               name="chevron-forward"
               size={21}
-              color="#60a5fa"
+              color="#6a9fb4"
             />
           </Pressable>
         ) : null}
@@ -643,6 +643,7 @@ export default function WorkScreen() {
                   key={
                     item.id
                   }
+                  style={item.status === 'IN_PROGRESS' ? { borderTopWidth: 3, borderTopColor: '#237347' } : undefined}
                   className={`rounded-3xl border p-5 ${
                     isCancelled
                       ? 'border-rose-200 bg-rose-50'
@@ -706,7 +707,7 @@ export default function WorkScreen() {
                           color="#c2410c"
                         />
                       ) : (
-                        <Text className="font-bold text-primary-700">
+                        <Text className="font-semibold text-primary-700">
                           {index +
                             1}
                         </Text>
@@ -726,8 +727,8 @@ export default function WorkScreen() {
                       <Text
                         className={
                           isCancelled
-                            ? 'text-base font-bold text-rose-900'
-                            : 'text-base font-bold text-slate-900'
+                            ? 'text-base font-semibold text-rose-900'
+                            : 'text-base font-semibold text-slate-900'
                         }
                       >
                         {item.name ??
@@ -815,7 +816,7 @@ export default function WorkScreen() {
                         />
 
                         <Text
-                          className={`ml-1 text-xs font-bold ${status.textClass}`}
+                          className={`ml-1 text-xs font-semibold ${status.textClass}`}
                         >
                           {
                             status.label
@@ -830,7 +831,7 @@ export default function WorkScreen() {
                             Motivo
                           </Text>
 
-                          <Text className="mt-1 text-sm font-bold text-rose-800">
+                          <Text className="mt-1 text-sm font-semibold text-rose-800">
                             {
                               cancellationLabel
                             }
@@ -886,11 +887,11 @@ export default function WorkScreen() {
               <Ionicons
                 name="calendar-outline"
                 size={28}
-                color="#64748b"
+                color="#53646d"
               />
             </View>
 
-            <Text className="mt-4 text-center text-lg font-bold text-slate-800">
+            <Text className="mt-4 text-center text-lg font-semibold text-slate-800">
               No hay actividades autorizadas
               para hoy
             </Text>
@@ -976,7 +977,7 @@ function OriginBadge({
           color="#4338ca"
         />
 
-        <Text className="ml-1 text-xs font-bold text-indigo-700">
+        <Text className="ml-1 text-xs font-semibold text-indigo-700">
           {hierarchyLabel}
         </Text>
       </View>
@@ -995,7 +996,7 @@ function OriginBadge({
           color="#6d28d9"
         />
 
-        <Text className="ml-1 text-xs font-bold text-violet-700">
+        <Text className="ml-1 text-xs font-semibold text-violet-700">
           Parada adicional
         </Text>
       </View>
@@ -1014,7 +1015,7 @@ function OriginBadge({
           color="#c2410c"
         />
 
-        <Text className="ml-1 text-xs font-bold text-orange-700">
+        <Text className="ml-1 text-xs font-semibold text-orange-700">
           Plan extraordinario
         </Text>
       </View>
@@ -1026,10 +1027,10 @@ function OriginBadge({
       <Ionicons
         name="calendar-outline"
         size={13}
-        color="#1d4ed8"
+        color="#0e6788"
       />
 
-      <Text className="ml-1 text-xs font-bold text-blue-700">
+      <Text className="ml-1 text-xs font-semibold text-blue-700">
         Plan semanal
       </Text>
     </View>
@@ -1086,7 +1087,7 @@ function OriginSummaryBadge({
       className={`rounded-full px-3 py-2 ${config.container}`}
     >
       <Text
-        className={`text-xs font-bold ${config.text}`}
+        className={`text-xs font-semibold ${config.text}`}
       >
         {label}: {value}
       </Text>
@@ -1108,7 +1109,7 @@ function SummaryCard({
   containerClass: string
 }) {
   return (
-    <View className="flex-1 rounded-2xl border border-slate-200 bg-white p-3 shadow-sm">
+    <View className="flex-1 border-b border-slate-200 bg-white px-3 py-4">
       <View
         className={`h-9 w-9 items-center justify-center rounded-xl ${containerClass}`}
       >
@@ -1123,7 +1124,7 @@ function SummaryCard({
         />
       </View>
 
-      <Text className="mt-3 text-xl font-bold text-slate-900">
+      <Text className="mt-3 text-xl font-semibold text-slate-900">
         {
           value
         }

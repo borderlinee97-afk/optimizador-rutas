@@ -44,7 +44,7 @@ export function AvailabilityPanel() {
   const button=(text:string,onPress:()=>void,secondary=false)=>(
     <Pressable accessibilityRole="button" disabled={busy} onPress={onPress}
       className={`mt-3 min-h-[48px] items-center justify-center rounded-xl px-4 py-3 ${secondary?'border border-slate-300 bg-white':'bg-primary-600'} ${busy?'opacity-50':''}`}>
-      <Text className={`font-bold ${secondary?'text-slate-700':'text-white'}`}>{text}</Text>
+      <Text className={`font-semibold ${secondary?'text-slate-700':'text-white'}`}>{text}</Text>
     </Pressable>
   )
   return (
@@ -54,10 +54,10 @@ export function AvailabilityPanel() {
         accessibilityState={{expanded}} onPress={()=>setExpanded(value=>!value)}
         className="min-h-[76px] flex-row items-center gap-3 p-4">
         <View className="h-11 w-11 items-center justify-center rounded-xl bg-blue-50">
-          <Ionicons name="calendar-outline" size={23} color="#0f6bea" />
+          <Ionicons name="calendar-outline" size={23} color="#147b9d" />
         </View>
         <View className="flex-1">
-          <Text className="text-lg font-bold text-slate-900">Vacaciones</Text>
+          <Text className="text-lg font-semibold text-slate-900">Vacaciones</Text>
           <Text className="mt-1 text-sm text-slate-600">
             {pending?`${pending} ${pending===1?'solicitud pendiente':'solicitudes pendientes'}`:data.canRequest?'Solicita un periodo y consulta su estado':'Revisa las solicitudes de tu equipo'}
           </Text>
@@ -71,22 +71,22 @@ export function AvailabilityPanel() {
             <Text className="font-semibold text-slate-900">Fecha de inicio</Text>
             <Text className="mb-2 mt-1 text-xs text-slate-600">Año-mes-día · Ejemplo: 2026-11-02</Text>
             <TextInput accessibilityLabel="Fecha de inicio de vacaciones, año mes día" placeholder="AAAA-MM-DD"
-              placeholderTextColor="#64748b" value={start} onChangeText={value=>setStart(dateInput(value))}
+              placeholderTextColor="#53646d" value={start} onChangeText={value=>setStart(dateInput(value))}
               keyboardType="number-pad" maxLength={10} editable={!busy}
-              style={{color:'#0f172a',backgroundColor:'#ffffff'}}
+              style={{color:'#213038',backgroundColor:'#ffffff'}}
               className="min-h-[48px] rounded-xl border border-slate-300 px-3 py-3" />
             <Text className="mt-4 font-semibold text-slate-900">Fecha de término</Text>
             <Text className="mb-2 mt-1 text-xs text-slate-600">Último día de vacaciones · Ejemplo: 2026-11-06</Text>
             <TextInput accessibilityLabel="Fecha de término de vacaciones, año mes día" placeholder="AAAA-MM-DD"
-              placeholderTextColor="#64748b" value={end} onChangeText={value=>setEnd(dateInput(value))}
+              placeholderTextColor="#53646d" value={end} onChangeText={value=>setEnd(dateInput(value))}
               keyboardType="number-pad" maxLength={10} editable={!busy}
-              style={{color:'#0f172a',backgroundColor:'#ffffff'}}
+              style={{color:'#213038',backgroundColor:'#ffffff'}}
               className="min-h-[48px] rounded-xl border border-slate-300 px-3 py-3" />
             <Text className="mb-2 mt-4 font-semibold text-slate-900">Motivo o comentario</Text>
             <TextInput accessibilityLabel="Motivo o comentario de la solicitud de vacaciones"
               placeholder="Ejemplo: Solicito vacaciones del 2 al 6 de noviembre."
-              placeholderTextColor="#64748b" value={comment} onChangeText={setComment} editable={!busy}
-              maxLength={2000} multiline textAlignVertical="top" style={{color:'#0f172a',backgroundColor:'#ffffff'}}
+              placeholderTextColor="#53646d" value={comment} onChangeText={setComment} editable={!busy}
+              maxLength={2000} multiline textAlignVertical="top" style={{color:'#213038',backgroundColor:'#ffffff'}}
               className="min-h-[96px] rounded-xl border border-slate-300 px-3 py-3" />
             <Text className="mt-2 text-xs text-slate-600">Obligatorio · Mínimo 5 caracteres.</Text>
             {button(busy?'Enviando…':'Enviar solicitud',()=>{void submit()})}
@@ -94,16 +94,16 @@ export function AvailabilityPanel() {
         </>:null}
         {error?<Text accessibilityRole="alert" className="mt-3 text-sm text-red-700">{error}</Text>:null}
         <View className="mb-1 mt-5 flex-row items-center justify-between gap-3">
-          <Text accessibilityRole="header" className="flex-1 font-bold text-slate-900">{data.canRequest?'Mis solicitudes':'Solicitudes del equipo'}</Text>
+          <Text accessibilityRole="header" className="flex-1 font-semibold text-slate-900">{data.canRequest?'Mis solicitudes':'Solicitudes del equipo'}</Text>
           <Pressable accessibilityRole="button" accessibilityLabel="Actualizar solicitudes de vacaciones" disabled={busy}
             onPress={()=>{void load()}} className="min-h-[44px] flex-row items-center gap-2 rounded-lg px-2">
-            {busy?<ActivityIndicator size="small" color="#0f6bea" />:<Ionicons name="refresh-outline" size={17} color="#0f6bea" />}
+            {busy?<ActivityIndicator size="small" color="#147b9d" />:<Ionicons name="refresh-outline" size={17} color="#147b9d" />}
             <Text className="font-semibold text-primary-600">Actualizar</Text>
           </Pressable>
         </View>
         {!data.requests.length?<Text className="rounded-xl bg-slate-50 p-3 text-sm text-slate-600">{data.canRequest?'Aún no has enviado solicitudes de vacaciones.':'No hay solicitudes de vacaciones para revisar.'}</Text>:null}
         {data.requests.map(item=><View key={item.id} className="mt-3 rounded-xl border border-slate-200 p-3">
-          <Text className="font-bold text-slate-900">{item.supervisor_name}</Text>
+          <Text className="font-semibold text-slate-900">{item.supervisor_name}</Text>
           <Text className="mt-1 text-slate-700">Del {displayDate(item.start_date)} al {displayDate(item.end_date)}</Text>
           <Text className="mt-2 font-semibold text-primary-700">{label(item.status)}{item.active?' · De vacaciones':''}</Text>
           <Text className="mt-2 text-slate-700">{item.comment}</Text>
@@ -117,8 +117,8 @@ export function AvailabilityPanel() {
           <Text className="font-semibold text-slate-900">Motivo del rechazo</Text>
           <Text className="mb-2 mt-1 text-sm text-slate-600">Explica el motivo con al menos 5 caracteres.</Text>
           <TextInput accessibilityLabel="Motivo del rechazo de vacaciones" placeholder="Escribe el motivo del rechazo"
-            placeholderTextColor="#64748b" value={reason} onChangeText={setReason} maxLength={2000} multiline
-            editable={!busy} textAlignVertical="top" style={{color:'#0f172a',backgroundColor:'#ffffff'}}
+            placeholderTextColor="#53646d" value={reason} onChangeText={setReason} maxLength={2000} multiline
+            editable={!busy} textAlignVertical="top" style={{color:'#213038',backgroundColor:'#ffffff'}}
             className="min-h-[80px] rounded-xl border border-slate-300 px-3 py-3" />
           {button('Confirmar rechazo',()=>{if(reason.trim().length<5){setError('Indica al menos 5 caracteres.');return}void send(`/api/mobile/availability/${reviewing.id}/review`,{decision:'REJECTED',comment:reason}).then(ok=>{if(ok)setReviewing(null)})})}
           {button('Cancelar',()=>setReviewing(null),true)}

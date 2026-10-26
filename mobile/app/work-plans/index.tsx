@@ -78,7 +78,7 @@ const STATUS_CONFIG: Record<
     description:
       'El plan está autorizado para su ejecución.',
     icon: 'checkmark-circle-outline',
-    iconColor: '#047857',
+    iconColor: '#237347',
     badgeClass: 'bg-emerald-100',
     textClass: 'text-emerald-700',
   },
@@ -98,7 +98,7 @@ const STATUS_CONFIG: Record<
     description:
       'El plan fue retirado de la operación.',
     icon: 'archive-outline',
-    iconColor: '#64748b',
+    iconColor: '#53646d',
     badgeClass: 'bg-slate-100',
     textClass: 'text-slate-600',
   },
@@ -531,7 +531,7 @@ export default function WorkPlansScreen() {
           />
         </View>
 
-        <Text className="mt-5 text-center text-xl font-bold text-slate-900">
+        <Text className="mt-5 text-center text-xl font-semibold text-slate-900">
           Acceso restringido
         </Text>
 
@@ -566,9 +566,9 @@ export default function WorkPlansScreen() {
             onRefresh={() => {
               void handleRefresh()
             }}
-            tintColor="#0f6bea"
+            tintColor="#147b9d"
             colors={[
-              '#0f6bea',
+              '#147b9d',
             ]}
           />
         }
@@ -577,7 +577,7 @@ export default function WorkPlansScreen() {
         {legacyDataPreserved ? <Pressable onPress={() => router.push('/legacy-recovery' as Href)}><Text className="my-3 text-sm text-primary-700">Recuperar datos anteriores</Text></Pressable> : null}
         <View className="flex-row items-start justify-between">
           <View className="mr-4 flex-1">
-            <Text className="text-3xl font-bold text-slate-900">
+            <Text className="text-3xl font-semibold text-slate-900">
               Mis planes
             </Text>
 
@@ -600,7 +600,7 @@ export default function WorkPlansScreen() {
               color="#ffffff"
             />
 
-            <Text className="ml-2 text-sm font-bold text-white">
+            <Text className="ml-2 text-sm font-semibold text-white">
               Nuevo
             </Text>
           </Pressable>
@@ -613,7 +613,7 @@ export default function WorkPlansScreen() {
               ordinaryPlans.length
             }
             icon="calendar-outline"
-            iconColor="#0f6bea"
+            iconColor="#147b9d"
           />
 
           <SummaryCard
@@ -639,7 +639,7 @@ export default function WorkPlansScreen() {
               ).length
             }
             icon="checkmark-circle-outline"
-            iconColor="#047857"
+            iconColor="#237347"
           />
         </View>
 
@@ -661,7 +661,7 @@ export default function WorkPlansScreen() {
 
         {error ? (
           <View className="mt-5 rounded-2xl border border-rose-200 bg-rose-50 p-4">
-            <Text className="font-bold text-rose-800">
+            <Text className="font-semibold text-rose-800">
               No se pudieron actualizar los planes
             </Text>
 
@@ -675,7 +675,7 @@ export default function WorkPlansScreen() {
           <View className="mt-12 items-center">
             <ActivityIndicator
               size="large"
-              color="#0f6bea"
+              color="#147b9d"
             />
 
             <Text className="mt-4 text-sm text-slate-500">
@@ -692,11 +692,11 @@ export default function WorkPlansScreen() {
               <Ionicons
                 name="calendar-outline"
                 size={30}
-                color="#0f6bea"
+                color="#147b9d"
               />
             </View>
 
-            <Text className="mt-5 text-center text-lg font-bold text-slate-900">
+            <Text className="mt-5 text-center text-lg font-semibold text-slate-900">
               Aún no tienes planes
             </Text>
 
@@ -711,7 +711,7 @@ export default function WorkPlansScreen() {
                 openCreateModal
               }
             >
-              <Text className="font-bold text-white">
+              <Text className="font-semibold text-white">
                 Crear plan semanal
               </Text>
             </Pressable>
@@ -754,11 +754,11 @@ export default function WorkPlansScreen() {
             <Ionicons
               name="information-circle-outline"
               size={23}
-              color="#1d4ed8"
+              color="#0e6788"
             />
 
             <View className="ml-3 flex-1">
-              <Text className="font-bold text-blue-900">
+              <Text className="font-semibold text-blue-900">
                 Organización semanal
               </Text>
 
@@ -799,7 +799,7 @@ export default function WorkPlansScreen() {
 
               <View className="flex-row items-start justify-between">
                 <View className="mr-4 flex-1">
-                  <Text className="text-2xl font-bold text-slate-900">
+                  <Text className="text-2xl font-semibold text-slate-900">
                     Nuevo plan
                   </Text>
 
@@ -828,7 +828,7 @@ export default function WorkPlansScreen() {
                 </Pressable>
               </View>
 
-              <Text className="mt-6 text-sm font-bold text-slate-700">
+              <Text className="mt-6 text-sm font-semibold text-slate-700">
                 Tipo de plan
               </Text>
 
@@ -873,7 +873,7 @@ export default function WorkPlansScreen() {
               {planType ===
               'ORDINARY' ? (
                 <>
-                  <Text className="mt-6 text-sm font-bold text-slate-700">
+                  <Text className="mt-6 text-sm font-semibold text-slate-700">
                     Semana del plan
                   </Text>
 
@@ -893,19 +893,19 @@ export default function WorkPlansScreen() {
                         <Ionicons
                           name="chevron-back"
                           size={22}
-                          color="#0f6bea"
+                          color="#147b9d"
                         />
                       </Pressable>
 
                       <View className="mx-3 flex-1 items-center">
-                        <Text className="text-xs font-bold uppercase tracking-wide text-slate-500">
+                        <Text className="text-xs font-semibold uppercase tracking-wide text-slate-500">
                           {selectedWeekStart ===
                           currentWeekStart
                             ? 'Semana actual'
                             : 'Semana seleccionada'}
                         </Text>
 
-                        <Text className="mt-2 text-center text-base font-bold text-slate-900">
+                        <Text className="mt-2 text-center text-base font-semibold text-slate-900">
                           {formatDate(
                             selectedWeekStart,
                           )}
@@ -933,7 +933,7 @@ export default function WorkPlansScreen() {
                         <Ionicons
                           name="chevron-forward"
                           size={22}
-                          color="#0f6bea"
+                          color="#147b9d"
                         />
                       </Pressable>
                     </View>
@@ -957,7 +957,7 @@ export default function WorkPlansScreen() {
                       <Ionicons
                         name="checkmark-circle-outline"
                         size={20}
-                        color="#047857"
+                        color="#237347"
                       />
 
                       <Text className="ml-2 flex-1 text-sm leading-5 text-emerald-800">
@@ -969,7 +969,7 @@ export default function WorkPlansScreen() {
                 </>
               ) : (
                 <>
-                  <Text className="mt-6 text-sm font-bold text-slate-700">
+                  <Text className="mt-6 text-sm font-semibold text-slate-700">
                     Fecha inicial
                   </Text>
 
@@ -991,7 +991,7 @@ export default function WorkPlansScreen() {
                     }
                   />
 
-                  <Text className="mt-4 text-sm font-bold text-slate-700">
+                  <Text className="mt-4 text-sm font-semibold text-slate-700">
                     Fecha final
                   </Text>
 
@@ -1059,7 +1059,7 @@ export default function WorkPlansScreen() {
                     color="#ffffff"
                   />
                 ) : (
-                  <Text className="text-base font-bold text-white">
+                  <Text className="text-base font-semibold text-white">
                     {planType ===
                     'ORDINARY'
                       ? 'Crear plan semanal'
@@ -1120,14 +1120,14 @@ function PlanCard({
             size={24}
             color={
               isOrdinary
-                ? '#0f6bea'
+                ? '#147b9d'
                 : '#6d28d9'
             }
           />
         </View>
 
         <View className="ml-4 flex-1">
-          <Text className="text-base font-bold text-slate-900">
+          <Text className="text-base font-semibold text-slate-900">
             {isOrdinary
               ? 'Plan semanal'
               : 'Plan extraordinario'}
@@ -1159,7 +1159,7 @@ function PlanCard({
         />
 
         <Text
-          className={`ml-1 text-xs font-bold ${status.textClass}`}
+          className={`ml-1 text-xs font-semibold ${status.textClass}`}
         >
           {status.label}
         </Text>
@@ -1173,7 +1173,7 @@ function PlanCard({
         'REJECTED' &&
       plan.rejectionComment ? (
         <View className="mt-4 rounded-2xl border border-rose-200 bg-rose-50 p-4">
-          <Text className="text-xs font-bold uppercase tracking-wide text-rose-500">
+          <Text className="text-xs font-semibold uppercase tracking-wide text-rose-500">
             Motivo del rechazo
           </Text>
 
@@ -1225,7 +1225,7 @@ function PlanCard({
           color="#ffffff"
         />
 
-        <Text className="ml-2 text-sm font-bold text-white">
+        <Text className="ml-2 text-sm font-semibold text-white">
           Abrir plan
         </Text>
       </Pressable>
@@ -1253,7 +1253,7 @@ function PlanCard({
                 color="#be123c"
               />
 
-              <Text className="ml-2 text-sm font-bold text-rose-700">
+              <Text className="ml-2 text-sm font-semibold text-rose-700">
                 Eliminar plan
               </Text>
             </>
@@ -1283,7 +1283,7 @@ function SummaryCard({
         color={iconColor}
       />
 
-      <Text className="mt-3 text-xl font-bold text-slate-900">
+      <Text className="mt-3 text-xl font-semibold text-slate-900">
         {value}
       </Text>
 
@@ -1303,7 +1303,7 @@ function PlanMetric({
 }) {
   return (
     <View className="flex-1">
-      <Text className="text-center text-lg font-bold text-slate-900">
+      <Text className="text-center text-lg font-semibold text-slate-900">
         {value}
       </Text>
 
@@ -1348,13 +1348,13 @@ function PlanTypeButton({
         size={21}
         color={
           selected
-            ? '#0f6bea'
-            : '#64748b'
+            ? '#147b9d'
+            : '#53646d'
         }
       />
 
       <Text
-        className={`mt-3 text-sm font-bold ${
+        className={`mt-3 text-sm font-semibold ${
           selected
             ? 'text-primary-700'
             : 'text-slate-700'

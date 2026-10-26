@@ -67,13 +67,9 @@ export default function LoginScreen() {
          keyboardDismissMode="on-drag">
           <View className="mx-auto w-full max-w-md">
             <View className="mb-8">
-              <View className="mb-5 h-14 w-14 items-center justify-center rounded-2xl bg-primary-600">
-                <Text className="text-2xl font-bold text-white">
-                  R
-                </Text>
-              </View>
+              <Text className="mb-6 text-xl font-semibold text-slate-900">App de Rutas</Text>
 
-              <Text className="text-3xl font-bold text-slate-900">
+              <Text className="text-3xl font-semibold text-slate-900">
                 Iniciar sesión
               </Text>
 
@@ -99,7 +95,7 @@ export default function LoginScreen() {
                   value={email}
                   onChangeText={setEmail}
                   placeholder="nombre@empresa.com"
-                  placeholderTextColor="#657590"
+                  placeholderTextColor="#667980"
                   keyboardType="email-address"
                   autoCapitalize="none"
                   autoCorrect={false}
@@ -119,7 +115,7 @@ export default function LoginScreen() {
                     value={password}
                     onChangeText={setPassword}
                     placeholder="Ingresa tu contraseña"
-                    placeholderTextColor="#657590"
+                    placeholderTextColor="#667980"
                     secureTextEntry={!showPassword}
                     autoCapitalize="none"
                     editable={!submitting}
@@ -170,7 +166,7 @@ export default function LoginScreen() {
                 {submitting ? (
                   <ActivityIndicator color="#ffffff" />
                 ) : (
-                  <Text className="text-base font-bold text-white">
+                  <Text className="text-base font-semibold text-white">
                     Entrar
                   </Text>
                 )}

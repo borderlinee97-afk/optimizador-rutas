@@ -15,7 +15,7 @@ export function AppUpdateCard({ compact = false }: { compact?: boolean }) {
   const actionLabel = installation.stage === 'permission-required' ? 'Dar permiso y continuar'
     : installation.stage === 'installer-opened' ? 'Reabrir instalador' : installation.stage === 'error' ? 'Reintentar actualización' : 'Actualizar'
   return <SafeAreaView edges={compact ? ['top'] : []} accessibilityLiveRegion="polite" className={compact ? 'border-b border-blue-200 bg-blue-50 px-5 py-3' : 'mt-5 rounded-3xl border border-slate-200 bg-white p-5'}>
-    <Text className="text-base font-bold text-slate-900">{release ? `Actualización disponible · ${release.version} (${release.versionCode})` : 'Actualizaciones de la app'}</Text>
+    <Text className="text-base font-semibold text-slate-900">{release ? `Actualización disponible · ${release.version} (${release.versionCode})` : 'Actualizaciones de la app'}</Text>
     {!compact ? <Text className="mt-1 text-sm text-slate-700">Versión instalada: {installedVersion} ({installedBuild || 'desarrollo'})</Text> : null}
     {release && !compact ? <>
       <Text className="mt-2 text-sm text-slate-800">{release.notes || 'Hay una nueva versión disponible.'}</Text>
@@ -26,15 +26,15 @@ export function AppUpdateCard({ compact = false }: { compact?: boolean }) {
     {!compact && (!canCheckUpdates || !hasApkInstaller) ? <Text className="mt-2 text-sm text-slate-700">El instalador interno requiere la primera APK con este sistema.</Text> : null}
     {error ? <Text className="mt-2 text-sm text-slate-800">{error}</Text> : null}
     {working ? <View className="mt-3 flex-row items-center gap-3">
-      <ActivityIndicator color="#1265a8" />
-      <Text className="text-sm font-bold text-slate-800">{installation.stage === 'downloading' ? `Descargando actualización… ${installation.percent ?? 0}%` : 'Verificando APK aprobada…'}</Text>
+      <ActivityIndicator color="#147b9d" />
+      <Text className="text-sm font-semibold text-slate-800">{installation.stage === 'downloading' ? `Descargando actualización… ${installation.percent ?? 0}%` : 'Verificando APK aprobada…'}</Text>
     </View> : null}
     {installation.stage === 'permission-required' ? <Text className="mt-2 text-sm text-slate-800">Permite que APP DE RUTAS instale actualizaciones en la pantalla de Android. Al regresar, continuará con la instalación.</Text> : null}
     {installation.stage === 'installer-opened' ? <Text className="mt-2 text-sm text-slate-800">Confirma la actualización en Android. Si cancelaste, puedes volver a abrir el instalador.</Text> : null}
     <View className="mt-3 flex-row flex-wrap gap-4">
-      {release && hasApkInstaller && !working ? <Pressable accessibilityRole="button" onPress={() => { void update() }} disabled={!online || checking}><Text className="font-bold text-primary-700">{online ? actionLabel : 'Conéctate para actualizar'}</Text></Pressable> : null}
-      {!compact && canCheckUpdates ? <Pressable accessibilityRole="button" onPress={() => { void check() }} disabled={checking || working}><Text className="font-bold text-primary-700">{checking ? 'Buscando…' : 'Buscar actualizaciones'}</Text></Pressable> : null}
-      {compact ? <Pressable accessibilityRole="button" onPress={dismiss}><Text className="font-bold text-slate-600">{working ? 'Ocultar aviso' : 'Después'}</Text></Pressable> : null}
+      {release && hasApkInstaller && !working ? <Pressable accessibilityRole="button" onPress={() => { void update() }} disabled={!online || checking}><Text className="font-semibold text-primary-700">{online ? actionLabel : 'Conéctate para actualizar'}</Text></Pressable> : null}
+      {!compact && canCheckUpdates ? <Pressable accessibilityRole="button" onPress={() => { void check() }} disabled={checking || working}><Text className="font-semibold text-primary-700">{checking ? 'Buscando…' : 'Buscar actualizaciones'}</Text></Pressable> : null}
+      {compact ? <Pressable accessibilityRole="button" onPress={dismiss}><Text className="font-semibold text-slate-600">{working ? 'Ocultar aviso' : 'Después'}</Text></Pressable> : null}
     </View>
   </SafeAreaView>
 }

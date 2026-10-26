@@ -116,7 +116,7 @@ export function SkipVisitModal({
           <View className="max-h-[88%] rounded-t-[32px] bg-white px-5 pb-8 pt-5">
             <View className="mb-4 flex-row items-center justify-between">
               <View className="flex-1 pr-4">
-                <Text className="text-xl font-bold text-slate-900">
+                <Text className="text-xl font-semibold text-slate-900">
                   No realizar visita
                 </Text>
 
@@ -195,7 +195,7 @@ export function SkipVisitModal({
                 )}
               </View>
 
-              <Text className="mb-2 mt-5 text-sm font-bold text-slate-800">
+              <Text className="mb-2 mt-5 text-sm font-semibold text-slate-800">
                 Observaciones
                 {requiresNotes ? ' *' : ''}
               </Text>
@@ -207,7 +207,7 @@ export function SkipVisitModal({
                     ? 'Describe el motivo...'
                     : 'Agrega información adicional, si aplica...'
                 }
-                placeholderTextColor="#657590"
+                placeholderTextColor="#667980"
                 multiline
                 textAlignVertical="top"
                 maxLength={1000}
@@ -226,7 +226,7 @@ export function SkipVisitModal({
                   onPress={onClose}
                   disabled={loading}
                 >
-                  <Text className="font-bold text-slate-700">
+                  <Text className="font-semibold text-slate-700">
                     Cancelar
                   </Text>
                 </Pressable>
@@ -252,7 +252,7 @@ export function SkipVisitModal({
                         color="#ffffff"
                       />
 
-                      <Text className="ml-2 font-bold text-white">
+                      <Text className="ml-2 font-semibold text-white">
                         Confirmar
                       </Text>
                     </>

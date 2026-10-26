@@ -124,7 +124,7 @@ export function CancelExtraStopModal({
               </View>
 
               <View className="ml-4 flex-1">
-                <Text className="text-lg font-bold text-slate-900">
+                <Text className="text-lg font-semibold text-slate-900">
                   Cancelar parada adicional
                 </Text>
 
@@ -152,7 +152,7 @@ export function CancelExtraStopModal({
               keyboardShouldPersistTaps="handled"
               showsVerticalScrollIndicator={false}
              keyboardDismissMode="on-drag">
-              <Text className="text-sm font-bold text-slate-900">
+              <Text className="text-sm font-semibold text-slate-900">
                 Motivo de cancelación
               </Text>
 
@@ -202,8 +202,8 @@ export function CancelExtraStopModal({
                           <Text
                             className={
                               selected
-                                ? 'font-bold text-rose-900'
-                                : 'font-bold text-slate-800'
+                                ? 'font-semibold text-rose-900'
+                                : 'font-semibold text-slate-800'
                             }
                           >
                             {option.label}
@@ -225,7 +225,7 @@ export function CancelExtraStopModal({
                 )}
               </View>
 
-              <Text className="mt-2 text-sm font-bold text-slate-900">
+              <Text className="mt-2 text-sm font-semibold text-slate-900">
                 Observaciones
                 {notesRequired
                   ? ' obligatorias'
@@ -241,7 +241,7 @@ export function CancelExtraStopModal({
                     ? 'Describe el motivo de cancelación...'
                     : 'Agrega información complementaria...'
                 }
-                placeholderTextColor="#657590"
+                placeholderTextColor="#667980"
                 multiline
                 maxLength={1000}
                 textAlignVertical="top"
@@ -290,7 +290,7 @@ export function CancelExtraStopModal({
                       color="#ffffff"
                     />
 
-                    <Text className="ml-2 text-base font-bold text-white">
+                    <Text className="ml-2 text-base font-semibold text-white">
                       Confirmar cancelación
                     </Text>
                   </>
@@ -302,7 +302,7 @@ export function CancelExtraStopModal({
                 onPress={onClose}
                 disabled={loading}
               >
-                <Text className="text-base font-bold text-slate-700">
+                <Text className="text-base font-semibold text-slate-700">
                   Regresar sin cancelar
                 </Text>
               </Pressable>

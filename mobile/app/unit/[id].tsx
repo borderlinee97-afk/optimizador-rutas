@@ -234,7 +234,7 @@ const STATUS_CONFIG: Record<
     containerClass: 'bg-blue-100',
     textClass: 'text-blue-700',
     icon: 'navigate-circle-outline',
-    iconColor: '#1d4ed8',
+    iconColor: '#0e6788',
   },
 
   DONE: {
@@ -242,7 +242,7 @@ const STATUS_CONFIG: Record<
     containerClass: 'bg-emerald-100',
     textClass: 'text-emerald-700',
     icon: 'checkmark-circle-outline',
-    iconColor: '#047857',
+    iconColor: '#237347',
   },
 
   SKIPPED: {
@@ -1729,7 +1729,7 @@ export default function UnitDetailScreen() {
       <SafeAreaView className="flex-1 items-center justify-center bg-surface">
         <ActivityIndicator
           size="large"
-          color="#0f6bea"
+          color="#147b9d"
         />
 
         <Text className="mt-4 text-sm text-slate-500">
@@ -1754,7 +1754,7 @@ export default function UnitDetailScreen() {
             />
           </View>
 
-          <Text className="mt-5 text-center text-2xl font-bold text-slate-900">
+          <Text className="mt-5 text-center text-2xl font-semibold text-slate-900">
             Actividad no encontrada
           </Text>
 
@@ -1770,7 +1770,7 @@ export default function UnitDetailScreen() {
               )
             }
           >
-            <Text className="text-base font-bold text-white">
+            <Text className="text-base font-semibold text-white">
               Regresar a Trabajo
             </Text>
           </Pressable>
@@ -1817,7 +1817,7 @@ export default function UnitDetailScreen() {
           </Text>
 
           <Text
-            className="text-lg font-bold text-slate-900"
+            className="text-lg font-semibold text-slate-900"
             numberOfLines={1}
           >
             {item.name}
@@ -1866,7 +1866,7 @@ export default function UnitDetailScreen() {
                 </Text>
               </View>
 
-              <Text className="mt-3 text-2xl font-bold leading-8 text-white">
+              <Text className="mt-3 text-2xl font-semibold leading-8 text-white">
                 {item.name}
               </Text>
 
@@ -1880,7 +1880,7 @@ export default function UnitDetailScreen() {
               {isExtraStop &&
               item.activity_category ? (
                 <View className="mt-3 self-start rounded-full bg-white/15 px-3 py-1">
-                  <Text className="text-xs font-bold text-white">
+                  <Text className="text-xs font-semibold text-white">
                     {getExtraStopCategoryLabel(
                       item.activity_category,
                     )}
@@ -1903,7 +1903,7 @@ export default function UnitDetailScreen() {
               />
 
               <Text
-                className={`ml-1 text-xs font-bold ${statusConfig.textClass}`}
+                className={`ml-1 text-xs font-semibold ${statusConfig.textClass}`}
               >
                 {statusConfig.label}
               </Text>
@@ -1930,7 +1930,7 @@ export default function UnitDetailScreen() {
           ) : null}
         </View>
 
-        <Text className="mb-3 mt-7 text-lg font-bold text-slate-900">
+        <Text className="mb-3 mt-7 text-lg font-semibold text-slate-900">
           Información de la actividad
         </Text>
 
@@ -2059,7 +2059,7 @@ export default function UnitDetailScreen() {
         {isExtraStop &&
         item.addition_reason ? (
           <>
-            <Text className="mb-3 mt-7 text-lg font-bold text-slate-900">
+            <Text className="mb-3 mt-7 text-lg font-semibold text-slate-900">
               Motivo de incorporación
             </Text>
 
@@ -2083,7 +2083,7 @@ export default function UnitDetailScreen() {
 
         {item.address ? (
           <>
-            <Text className="mb-3 mt-7 text-lg font-bold text-slate-900">
+            <Text className="mb-3 mt-7 text-lg font-semibold text-slate-900">
               Dirección
             </Text>
 
@@ -2106,12 +2106,12 @@ export default function UnitDetailScreen() {
         {isPlannedPharmacy ? (
           <>
             <View className="mb-3 mt-7 flex-row items-center justify-between">
-              <Text className="text-lg font-bold text-slate-900">
+              <Text className="text-lg font-semibold text-slate-900">
                 Actividades de la visita
               </Text>
 
               <View className="rounded-full bg-slate-100 px-3 py-1">
-                <Text className="text-xs font-bold text-slate-600">
+                <Text className="text-xs font-semibold text-slate-600">
                   {activities.length}
                 </Text>
               </View>
@@ -2121,8 +2121,8 @@ export default function UnitDetailScreen() {
               <Pressable accessibilityRole="button" onPress={()=>setAddActivityVisible(true)}
                 disabled={Boolean(processing)||activities.length>=50}
                 className="mb-3 flex-row items-center justify-center rounded-2xl border border-primary-200 bg-primary-50 px-4 py-3">
-                <Ionicons name="add-circle-outline" size={20} color="#2563eb" />
-                <Text className="ml-2 font-bold text-primary-700">Agregar actividad adicional</Text>
+                <Ionicons name="add-circle-outline" size={20} color="#147b9d" />
+                <Text className="ml-2 font-semibold text-primary-700">Agregar actividad adicional</Text>
               </Pressable>
             ) : null}
             <View className="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
@@ -2131,19 +2131,19 @@ export default function UnitDetailScreen() {
                 <>
                   <View className="mb-4 flex-row flex-wrap gap-2">
                     <View className="rounded-full bg-slate-100 px-3 py-1.5">
-                      <Text className="text-xs font-bold text-slate-600">
+                      <Text className="text-xs font-semibold text-slate-600">
                         Pendientes {pendingActivityCount}
                       </Text>
                     </View>
 
                     <View className="rounded-full bg-emerald-100 px-3 py-1.5">
-                      <Text className="text-xs font-bold text-emerald-700">
+                      <Text className="text-xs font-semibold text-emerald-700">
                         Realizadas {completedActivityCount}
                       </Text>
                     </View>
 
                     <View className="rounded-full bg-amber-100 px-3 py-1.5">
-                      <Text className="text-xs font-bold text-amber-700">
+                      <Text className="text-xs font-semibold text-amber-700">
                         No realizadas {skippedActivityCount}
                       </Text>
                     </View>
@@ -2168,14 +2168,14 @@ export default function UnitDetailScreen() {
                       >
                         <View className="flex-row items-start">
                           <View className="h-8 w-8 items-center justify-center rounded-full bg-slate-100">
-                            <Text className="text-xs font-bold text-slate-600">
+                            <Text className="text-xs font-semibold text-slate-600">
                               {activity.ord}
                             </Text>
                           </View>
 
                           <View className="ml-3 flex-1">
                             <View className="flex-row items-start justify-between gap-3">
-                              <Text className="flex-1 text-sm font-bold leading-5 text-slate-800">
+                              <Text className="flex-1 text-sm font-semibold leading-5 text-slate-800">
                                 {activity.activity_type}
                               </Text>
 
@@ -2194,11 +2194,11 @@ export default function UnitDetailScreen() {
                                   className={
                                     activity.status ===
                                     'DONE'
-                                      ? 'text-[10px] font-bold text-emerald-700'
+                                      ? 'text-[10px] font-semibold text-emerald-700'
                                       : activity.status ===
                                           'SKIPPED'
-                                        ? 'text-[10px] font-bold text-amber-700'
-                                        : 'text-[10px] font-bold text-slate-600'
+                                        ? 'text-[10px] font-semibold text-amber-700'
+                                        : 'text-[10px] font-semibold text-slate-600'
                                   }
                                 >
                                   {activity.status ===
@@ -2295,7 +2295,7 @@ export default function UnitDetailScreen() {
                                     color="#ffffff"
                                   />
 
-                                  <Text className="ml-1.5 text-xs font-bold text-white">
+                                  <Text className="ml-1.5 text-xs font-semibold text-white">
                                     Realizada
                                   </Text>
                                 </Pressable>
@@ -2320,7 +2320,7 @@ export default function UnitDetailScreen() {
                                     color="#b45309"
                                   />
 
-                                  <Text className="ml-1.5 text-xs font-bold text-amber-800">
+                                  <Text className="ml-1.5 text-xs font-semibold text-amber-800">
                                     No realizada
                                   </Text>
                                 </Pressable>
@@ -2343,7 +2343,7 @@ export default function UnitDetailScreen() {
                 </>
               ) : (
                 <View className="rounded-2xl border border-amber-200 bg-amber-50 p-4">
-                  <Text className="text-sm font-bold text-amber-900">
+                  <Text className="text-sm font-semibold text-amber-900">
                     Visita histórica sin actividades
                   </Text>
 
@@ -2374,7 +2374,7 @@ export default function UnitDetailScreen() {
           </View>
         ) : null}
 
-        <Text className="mb-3 mt-7 text-lg font-bold text-slate-900">
+        <Text className="mb-3 mt-7 text-lg font-semibold text-slate-900">
           Registro de ejecución
         </Text>
 
@@ -2446,12 +2446,12 @@ export default function UnitDetailScreen() {
             <Ionicons
               name="navigate"
               size={24}
-              color="#047857"
+              color="#237347"
             />
           </View>
 
           <View className="ml-4 flex-1">
-            <Text className="text-base font-bold text-slate-900">
+            <Text className="text-base font-semibold text-slate-900">
               Ir con Google Maps
             </Text>
 
@@ -2464,7 +2464,7 @@ export default function UnitDetailScreen() {
           <Ionicons
             name="open-outline"
             size={22}
-            color="#657590"
+            color="#667980"
           />
         </Pressable>
 
@@ -2489,7 +2489,7 @@ export default function UnitDetailScreen() {
             </View>
 
             <View className="ml-4 flex-1">
-              <Text className="text-base font-bold text-violet-900">
+              <Text className="text-base font-semibold text-violet-900">
                 Editar parada adicional
               </Text>
 
@@ -2515,7 +2515,7 @@ export default function UnitDetailScreen() {
             />
 
             <View className="ml-3 flex-1">
-              <Text className="font-bold text-amber-800">
+              <Text className="font-semibold text-amber-800">
                 Existe otra actividad activa
               </Text>
 
@@ -2538,7 +2538,7 @@ export default function UnitDetailScreen() {
               </View>
 
               <View className="ml-4 flex-1">
-                <Text className="text-base font-bold text-amber-900">
+                <Text className="text-base font-semibold text-amber-900">
                   Solicitud de cancelación pendiente
                 </Text>
 
@@ -2576,7 +2576,7 @@ export default function UnitDetailScreen() {
               </View>
 
               <View className="ml-4 flex-1">
-                <Text className="text-base font-bold text-rose-900">
+                <Text className="text-base font-semibold text-rose-900">
                   Solicitud de cancelación rechazada
                 </Text>
 
@@ -2639,7 +2639,7 @@ export default function UnitDetailScreen() {
                     color="#ffffff"
                   />
 
-                  <Text className="ml-2 text-base font-bold text-white">
+                  <Text className="ml-2 text-base font-semibold text-white">
                     Registrar check-in
                   </Text>
                 </>
@@ -2648,7 +2648,7 @@ export default function UnitDetailScreen() {
 
             {canRequestCancellation ? (
               <View className="mt-5 rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
-                <Text className="text-base font-bold text-slate-900">
+                <Text className="text-base font-semibold text-slate-900">
                   No puedo realizarla como estaba programada
                 </Text>
 
@@ -2679,7 +2679,7 @@ export default function UnitDetailScreen() {
                   </View>
 
                   <View className="ml-3 flex-1">
-                    <Text className="font-bold text-violet-900">
+                    <Text className="font-semibold text-violet-900">
                       Reprogramar
                     </Text>
 
@@ -2717,7 +2717,7 @@ export default function UnitDetailScreen() {
                   </View>
 
                   <View className="ml-3 flex-1">
-                    <Text className="font-bold text-amber-900">
+                    <Text className="font-semibold text-amber-900">
                       Marcar como no realizada
                     </Text>
 
@@ -2756,7 +2756,7 @@ export default function UnitDetailScreen() {
                   </View>
 
                   <View className="ml-3 flex-1">
-                    <Text className="font-bold text-rose-900">
+                    <Text className="font-semibold text-rose-900">
                       Solicitar cancelación
                     </Text>
 
@@ -2792,7 +2792,7 @@ export default function UnitDetailScreen() {
                   color="#b45309"
                 />
 
-                <Text className="ml-2 text-base font-bold text-amber-800">
+                <Text className="ml-2 text-base font-semibold text-amber-800">
                   No fue posible realizar la actividad
                 </Text>
               </Pressable>
@@ -2820,7 +2820,7 @@ export default function UnitDetailScreen() {
               color="#be123c"
             />
 
-            <Text className="ml-2 text-base font-bold text-rose-700">
+            <Text className="ml-2 text-base font-semibold text-rose-700">
               Cancelar parada adicional
             </Text>
           </Pressable>
@@ -2852,7 +2852,7 @@ export default function UnitDetailScreen() {
                   color="#ffffff"
                 />
 
-                <Text className="ml-2 text-base font-bold text-white">
+                <Text className="ml-2 text-base font-semibold text-white">
                   Finalizar y registrar check-out
                 </Text>
               </>
@@ -2867,12 +2867,12 @@ export default function UnitDetailScreen() {
               <Ionicons
                 name="checkmark"
                 size={26}
-                color="#047857"
+                color="#237347"
               />
             </View>
 
             <View className="ml-4 flex-1">
-              <Text className="text-base font-bold text-emerald-800">
+              <Text className="text-base font-semibold text-emerald-800">
                 Actividad finalizada
               </Text>
 
@@ -2896,7 +2896,7 @@ export default function UnitDetailScreen() {
               </View>
 
               <View className="ml-4 flex-1">
-                <Text className="text-base font-bold text-amber-900">
+                <Text className="text-base font-semibold text-amber-900">
                   Actividad no realizada
                 </Text>
 
@@ -2929,7 +2929,7 @@ export default function UnitDetailScreen() {
               </View>
 
               <View className="ml-4 flex-1">
-                <Text className="text-base font-bold text-violet-900">
+                <Text className="text-base font-semibold text-violet-900">
                   Visita reprogramada
                 </Text>
 
@@ -2951,7 +2951,7 @@ export default function UnitDetailScreen() {
                   Reprogramada
                 </Text>
 
-                <Text className="mt-1 text-sm font-bold text-violet-800">
+                <Text className="mt-1 text-sm font-semibold text-violet-800">
                   {formatDateTime(
                     item.rescheduled_at,
                   )}
@@ -2978,7 +2978,7 @@ export default function UnitDetailScreen() {
               </View>
 
               <View className="ml-4 flex-1">
-                <Text className="text-base font-bold text-rose-900">
+                <Text className="text-base font-semibold text-rose-900">
                   {isExtraStop
                     ? 'Parada adicional cancelada'
                     : 'Visita cancelada'}
@@ -3031,7 +3031,7 @@ export default function UnitDetailScreen() {
                   Fecha de cancelación
                 </Text>
 
-                <Text className="mt-1 text-sm font-bold text-rose-800">
+                <Text className="mt-1 text-sm font-semibold text-rose-800">
                   {formatDateTime(
                     item.cancelled_at,
                   )}
@@ -3159,7 +3159,7 @@ export default function UnitDetailScreen() {
           <ScrollView className="rounded-t-[28px] bg-white px-5 pb-8 pt-5" style={{maxHeight:"90%",flexShrink:1,flexGrow:0}} contentContainerStyle={{paddingBottom:24}} keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag">
             <View className="flex-row items-center justify-between">
               <View className="flex-1 pr-4">
-                <Text className="text-lg font-bold text-slate-900">
+                <Text className="text-lg font-semibold text-slate-900">
                   {activityResolutionMode ===
                   'DONE'
                     ? 'Marcar actividad como realizada'
@@ -3195,7 +3195,7 @@ export default function UnitDetailScreen() {
             {activityResolutionMode ===
             'SKIPPED' ? (
               <View className="mt-5">
-                <Text className="mb-2 text-xs font-bold uppercase tracking-wide text-slate-500">
+                <Text className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
                   Motivo
                 </Text>
 
@@ -3208,7 +3208,7 @@ export default function UnitDetailScreen() {
                     setActivitySkipReason
                   }
                   placeholder="Describe por qué no fue posible realizarla"
-                  placeholderTextColor="#657590"
+                  placeholderTextColor="#667980"
                   multiline
                   maxLength={1000}
                   editable={
@@ -3221,7 +3221,7 @@ export default function UnitDetailScreen() {
             ) : null}
 
             <View className="mt-4">
-              <Text className="mb-2 text-xs font-bold uppercase tracking-wide text-slate-500">
+              <Text className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
                 Nota de ejecución opcional
               </Text>
 
@@ -3234,7 +3234,7 @@ export default function UnitDetailScreen() {
                   setActivityExecutionNote
                 }
                 placeholder="Agrega observaciones si es necesario"
-                placeholderTextColor="#657590"
+                placeholderTextColor="#667980"
                 multiline
                 maxLength={2000}
                 editable={
@@ -3278,7 +3278,7 @@ export default function UnitDetailScreen() {
                     color="#ffffff"
                   />
 
-                  <Text className="ml-2 text-base font-bold text-white">
+                  <Text className="ml-2 text-base font-semibold text-white">
                     Guardar resultado
                   </Text>
                 </>
@@ -3318,7 +3318,7 @@ function InfoRow({
           {label}
         </Text>
 
-        <Text className="mt-1 text-sm font-bold leading-5 text-slate-800">
+        <Text className="mt-1 text-sm font-semibold leading-5 text-slate-800">
           {value}
         </Text>
       </View>

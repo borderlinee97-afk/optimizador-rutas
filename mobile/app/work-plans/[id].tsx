@@ -144,7 +144,7 @@ const PLAN_STATUS_CONFIG: Record<
       'checkmark-circle-outline',
 
     iconColor:
-      '#047857',
+      '#237347',
   },
 
   REJECTED: {
@@ -178,7 +178,7 @@ const PLAN_STATUS_CONFIG: Record<
       'archive-outline',
 
     iconColor:
-      '#64748b',
+      '#53646d',
   },
 }
 
@@ -1732,7 +1732,7 @@ export default function WorkPlanDetailScreen() {
       <SafeAreaView className="flex-1 items-center justify-center bg-surface">
         <ActivityIndicator
           size="large"
-          color="#0f6bea"
+          color="#147b9d"
         />
 
         <Text className="mt-4 text-sm text-slate-500">
@@ -1754,7 +1754,7 @@ export default function WorkPlanDetailScreen() {
             />
           </View>
 
-          <Text className="mt-5 text-center text-xl font-bold text-slate-900">
+          <Text className="mt-5 text-center text-xl font-semibold text-slate-900">
             No se pudo abrir el plan
           </Text>
 
@@ -1769,7 +1769,7 @@ export default function WorkPlanDetailScreen() {
               router.back()
             }
           >
-            <Text className="font-bold text-white">
+            <Text className="font-semibold text-white">
               Regresar
             </Text>
           </Pressable>
@@ -1807,9 +1807,9 @@ export default function WorkPlanDetailScreen() {
               void handleRefresh()
             }}
             colors={[
-              '#0f6bea',
+              '#147b9d',
             ]}
-            tintColor="#0f6bea"
+            tintColor="#147b9d"
           />
         }
       >
@@ -1828,7 +1828,7 @@ export default function WorkPlanDetailScreen() {
           </Pressable>
 
           <View className="ml-4 flex-1">
-            <Text className="text-2xl font-bold text-slate-900">
+            <Text className="text-2xl font-semibold text-slate-900">
               {plan.planType ===
               'ORDINARY'
                 ? 'Plan semanal'
@@ -1850,7 +1850,7 @@ export default function WorkPlanDetailScreen() {
         <View className="mt-5 rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
           <View className="flex-row items-start justify-between">
             <View className="mr-4 flex-1">
-              <Text className="text-xs font-bold uppercase tracking-wide text-slate-500">
+              <Text className="text-xs font-semibold uppercase tracking-wide text-slate-500">
                 Estado del plan
               </Text>
 
@@ -1868,7 +1868,7 @@ export default function WorkPlanDetailScreen() {
                 />
 
                 <Text
-                  className={`ml-1 text-xs font-bold ${status.textClass}`}
+                  className={`ml-1 text-xs font-semibold ${status.textClass}`}
                 >
                   {status.label}
                 </Text>
@@ -1876,11 +1876,11 @@ export default function WorkPlanDetailScreen() {
             </View>
 
             <View className="items-end">
-              <Text className="text-xs font-bold uppercase tracking-wide text-slate-500">
+              <Text className="text-xs font-semibold uppercase tracking-wide text-slate-500">
                 Revisión
               </Text>
 
-              <Text className="mt-2 text-xl font-bold text-slate-900">
+              <Text className="mt-2 text-xl font-semibold text-slate-900">
                 {
                   plan.revisionNumber
                 }
@@ -1917,7 +1917,7 @@ export default function WorkPlanDetailScreen() {
               />
 
               <View className="ml-3 flex-1">
-                <Text className="font-bold text-rose-900">
+                <Text className="font-semibold text-rose-900">
                   Plan rechazado
                 </Text>
 
@@ -1958,7 +1958,7 @@ export default function WorkPlanDetailScreen() {
           </View>
         ) : null}
 
-        <Text className="mt-7 text-lg font-bold text-slate-900">
+        <Text className="mt-7 text-lg font-semibold text-slate-900">
           Programación
         </Text>
 
@@ -2007,7 +2007,7 @@ export default function WorkPlanDetailScreen() {
                   }
                 >
                   <Text
-                    className={`text-xs font-bold uppercase ${
+                    className={`text-xs font-semibold uppercase ${
                       selected
                         ? 'text-blue-100'
                         : 'text-slate-500'
@@ -2019,7 +2019,7 @@ export default function WorkPlanDetailScreen() {
                   </Text>
 
                   <Text
-                    className={`mt-1 text-lg font-bold ${
+                    className={`mt-1 text-lg font-semibold ${
                       selected
                         ? 'text-white'
                         : 'text-slate-900'
@@ -2053,7 +2053,7 @@ export default function WorkPlanDetailScreen() {
           <View className="mt-5">
             <View className="flex-row items-center justify-between">
               <View className="mr-4 flex-1">
-                <Text className="text-lg font-bold text-slate-900">
+                <Text className="text-lg font-semibold text-slate-900">
                   {formatLongDate(
                     selectedDay,
                   )}
@@ -2085,7 +2085,7 @@ export default function WorkPlanDetailScreen() {
                     color="#ffffff"
                   />
 
-                  <Text className="ml-1 text-sm font-bold text-white">
+                  <Text className="ml-1 text-sm font-semibold text-white">
                     Agregar
                   </Text>
                 </Pressable>
@@ -2166,11 +2166,11 @@ export default function WorkPlanDetailScreen() {
                   <Ionicons
                     name="location-outline"
                     size={27}
-                    color="#64748b"
+                    color="#53646d"
                   />
                 </View>
 
-                <Text className="mt-4 text-center text-base font-bold text-slate-800">
+                <Text className="mt-4 text-center text-base font-semibold text-slate-800">
                   Sin visitas programadas
                 </Text>
 
@@ -2188,7 +2188,7 @@ export default function WorkPlanDetailScreen() {
                       )
                     }
                   >
-                    <Text className="font-bold text-white">
+                    <Text className="font-semibold text-white">
                       Agregar primera visita
                     </Text>
                   </Pressable>
@@ -2205,12 +2205,12 @@ export default function WorkPlanDetailScreen() {
                 <Ionicons
                   name="send-outline"
                   size={23}
-                  color="#1d4ed8"
+                  color="#0e6788"
                 />
               </View>
 
               <View className="ml-4 flex-1">
-                <Text className="text-base font-bold text-slate-900">
+                <Text className="text-base font-semibold text-slate-900">
                   Enviar al {reviewRecipient}
                 </Text>
 
@@ -2252,7 +2252,7 @@ export default function WorkPlanDetailScreen() {
                     color="#ffffff"
                   />
 
-                  <Text className="ml-2 text-base font-bold text-white">
+                  <Text className="ml-2 text-base font-semibold text-white">
                     {plan.status ===
                     'REJECTED'
                       ? `Reenviar al ${reviewRecipient}`
@@ -2295,7 +2295,7 @@ export default function WorkPlanDetailScreen() {
 
               <View className="flex-row items-start justify-between">
                 <View className="mr-4 flex-1">
-                  <Text className="text-2xl font-bold text-slate-900">
+                  <Text className="text-2xl font-semibold text-slate-900">
                     {visitModalMode ===
                     'EDIT'
                       ? 'Editar visita'
@@ -2344,12 +2344,12 @@ export default function WorkPlanDetailScreen() {
                       setCatalogLoading(true)
                     }}
                   >
-                    <Text className={`text-sm font-bold ${catalogKind === option.kind ? 'text-white' : 'text-slate-700'}`}>{option.label}</Text>
+                    <Text className={`text-sm font-semibold ${catalogKind === option.kind ? 'text-white' : 'text-slate-700'}`}>{option.label}</Text>
                   </Pressable>
                 ))}
               </View>
 
-              <Text className="mt-4 text-sm font-bold text-slate-700">
+              <Text className="mt-4 text-sm font-semibold text-slate-700">
                 {catalogKind === 'CEDIS' ? 'Buscar CEDIS' : 'Buscar unidad'}
               </Text>
 
@@ -2357,7 +2357,7 @@ export default function WorkPlanDetailScreen() {
                 <Ionicons
                   name="search-outline"
                   size={20}
-                  color="#64748b"
+                  color="#53646d"
                 />
 
                 <TextInput
@@ -2369,7 +2369,7 @@ export default function WorkPlanDetailScreen() {
                     setSearch
                   }
                   placeholder={catalogKind === 'CEDIS' ? 'Nombre o referencia del almacén...' : 'Nombre, CLUES, región, proyecto...'}
-                  placeholderTextColor="#657590"
+                  placeholderTextColor="#667980"
                   autoCapitalize="none"
                   autoCorrect={
                     false
@@ -2387,7 +2387,7 @@ export default function WorkPlanDetailScreen() {
                     <Ionicons
                       name="close-circle"
                       size={20}
-                      color="#657590"
+                      color="#667980"
                     />
                   </Pressable>
                 ) : null}
@@ -2398,7 +2398,7 @@ export default function WorkPlanDetailScreen() {
                 0 ? (
                 <View className="mt-3 flex-row gap-2">
                   <View className="flex-1 rounded-2xl bg-slate-100 px-3 py-2">
-                    <Text className="text-xs font-bold text-slate-700">
+                    <Text className="text-xs font-semibold text-slate-700">
                       {
                         catalogSummary.permanent
                       }
@@ -2410,7 +2410,7 @@ export default function WorkPlanDetailScreen() {
                   </View>
 
                   <View className="flex-1 rounded-2xl bg-violet-50 px-3 py-2">
-                    <Text className="text-xs font-bold text-violet-700">
+                    <Text className="text-xs font-semibold text-violet-700">
                       {
                         catalogSummary.temporary
                       }
@@ -2430,16 +2430,16 @@ export default function WorkPlanDetailScreen() {
                       <Ionicons
                         name="checkmark"
                         size={21}
-                        color="#047857"
+                        color="#237347"
                       />
                     </View>
 
                     <View className="ml-3 flex-1">
-                      <Text className="text-xs font-bold uppercase tracking-wide text-emerald-600">
+                      <Text className="text-xs font-semibold uppercase tracking-wide text-emerald-600">
                         Unidad seleccionada
                       </Text>
 
-                      <Text className="mt-1 font-bold text-emerald-900">
+                      <Text className="mt-1 font-semibold text-emerald-900">
                         {
                           selectedPharmacy.name
                         }
@@ -2488,7 +2488,7 @@ export default function WorkPlanDetailScreen() {
                 <View className="items-center py-8">
                   <ActivityIndicator
                     size="small"
-                    color="#0f6bea"
+                    color="#147b9d"
                   />
                 </View>
               ) : (
@@ -2578,7 +2578,7 @@ export default function WorkPlanDetailScreen() {
                                 size={21}
                                 color={
                                   unavailable
-                                    ? '#657590'
+                                    ? '#667980'
                                     : selected
                                       ? '#ffffff'
                                       : pharmacy.accessType ===
@@ -2591,7 +2591,7 @@ export default function WorkPlanDetailScreen() {
 
                             <View className="ml-3 flex-1">
                               <Text
-                                className={`text-sm font-bold ${
+                                className={`text-sm font-semibold ${
                                   unavailable
                                     ? 'text-slate-400'
                                     : 'text-slate-900'
@@ -2705,10 +2705,10 @@ export default function WorkPlanDetailScreen() {
                       <Ionicons
                         name="search-outline"
                         size={28}
-                        color="#657590"
+                        color="#667980"
                       />
 
-                      <Text className="mt-3 font-bold text-slate-700">
+                      <Text className="mt-3 font-semibold text-slate-700">
                         Sin resultados
                       </Text>
 
@@ -2721,14 +2721,14 @@ export default function WorkPlanDetailScreen() {
                 </View>
               )}
 
-              <Text className="mt-6 text-sm font-bold text-slate-700">
+              <Text className="mt-6 text-sm font-semibold text-slate-700">
                 Día programado
               </Text>
 
               {selectedPharmacy
                 ?.temporaryCoverage ? (
                 <View className="mt-2 rounded-2xl border border-violet-200 bg-violet-50 p-3">
-                  <Text className="text-xs font-bold text-violet-800">
+                  <Text className="text-xs font-semibold text-violet-800">
                     Periodo autorizado
                   </Text>
 
@@ -2792,7 +2792,7 @@ export default function WorkPlanDetailScreen() {
                         }
                       >
                         <Text
-                          className={`text-xs font-bold ${
+                          className={`text-xs font-semibold ${
                             !authorized
                               ? 'text-slate-300'
                               : selected
@@ -2836,7 +2836,7 @@ export default function WorkPlanDetailScreen() {
               <View className="mt-7 rounded-3xl border border-slate-200 bg-slate-50 p-4">
                 <View className="flex-row items-start justify-between">
                   <View className="mr-4 flex-1">
-                    <Text className="text-sm font-bold text-slate-800">
+                    <Text className="text-sm font-semibold text-slate-800">
                       Actividades a realizar
                     </Text>
 
@@ -2846,7 +2846,7 @@ export default function WorkPlanDetailScreen() {
                   </View>
 
                   <View className="rounded-full bg-white px-3 py-1.5">
-                    <Text className="text-xs font-bold text-slate-600">
+                    <Text className="text-xs font-semibold text-slate-600">
                       {activities.length}/{MAX_VISIT_ACTIVITIES}
                     </Text>
                   </View>
@@ -2865,7 +2865,7 @@ export default function WorkPlanDetailScreen() {
                         className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"
                       >
                         <View className="flex-row items-center justify-between">
-                          <Text className="text-xs font-bold uppercase tracking-wide text-slate-500">
+                          <Text className="text-xs font-semibold uppercase tracking-wide text-slate-500">
                             Actividad {index + 1}
                           </Text>
 
@@ -2958,7 +2958,7 @@ export default function WorkPlanDetailScreen() {
                               )
                           }
                           placeholder="Ej. Revisión de inventario"
-                          placeholderTextColor="#657590"
+                          placeholderTextColor="#667980"
                           maxLength={160}
                           editable={
                             !saving
@@ -2979,7 +2979,7 @@ export default function WorkPlanDetailScreen() {
                               )
                           }
                           placeholder="Nota opcional"
-                          placeholderTextColor="#657590"
+                          placeholderTextColor="#667980"
                           maxLength={1000}
                           multiline
                           textAlignVertical="top"
@@ -3024,13 +3024,13 @@ export default function WorkPlanDetailScreen() {
                     color={
                       activities.length >=
                       MAX_VISIT_ACTIVITIES
-                        ? '#657590'
-                        : '#0f6bea'
+                        ? '#667980'
+                        : '#147b9d'
                     }
                   />
 
                   <Text
-                    className={`ml-2 text-sm font-bold ${
+                    className={`ml-2 text-sm font-semibold ${
                       activities.length >=
                       MAX_VISIT_ACTIVITIES
                         ? 'text-slate-400'
@@ -3044,7 +3044,7 @@ export default function WorkPlanDetailScreen() {
 
               <View className="mt-6 flex-row items-center justify-between rounded-3xl border border-slate-200 bg-slate-50 p-4">
                 <View className="mr-4 flex-1">
-                  <Text className="font-bold text-slate-800">
+                  <Text className="font-semibold text-slate-800">
                     Visita obligatoria
                   </Text>
 
@@ -3122,7 +3122,7 @@ export default function WorkPlanDetailScreen() {
                       color="#ffffff"
                     />
 
-                    <Text className="ml-2 text-base font-bold text-white">
+                    <Text className="ml-2 text-base font-semibold text-white">
                       {visitModalMode ===
                       'EDIT'
                         ? 'Guardar cambios'
@@ -3221,7 +3221,7 @@ function VisitCard({
           }`}
         >
           <Text
-            className={`font-bold ${
+            className={`font-semibold ${
               item.accessType ===
                 'TEMPORARY_COVERAGE'
                 ? 'text-violet-700'
@@ -3235,7 +3235,7 @@ function VisitCard({
         </View>
 
         <View className="ml-4 flex-1">
-          <Text className="text-base font-bold text-slate-900">
+          <Text className="text-base font-semibold text-slate-900">
             {item.name ??
               'Actividad sin nombre'}
           </Text>
@@ -3371,7 +3371,7 @@ function VisitCard({
                   color="#475569"
                 />
 
-                <Text className="ml-2 text-xs font-bold uppercase tracking-wide text-slate-600">
+                <Text className="ml-2 text-xs font-semibold uppercase tracking-wide text-slate-600">
                   Actividades a realizar
                 </Text>
               </View>
@@ -3395,7 +3395,7 @@ function VisitCard({
                         className="flex-row items-start"
                       >
                         <View className="mt-0.5 h-5 w-5 items-center justify-center rounded-full bg-white">
-                          <Text className="text-[10px] font-bold text-slate-600">
+                          <Text className="text-[10px] font-semibold text-slate-600">
                             {activity.order}
                           </Text>
                         </View>
@@ -3449,7 +3449,7 @@ function VisitCard({
               />
 
               <Text
-                className={`ml-1 text-xs font-bold ${
+                className={`ml-1 text-xs font-semibold ${
                   first
                     ? 'text-slate-300'
                     : 'text-slate-600'
@@ -3485,7 +3485,7 @@ function VisitCard({
               />
 
               <Text
-                className={`ml-1 text-xs font-bold ${
+                className={`ml-1 text-xs font-semibold ${
                   last
                     ? 'text-slate-300'
                     : 'text-slate-600'
@@ -3504,10 +3504,10 @@ function VisitCard({
               <Ionicons
                 name="create-outline"
                 size={17}
-                color="#1d4ed8"
+                color="#0e6788"
               />
 
-              <Text className="ml-1 text-xs font-bold text-blue-700">
+              <Text className="ml-1 text-xs font-semibold text-blue-700">
                 Editar
               </Text>
             </Pressable>
@@ -3535,7 +3535,7 @@ function VisitCard({
                   color="#be123c"
                 />
 
-                <Text className="ml-2 text-xs font-bold text-rose-700">
+                <Text className="ml-2 text-xs font-semibold text-rose-700">
                   Retirar del plan
                 </Text>
               </>
@@ -3570,7 +3570,7 @@ function AccessBadge({
           color="#be123c"
         />
 
-        <Text className="ml-1 text-xs font-bold text-rose-700">
+        <Text className="ml-1 text-xs font-semibold text-rose-700">
           Acceso no vigente
         </Text>
       </View>
@@ -3604,15 +3604,15 @@ function AccessBadge({
           size={14}
           color={
             expired
-              ? '#64748b'
+              ? '#53646d'
               : scheduled
-                ? '#1d4ed8'
+                ? '#0e6788'
                 : '#7c3aed'
           }
         />
 
         <Text
-          className={`ml-1 text-xs font-bold ${
+          className={`ml-1 text-xs font-semibold ${
             expired
               ? 'text-slate-600'
               : scheduled
@@ -3642,7 +3642,7 @@ function AccessBadge({
           color="#0e7490"
         />
 
-        <Text className="ml-1 text-xs font-bold text-cyan-700">
+        <Text className="ml-1 text-xs font-semibold text-cyan-700">
           Acceso general
         </Text>
       </View>
@@ -3654,10 +3654,10 @@ function AccessBadge({
       <Ionicons
         name="shield-checkmark-outline"
         size={14}
-        color="#047857"
+        color="#237347"
       />
 
-      <Text className="ml-1 text-xs font-bold text-emerald-700">
+      <Text className="ml-1 text-xs font-semibold text-emerald-700">
         Asignación permanente
       </Text>
     </View>
@@ -3680,7 +3680,7 @@ function CoverageDetails({
         />
 
         <View className="ml-2 flex-1">
-          <Text className="text-xs font-bold text-violet-800">
+          <Text className="text-xs font-semibold text-violet-800">
             Vigencia
           </Text>
 
@@ -3700,11 +3700,11 @@ function CoverageDetails({
         <Ionicons
           name="person-outline"
           size={17}
-          color="#64748b"
+          color="#53646d"
         />
 
         <View className="ml-2 flex-1">
-          <Text className="text-xs font-bold text-slate-600">
+          <Text className="text-xs font-semibold text-slate-600">
             Supervisor titular
           </Text>
 
@@ -3721,11 +3721,11 @@ function CoverageDetails({
           <Ionicons
             name="people-outline"
             size={17}
-            color="#64748b"
+            color="#53646d"
           />
 
           <View className="ml-2 flex-1">
-            <Text className="text-xs font-bold text-slate-600">
+            <Text className="text-xs font-semibold text-slate-600">
               Coordinación
             </Text>
 
@@ -3750,7 +3750,7 @@ function MetricCard({
 }) {
   return (
     <View className="flex-1 rounded-2xl bg-slate-50 px-4 py-3">
-      <Text className="text-xl font-bold text-slate-900">
+      <Text className="text-xl font-semibold text-slate-900">
         {
           value
         }

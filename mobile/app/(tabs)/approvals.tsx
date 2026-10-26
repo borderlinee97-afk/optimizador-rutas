@@ -1591,7 +1591,7 @@ export default function ApprovalsScreen() {
 
 
 
-        <Text className="mt-5 text-center text-xl font-bold text-slate-900">
+        <Text className="mt-5 text-center text-xl font-semibold text-slate-900">
 
           Acceso restringido
 
@@ -1661,11 +1661,11 @@ export default function ApprovalsScreen() {
 
             }}
 
-            tintColor="#0f6bea"
+            tintColor="#147b9d"
 
             colors={[
 
-              '#0f6bea',
+              '#147b9d',
 
             ]}
 
@@ -1679,7 +1679,7 @@ export default function ApprovalsScreen() {
 
         <View>
 
-          <Text className="text-3xl font-bold text-slate-900">
+          <Text className="text-3xl font-semibold text-slate-900">
 
             Aprobaciones
 
@@ -1739,7 +1739,7 @@ export default function ApprovalsScreen() {
 
               icon="calendar-outline"
 
-              iconColor="#0f6bea"
+              iconColor="#147b9d"
 
             />
 
@@ -1771,7 +1771,7 @@ export default function ApprovalsScreen() {
 
           <View className="mt-5 rounded-3xl border border-rose-200 bg-rose-50 p-4">
 
-            <Text className="font-bold text-rose-800">
+            <Text className="font-semibold text-rose-800">
 
               No se pudo actualizar la bandeja
 
@@ -1803,7 +1803,7 @@ export default function ApprovalsScreen() {
 
               size="large"
 
-              color="#0f6bea"
+              color="#147b9d"
 
             />
 
@@ -1849,7 +1849,7 @@ export default function ApprovalsScreen() {
 
               <View className="ml-3 flex-1">
 
-                <Text className="text-lg font-bold text-slate-900">
+                <Text className="text-lg font-semibold text-slate-900">
 
                   Solicitudes de cancelación
 
@@ -1967,7 +1967,7 @@ export default function ApprovalsScreen() {
 
                   size={22}
 
-                  color="#0f6bea"
+                  color="#147b9d"
 
                 />
 
@@ -1977,7 +1977,7 @@ export default function ApprovalsScreen() {
 
               <View className="ml-3 flex-1">
 
-                <Text className="text-lg font-bold text-slate-900">
+                <Text className="text-lg font-semibold text-slate-900">
 
                   Planes de trabajo
 
@@ -2077,7 +2077,7 @@ export default function ApprovalsScreen() {
 
                 size={31}
 
-                color="#047857"
+                color="#237347"
 
               />
 
@@ -2085,7 +2085,7 @@ export default function ApprovalsScreen() {
 
 
 
-            <Text className="mt-5 text-center text-xl font-bold text-emerald-900">
+            <Text className="mt-5 text-center text-xl font-semibold text-emerald-900">
 
               Todo al día
 
@@ -2139,7 +2139,7 @@ export default function ApprovalsScreen() {
 
                 size="large"
 
-                color="#0f6bea"
+                color="#147b9d"
 
               />
 
@@ -2243,7 +2243,7 @@ export default function ApprovalsScreen() {
 
               <View className="mr-4 flex-1">
 
-                <Text className="text-xl font-bold text-slate-900">
+                <Text className="text-xl font-semibold text-slate-900">
 
                   Rechazar plan
 
@@ -2299,7 +2299,7 @@ export default function ApprovalsScreen() {
 
 
 
-            <Text className="mt-6 text-sm font-bold text-slate-700">
+            <Text className="mt-6 text-sm font-semibold text-slate-700">
 
               Motivo del rechazo
 
@@ -2325,7 +2325,7 @@ export default function ApprovalsScreen() {
 
               placeholder="Explica qué debe corregirse..."
 
-              placeholderTextColor="#657590"
+              placeholderTextColor="#667980"
 
               multiline
 
@@ -2381,7 +2381,7 @@ export default function ApprovalsScreen() {
 
               >
 
-                <Text className="font-bold text-slate-600">
+                <Text className="font-semibold text-slate-600">
 
                   Cancelar
 
@@ -2433,7 +2433,7 @@ export default function ApprovalsScreen() {
 
                 ) : (
 
-                  <Text className="font-bold text-white">
+                  <Text className="font-semibold text-white">
 
                     Rechazar
 
@@ -2483,7 +2483,7 @@ export default function ApprovalsScreen() {
 
               <View className="mr-4 flex-1">
 
-                <Text className="text-xl font-bold text-slate-900">
+                <Text className="text-xl font-semibold text-slate-900">
 
                   Rechazar cancelación
 
@@ -2547,7 +2547,7 @@ export default function ApprovalsScreen() {
 
               <View className="mt-5 rounded-2xl bg-slate-50 p-4">
 
-                <Text className="text-xs font-bold uppercase tracking-wide text-slate-400">
+                <Text className="text-xs font-semibold uppercase tracking-wide text-slate-400">
 
                   Visita
 
@@ -2555,7 +2555,7 @@ export default function ApprovalsScreen() {
 
 
 
-                <Text className="mt-1 text-sm font-bold text-slate-900">
+                <Text className="mt-1 text-sm font-semibold text-slate-900">
 
                   {
 
@@ -2583,7 +2583,7 @@ export default function ApprovalsScreen() {
 
 
 
-            <Text className="mt-6 text-sm font-bold text-slate-700">
+            <Text className="mt-6 text-sm font-semibold text-slate-700">
 
               Motivo
 
@@ -2609,7 +2609,7 @@ export default function ApprovalsScreen() {
 
               placeholder="Explica por qué debe mantenerse la visita..."
 
-              placeholderTextColor="#657590"
+              placeholderTextColor="#667980"
 
               multiline
 
@@ -2669,7 +2669,7 @@ export default function ApprovalsScreen() {
 
               >
 
-                <Text className="font-bold text-slate-600">
+                <Text className="font-semibold text-slate-600">
 
                   Regresar
 
@@ -2727,7 +2727,7 @@ export default function ApprovalsScreen() {
 
                 ) : (
 
-                  <Text className="font-bold text-white">
+                  <Text className="font-semibold text-white">
 
                     Rechazar solicitud
 
@@ -2813,7 +2813,7 @@ function CancellationRequestCard({
 
         <View className="ml-4 flex-1">
 
-          <Text className="text-base font-bold text-slate-900">
+          <Text className="text-base font-semibold text-slate-900">
 
             {
 
@@ -2859,7 +2859,7 @@ function CancellationRequestCard({
 
         <View className="rounded-full bg-rose-100 px-3 py-1.5">
 
-          <Text className="text-xs font-bold text-rose-700">
+          <Text className="text-xs font-semibold text-rose-700">
 
             Cancelación
 
@@ -2873,7 +2873,7 @@ function CancellationRequestCard({
 
       <View className="mt-4 rounded-2xl bg-slate-50 p-4">
 
-        <Text className="text-xs font-bold uppercase tracking-wide text-slate-400">
+        <Text className="text-xs font-semibold uppercase tracking-wide text-slate-400">
 
           Visita programada
 
@@ -2881,7 +2881,7 @@ function CancellationRequestCard({
 
 
 
-        <Text className="mt-1 text-sm font-bold text-slate-800">
+        <Text className="mt-1 text-sm font-semibold text-slate-800">
 
           {formatDate(
 
@@ -2907,7 +2907,7 @@ function CancellationRequestCard({
 
 
 
-        <Text className="mt-4 text-xs font-bold uppercase tracking-wide text-slate-400">
+        <Text className="mt-4 text-xs font-semibold uppercase tracking-wide text-slate-400">
 
           Motivo
 
@@ -2915,7 +2915,7 @@ function CancellationRequestCard({
 
 
 
-        <Text className="mt-1 text-sm font-bold text-rose-800">
+        <Text className="mt-1 text-sm font-semibold text-rose-800">
 
           {getCancellationReasonLabel(
 
@@ -2931,7 +2931,7 @@ function CancellationRequestCard({
 
           <>
 
-            <Text className="mt-4 text-xs font-bold uppercase tracking-wide text-slate-400">
+            <Text className="mt-4 text-xs font-semibold uppercase tracking-wide text-slate-400">
 
               Observaciones
 
@@ -2959,7 +2959,7 @@ function CancellationRequestCard({
 
           <>
 
-            <Text className="mt-4 text-xs font-bold uppercase tracking-wide text-slate-400">
+            <Text className="mt-4 text-xs font-semibold uppercase tracking-wide text-slate-400">
 
               Dirección
 
@@ -3023,7 +3023,7 @@ function CancellationRequestCard({
 
         >
 
-          <Text className="font-bold text-rose-700">
+          <Text className="font-semibold text-rose-700">
 
             Rechazar
 
@@ -3071,7 +3071,7 @@ function CancellationRequestCard({
 
           ) : (
 
-            <Text className="font-bold text-white">
+            <Text className="font-semibold text-white">
 
               Aprobar
 
@@ -3145,7 +3145,7 @@ function ApprovalCard({
 
         <View className="ml-4 flex-1">
 
-          <Text className="text-base font-bold text-slate-900">
+          <Text className="text-base font-semibold text-slate-900">
 
             {
 
@@ -3179,7 +3179,7 @@ function ApprovalCard({
 
           size={21}
 
-          color="#657590"
+          color="#667980"
 
         />
 
@@ -3189,7 +3189,7 @@ function ApprovalCard({
 
       <View className="mt-4 rounded-2xl bg-slate-50 p-4">
 
-        <Text className="text-xs font-bold uppercase tracking-wide text-slate-500">
+        <Text className="text-xs font-semibold uppercase tracking-wide text-slate-500">
 
           Periodo
 
@@ -3197,7 +3197,7 @@ function ApprovalCard({
 
 
 
-        <Text className="mt-2 text-sm font-bold text-slate-800">
+        <Text className="mt-2 text-sm font-semibold text-slate-800">
 
           {formatDate(
 
@@ -3303,13 +3303,13 @@ function ApprovalCard({
 
           size={18}
 
-          color="#0f6bea"
+          color="#147b9d"
 
         />
 
 
 
-        <Text className="ml-2 text-sm font-bold text-primary-700">
+        <Text className="ml-2 text-sm font-semibold text-primary-700">
 
           Revisar plan
 
@@ -3555,7 +3555,7 @@ function ApprovalDetail({
 
           <View className="ml-4 flex-1">
 
-            <Text className="text-2xl font-bold text-slate-900">
+            <Text className="text-2xl font-semibold text-slate-900">
 
               Revisar plan
 
@@ -3595,7 +3595,7 @@ function ApprovalDetail({
 
                 size={23}
 
-                color="#0f6bea"
+                color="#147b9d"
 
               />
 
@@ -3605,7 +3605,7 @@ function ApprovalDetail({
 
             <View className="ml-4 flex-1">
 
-              <Text className="text-xs font-bold uppercase tracking-wide text-slate-500">
+              <Text className="text-xs font-semibold uppercase tracking-wide text-slate-500">
 
                 Supervisor
 
@@ -3613,7 +3613,7 @@ function ApprovalDetail({
 
 
 
-              <Text className="mt-1 text-lg font-bold text-slate-900">
+              <Text className="mt-1 text-lg font-semibold text-slate-900">
 
                 {
 
@@ -3665,7 +3665,7 @@ function ApprovalDetail({
 
           <View className="mt-5 border-t border-slate-100 pt-4">
 
-            <Text className="text-xs font-bold uppercase tracking-wide text-slate-500">
+            <Text className="text-xs font-semibold uppercase tracking-wide text-slate-500">
 
               Periodo
 
@@ -3673,7 +3673,7 @@ function ApprovalDetail({
 
 
 
-            <Text className="mt-2 text-sm font-bold text-slate-800">
+            <Text className="mt-2 text-sm font-semibold text-slate-800">
 
               {formatDate(
 
@@ -3699,7 +3699,7 @@ function ApprovalDetail({
 
             <View className="mt-3 self-start rounded-full bg-amber-100 px-3 py-2">
 
-              <Text className="text-xs font-bold text-amber-700">
+              <Text className="text-xs font-semibold text-amber-700">
 
                 Pendiente de aprobación
 
@@ -3771,7 +3771,7 @@ function ApprovalDetail({
 
 
 
-        <Text className="mt-7 text-lg font-bold text-slate-900">
+        <Text className="mt-7 text-lg font-semibold text-slate-900">
 
           Programación
 
@@ -3877,7 +3877,7 @@ function ApprovalDetail({
 
                   <Text
 
-                    className={`text-xs font-bold uppercase ${
+                    className={`text-xs font-semibold uppercase ${
 
                       selected
 
@@ -3901,7 +3901,7 @@ function ApprovalDetail({
 
                   <Text
 
-                    className={`mt-1 text-lg font-bold ${
+                    className={`mt-1 text-lg font-semibold ${
 
                       selected
 
@@ -3965,7 +3965,7 @@ function ApprovalDetail({
 
           <>
 
-            <Text className="mt-6 text-lg font-bold text-slate-900">
+            <Text className="mt-6 text-lg font-semibold text-slate-900">
 
               {formatLongDate(
 
@@ -4027,7 +4027,7 @@ function ApprovalDetail({
 
               <View className="mt-4 rounded-3xl border border-dashed border-slate-300 bg-white p-6">
 
-                <Text className="text-center text-sm font-bold text-slate-700">
+                <Text className="text-center text-sm font-semibold text-slate-700">
 
                   Sin visitas programadas
 
@@ -4079,7 +4079,7 @@ function ApprovalDetail({
 
 
 
-            <Text className="ml-2 font-bold text-rose-700">
+            <Text className="ml-2 font-semibold text-rose-700">
 
               Rechazar
 
@@ -4141,7 +4141,7 @@ function ApprovalDetail({
 
 
 
-                <Text className="ml-2 font-bold text-white">
+                <Text className="ml-2 font-semibold text-white">
 
                   Aprobar
 
@@ -4193,7 +4193,7 @@ function ReviewVisitCard({
 
         <View className="h-11 w-11 items-center justify-center rounded-2xl bg-primary-50">
 
-          <Text className="font-bold text-primary-700">
+          <Text className="font-semibold text-primary-700">
 
             {
 
@@ -4209,7 +4209,7 @@ function ReviewVisitCard({
 
         <View className="ml-4 flex-1">
 
-          <Text className="text-base font-bold text-slate-900">
+          <Text className="text-base font-semibold text-slate-900">
 
             {
 
@@ -4395,7 +4395,7 @@ function ReviewVisitCard({
 
 
 
-                  <Text className="ml-2 text-xs font-bold uppercase tracking-wide text-slate-600">
+                  <Text className="ml-2 text-xs font-semibold uppercase tracking-wide text-slate-600">
 
                     Actividades planeadas
 
@@ -4407,7 +4407,7 @@ function ReviewVisitCard({
 
                 <View className="rounded-full bg-white px-2.5 py-1">
 
-                  <Text className="text-[10px] font-bold text-slate-500">
+                  <Text className="text-[10px] font-semibold text-slate-500">
 
                     {item.activities?.length ?? 0}
 
@@ -4459,7 +4459,7 @@ function ReviewVisitCard({
 
                           <View className="mt-0.5 h-5 w-5 items-center justify-center rounded-full bg-white">
 
-                            <Text className="text-[10px] font-bold text-slate-600">
+                            <Text className="text-[10px] font-semibold text-slate-600">
 
                               {activity.order}
 
@@ -4589,7 +4589,7 @@ function MetricCard({
 
 
 
-      <Text className="mt-3 text-xl font-bold text-slate-900">
+      <Text className="mt-3 text-xl font-semibold text-slate-900">
 
         {
 
@@ -4643,7 +4643,7 @@ function SmallMetric({
 
     <View className="flex-1 rounded-2xl bg-slate-50 p-3">
 
-      <Text className="text-lg font-bold text-slate-900">
+      <Text className="text-lg font-semibold text-slate-900">
 
         {
 
@@ -4697,7 +4697,7 @@ function SummaryBox({
 
     <View className="flex-1 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
 
-      <Text className="text-xl font-bold text-slate-900">
+      <Text className="text-xl font-semibold text-slate-900">
 
         {
 

@@ -118,7 +118,7 @@ function RootNavigator() {
           : DefaultTheme
       }
     >
-      <View style={{ flex: 1, backgroundColor: '#f3f7fd' }}>
+      <View style={{ flex: 1, backgroundColor: '#ffffff' }}>
       <StatusBar style="dark" />
       <OfflineStatus />
       <AppUpdateCard compact />

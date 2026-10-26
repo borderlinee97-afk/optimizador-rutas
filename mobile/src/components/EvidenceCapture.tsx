@@ -397,7 +397,7 @@ export function EvidenceCapture({
           color="#0369a1"
         />
 
-        <Text className="ml-2 flex-1 text-sm font-bold text-sky-900">
+        <Text className="ml-2 flex-1 text-sm font-semibold text-sky-900">
           Evidencia fotográfica
         </Text>
 
@@ -433,11 +433,11 @@ export function EvidenceCapture({
                   className={
                     item.status ===
                     'READY'
-                      ? 'px-1 py-1 text-center text-[9px] font-bold text-emerald-700'
+                      ? 'px-1 py-1 text-center text-[9px] font-semibold text-emerald-700'
                       : item.status ===
                           'FAILED'
-                        ? 'px-1 py-1 text-center text-[9px] font-bold text-red-700'
-                        : 'px-1 py-1 text-center text-[9px] font-bold text-amber-700'
+                        ? 'px-1 py-1 text-center text-[9px] font-semibold text-red-700'
+                        : 'px-1 py-1 text-center text-[9px] font-semibold text-amber-700'
                   }
                 >
                   {item.status ===
@@ -492,7 +492,7 @@ export function EvidenceCapture({
           }
           disabled={busy}
         >
-          <Text className="text-xs font-bold text-sky-700">
+          <Text className="text-xs font-semibold text-sky-700">
             Reintentar {pendingCount}{' '}
             {pendingCount === 1
               ? 'pendiente'
@@ -534,7 +534,7 @@ function EvidenceButton({
         color="#ffffff"
       />
 
-      <Text className="ml-1.5 text-xs font-bold text-white">
+      <Text className="ml-1.5 text-xs font-semibold text-white">
         {label}
       </Text>
     </Pressable>

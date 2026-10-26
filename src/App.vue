@@ -49,7 +49,7 @@
             </div>
 
             <h1>
-              Control de Rutas
+              App de Rutas
             </h1>
 
             <p>
@@ -57,6 +57,7 @@
               y estructura operativa según tu perfil.
             </p>
           </div>
+          <BrandLogos class="login-partners" />
         </section>
 
         <form
@@ -164,7 +165,7 @@
 
               <div class="sidebar-brand-copy">
                 <strong>
-                  Control de Rutas
+                  App de Rutas
                 </strong>
 
                 <span>
@@ -207,6 +208,8 @@
               </svg>
             </button>
           </div>
+
+          <BrandLogos class="sidebar-partners" />
 
           <nav
             class="sidebar-navigation"
@@ -621,6 +624,7 @@
 </template>
 
 <script setup>
+import BrandLogos from './components/BrandLogos.vue'
 import TaskAlerts from './components/TaskAlerts.vue'
 import PasswordAccess from './components/PasswordAccess.vue'
 import {supabase} from './lib/supabase.js'

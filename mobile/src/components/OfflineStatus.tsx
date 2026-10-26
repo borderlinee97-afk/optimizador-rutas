@@ -16,7 +16,7 @@ export function OfflineStatus() {
   return (
     <SafeAreaView edges={['top']} className="bg-amber-50">
       <View accessibilityLiveRegion="polite" className="px-5 py-3">
-        {disconnected ? <Text className="font-bold text-amber-900">SIN CONEXIÓN</Text> : null}
+        {disconnected ? <Text className="font-semibold text-amber-900">SIN CONEXIÓN</Text> : null}
         <Text className="text-sm text-amber-900">
           {lastSyncedAt
             ? downloadWindow ? `Semana descargada: ${downloadWindow.startDate} al ${downloadWindow.endDate}. Se muestran las visitas del día. Tu ejecución se guarda en el celular y queda pendiente de sincronizar.` : 'Plan descargado disponible. Los check-in, actividades, fotos y check-out se guardan en este celular y quedan pendientes de sincronizar al recuperar conexión.'
@@ -27,7 +27,7 @@ export function OfflineStatus() {
         {legacyDataPreserved ? <View>
           <Text className="mt-1 text-xs text-amber-900">Los datos originales de la versión anterior siguen conservados. La recuperación verifica qué registros pertenecen a tu cuenta.</Text>
           {['SUPERVISOR', 'COORDINADOR'].includes(profile.rol) ? <Pressable onPress={() => router.push('/legacy-recovery' as Href)}>
-            <Text className="mt-2 text-sm font-bold text-primary-700">Revisar recuperación de mis datos</Text>
+            <Text className="mt-2 text-sm font-semibold text-primary-700">Revisar recuperación de mis datos</Text>
           </Pressable> : null}
         </View> : null}
       </View>
