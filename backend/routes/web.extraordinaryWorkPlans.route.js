@@ -250,8 +250,10 @@ router.get(
                   $1::text =
                     'COORDINADOR'
 
-                  AND supervisor.superior_id =
-                    $3::uuid
+                  AND (
+                    supervisor.superior_id = $3::uuid
+                    OR public.puebla_shared_supervisor($3::uuid, supervisor.id)
+                  )
                 )
 
                 OR (

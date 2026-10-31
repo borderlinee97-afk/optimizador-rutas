@@ -797,3 +797,11 @@ El encargo reutilizable está en `docs/CODEX_HANDOFF.md`.
 - Estado previo: hotfix/coordinator-web-production y HEAD/origin main 926dc3947a2cb320c4c036cce3515d8918021b9c; rama remota confirmada antes de publicar. El diff coincide con la implementación visual ya validada: 28 TSX, tema Tailwind, estilo/identidad web, dos logos y documentación; sin backend, esquema, dependencias, servicios o datos.
 - Validaciones previas completas y sin modificaciones posteriores de código: build web, tipos móvil, Tailwind, comparación AST de lógica, diff check y revisión de componentes reales aislados. 18 pruebas existentes aprobadas y una comprobación SQL no ejecutada (sin cambios de base de datos).
 - Commit con [skip render] para conservar backend. Se reutiliza el despliegue web existente de Vercel. Fuente móvil aislada extraída del commit autorizado y verificada, sin archivos .env ni credenciales Firebase locales; EAS usa la configuración preview y su firma existentes. Envío --no-wait --freeze-credentials, sin publicar una versión estable automáticamente.
+
+
+## 2026-10-31 - Publicacion autorizada del backend de Puebla
+
+- Solicitud expresa: publicar exclusivamente la correccion pendiente del listado extraordinario para la supervision compartida de Puebla; sin cambios moviles ni nueva APK.
+- Cambio acotado: superior directo O puebla_shared_supervisor vigente. Se conservan roles, estados, periodos y planes de coordinador reservados a gerente. Sin migraciones, perfiles, Auth, asignaciones ni aprobaciones productivas.
+- Validacion: 14 pruebas locales aprobadas, ninguna omitida; PostgreSQL desechable, ambos coordinadores, cinco supervisores, listas/detalles/bandejas/aprobacion y rechazos fuera de alcance. Build web, TypeScript movil, sintaxis y diff check aprobados.
+- Publicacion limitada a ruta backend, prueba de regresion y este registro aislado. Cambios moviles y documentacion previa local preservados. Render existente, rama main; verificar despliegue live y salud antes de confirmar cierre.
