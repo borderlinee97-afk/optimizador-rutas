@@ -486,11 +486,11 @@ export function EvidenceCapture({
 
       {pendingCount > 0 ? (
         <Pressable
-          className="mt-2 items-center rounded-xl border border-sky-300 bg-white px-3 py-2"
+          className="mt-2 items-center rounded-xl border border-sky-300 bg-white px-3 py-2 min-h-[44px]"
           onPress={() =>
             void syncNow()
           }
-          disabled={busy}
+          disabled={busy} android_ripple={{ color: "#096e9124" }}
         >
           <Text className="text-xs font-semibold text-sky-700">
             Reintentar {pendingCount}{' '}
@@ -518,7 +518,7 @@ function EvidenceButton({
 }) {
   return (
     <Pressable
-      className="flex-1 flex-row items-center justify-center rounded-xl bg-sky-700 px-2 py-2.5"
+      className="flex-1 flex-row items-center justify-center rounded-xl bg-sky-700 px-2 py-2.5 min-h-[44px]"
       onPress={onPress}
       disabled={disabled}
       style={{
@@ -526,7 +526,7 @@ function EvidenceButton({
           disabled
             ? 0.55
             : 1,
-      }}
+      }} android_ripple={{ color: "#096e9124" }}
     >
       <Ionicons
         name={icon}

@@ -1,6 +1,7 @@
 import { Ionicons } from '@expo/vector-icons'
 import { Tabs } from 'expo-router'
-import { useSafeAreaInsets } from 'react-native-safe-area-context'
+import { SafeAreaView } from 'react-native-safe-area-context'
+import { Text, useWindowDimensions } from 'react-native'
 
 import {
   useAuth,
@@ -45,8 +46,7 @@ const TAB_ICONS: Record<
 }
 
 export default function TabLayout() {
-  const insets =
-    useSafeAreaInsets()
+  const { width, fontScale } = useWindowDimensions()
 
   const {
     profile,
@@ -70,8 +70,14 @@ export default function TabLayout() {
     role ===
       'DIRECTOR'
 
+  const compact = width / (canExecuteFieldWork && canAccessApprovals ? 6 : 5) < 72
+  const labelSize = compact ? 11 : 12
+  const barHeight = 64 + Math.max(0, fontScale - 1) * 18
+
   return (
+    <SafeAreaView edges={['bottom', 'left', 'right']} style={{ flex: 1, backgroundColor: '#ffffff' }}>
     <Tabs
+      safeAreaInsets={{ bottom: 0, left: 0, right: 0 }}
       screenOptions={({
         route,
       }) => {
@@ -89,14 +95,14 @@ export default function TabLayout() {
             true,
 
           tabBarActiveTintColor:
-            '#147b9d',
+            '#096e91',
 
           tabBarInactiveTintColor:
-            '#237347',
+            '#435667',
 
           sceneStyle: {
             backgroundColor:
-              '#ffffff',
+              '#eef2f5',
           },
 
           tabBarIcon: ({
@@ -119,44 +125,32 @@ export default function TabLayout() {
             />
           ),
 
-          tabBarActiveBackgroundColor: '#edf6fa',
-          tabBarItemStyle: { borderRadius: 10, marginHorizontal: 3 },
+          tabBarLabelPosition: 'below-icon',
+          tabBarLabel: ({ color, children }) => (
+            <Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8} maxFontSizeMultiplier={1.5}
+              style={{ color, fontSize: labelSize, fontWeight: '700', textAlign: 'center' }}>
+              {compact && route.name === 'approvals' ? 'Aprob.' : children}
+            </Text>
+          ),
+          tabBarActiveBackgroundColor: '#dfeef5',
+          tabBarItemStyle: { borderRadius: 10, marginHorizontal: compact ? 0 : 2, minWidth: 0 },
 
           tabBarLabelStyle: {
-            fontSize:
-              12,
+            fontSize: labelSize,
 
             fontWeight:
               '600',
           },
 
           tabBarStyle: {
-            marginHorizontal: 12,
-            marginBottom: 8,
-            borderRadius: 16,
-            borderWidth: 1,
-            borderColor: '#e5ebed',
-            height:
-              62 +
-              insets.bottom,
-
-            paddingTop:
-              7,
-
-            paddingBottom:
-              Math.max(
-                insets.bottom,
-                8,
-              ),
-
-            borderTopWidth:
-              1,
-
-            borderTopColor:
-              '#e5ebed',
-
-            backgroundColor:
-              '#ffffff',
+            height: barHeight,
+            paddingTop: 6,
+            paddingBottom: 8,
+            paddingHorizontal: 4,
+            borderTopWidth: 1,
+            borderTopColor: '#bfcbd5',
+            backgroundColor: '#ffffff',
+            elevation: 0,
           },
         }
       }}
@@ -219,5 +213,6 @@ export default function TabLayout() {
         }}
       />
     </Tabs>
+    </SafeAreaView>
   )
 }

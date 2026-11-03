@@ -538,6 +538,8 @@ router.post(
           WHERE wp.supervisor_id = $1
             AND wpi.status =
               'IN_PROGRESS'
+            AND (wpi.scheduled_date >= (CURRENT_TIMESTAMP AT TIME ZONE 'America/Mexico_City')::date
+              OR (wpi.check_in_at AT TIME ZONE 'America/Mexico_City')::date >= (CURRENT_TIMESTAMP AT TIME ZONE 'America/Mexico_City')::date)
             AND wpi.id <> $2
 
           LIMIT 1
@@ -1103,6 +1105,8 @@ router.post(
           WHERE wp.supervisor_id = $1
             AND wpi.status =
               'IN_PROGRESS'
+            AND (wpi.scheduled_date >= (CURRENT_TIMESTAMP AT TIME ZONE 'America/Mexico_City')::date
+              OR (wpi.check_in_at AT TIME ZONE 'America/Mexico_City')::date >= (CURRENT_TIMESTAMP AT TIME ZONE 'America/Mexico_City')::date)
 
           LIMIT 1
 
@@ -1558,6 +1562,8 @@ router.post(
 
             AND wpi.status =
               'IN_PROGRESS'
+            AND (wpi.scheduled_date >= (CURRENT_TIMESTAMP AT TIME ZONE 'America/Mexico_City')::date
+              OR (wpi.check_in_at AT TIME ZONE 'America/Mexico_City')::date >= (CURRENT_TIMESTAMP AT TIME ZONE 'America/Mexico_City')::date)
 
           LIMIT 1
 
@@ -2188,6 +2194,8 @@ router.post(
 
             AND wpi.status =
               'IN_PROGRESS'
+            AND (wpi.scheduled_date >= (CURRENT_TIMESTAMP AT TIME ZONE 'America/Mexico_City')::date
+              OR (wpi.check_in_at AT TIME ZONE 'America/Mexico_City')::date >= (CURRENT_TIMESTAMP AT TIME ZONE 'America/Mexico_City')::date)
 
           LIMIT 1
 

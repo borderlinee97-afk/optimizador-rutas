@@ -1,3 +1,4 @@
+import { useNetInfo } from '@react-native-community/netinfo'
 import { WorkPlanEditAccess, type EditAccess } from '../../src/components/WorkPlanEditAccess'
 import { KeyboardAwareScrollView as ScrollView } from '../../src/components/KeyboardAwareScrollView'
 import {
@@ -110,7 +111,7 @@ const PLAN_STATUS_CONFIG: Record<
       'create-outline',
 
     iconColor:
-      '#475569',
+      '#435667',
   },
 
   PENDING_APPROVAL: {
@@ -144,7 +145,7 @@ const PLAN_STATUS_CONFIG: Record<
       'checkmark-circle-outline',
 
     iconColor:
-      '#237347',
+      '#087443',
   },
 
   REJECTED: {
@@ -178,11 +179,12 @@ const PLAN_STATUS_CONFIG: Record<
       'archive-outline',
 
     iconColor:
-      '#53646d',
+      '#435667',
   },
 }
 
 export default function WorkPlanDetailScreen() {
+  const network = useNetInfo()
   const params =
     useLocalSearchParams<{
       id?:
@@ -386,11 +388,8 @@ export default function WorkPlanDetailScreen() {
     detail?.items ??
     []
 
-  const editable =
-    plan?.status ===
-      'DRAFT' ||
-    plan?.status ===
-      'REJECTED' || Boolean(editAccess?.canEdit)
+  const readOnlyOffline = detail?.offline === true || network.isConnected === false || network.isInternetReachable === false
+  const editable = !readOnlyOffline && (plan?.status === 'DRAFT' || plan?.status === 'REJECTED' || Boolean(editAccess?.canEdit))
 
   const days =
     useMemo(
@@ -1729,10 +1728,10 @@ export default function WorkPlanDetailScreen() {
     loading
   ) {
     return (
-      <SafeAreaView className="flex-1 items-center justify-center bg-surface">
+      <SafeAreaView className="flex-1 items-center justify-center bg-canvas">
         <ActivityIndicator
           size="large"
-          color="#147b9d"
+          color="#096e91"
         />
 
         <Text className="mt-4 text-sm text-slate-500">
@@ -1744,7 +1743,7 @@ export default function WorkPlanDetailScreen() {
 
   if (!plan) {
     return (
-      <SafeAreaView className="flex-1 bg-surface">
+      <SafeAreaView className="flex-1 bg-canvas">
         <View className="flex-1 items-center justify-center px-6">
           <View className="h-16 w-16 items-center justify-center rounded-3xl bg-rose-100">
             <Ionicons
@@ -1764,12 +1763,12 @@ export default function WorkPlanDetailScreen() {
           </Text>
 
           <Pressable
-            className="mt-6 rounded-2xl bg-primary-600 px-6 py-4"
+            className="mt-6 rounded-2xl bg-primary-600 px-6 py-4 min-h-[44px]"
             onPress={() =>
               router.back()
-            }
+            } android_ripple={{ color: "#096e9124" }}
           >
-            <Text className="font-semibold text-white">
+            <Text className="text-base font-semibold text-white">
               Regresar
             </Text>
           </Pressable>
@@ -1785,7 +1784,7 @@ export default function WorkPlanDetailScreen() {
 
   return (
     <SafeAreaView
-      className="flex-1 bg-surface"
+      className="flex-1 bg-canvas"
       edges={[
         'top',
         'left',
@@ -1815,10 +1814,10 @@ export default function WorkPlanDetailScreen() {
       >
         <View className="flex-row items-center">
           <Pressable
-            className="h-11 w-11 items-center justify-center rounded-2xl border border-slate-200 bg-white shadow-sm"
+            className="h-11 w-11 items-center justify-center rounded-2xl border border-slate-200 bg-white shadow-sm min-h-[44px]"
             onPress={() =>
               router.back()
-            }
+            } android_ripple={{ color: "#096e9124" }}
           >
             <Ionicons
               name="arrow-back"
@@ -1917,7 +1916,7 @@ export default function WorkPlanDetailScreen() {
               />
 
               <View className="ml-3 flex-1">
-                <Text className="font-semibold text-rose-900">
+                <Text className="text-base font-semibold text-rose-900">
                   Plan rechazado
                 </Text>
 
@@ -1931,7 +1930,8 @@ export default function WorkPlanDetailScreen() {
           </View>
         ) : null}
 
-        {plan.status === 'APPROVED' ? <WorkPlanEditAccess planId={planId} onAccess={setEditAccess} onUpdated={()=>void loadDetail(false)} refreshKey={Date.parse(plan.updatedAt || '') || 0}/> : null}
+        {readOnlyOffline ? <View className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 p-4"><Text className="text-sm text-amber-900">Consulta del plan guardado en este celular. Para registrar visitas sin conexión, entra a Mi trabajo. La edición y las autorizaciones requieren internet.</Text></View> : null}
+        {plan.status === 'APPROVED' && !readOnlyOffline ? <WorkPlanEditAccess planId={planId} onAccess={setEditAccess} onUpdated={()=>void loadDetail(false)} refreshKey={Date.parse(plan.updatedAt || '') || 0}/> : null}
         {!editable ? (
           <View className="mt-4 rounded-3xl border border-amber-200 bg-amber-50 p-4">
             <View className="flex-row items-start">
@@ -2004,7 +2004,7 @@ export default function WorkPlanDetailScreen() {
                     setSelectedDay(
                       day,
                     )
-                  }
+                  } android_ripple={{ color: "#096e9124" }}
                 >
                   <Text
                     className={`text-xs font-semibold uppercase ${
@@ -2072,12 +2072,12 @@ export default function WorkPlanDetailScreen() {
 
               {editable ? (
                 <Pressable
-                  className="h-11 flex-row items-center justify-center rounded-2xl bg-primary-600 px-4"
+                  className="h-11 flex-row items-center justify-center rounded-2xl bg-primary-600 px-4 min-h-[44px]"
                   onPress={() =>
                     openAddVisit(
                       selectedDay,
                     )
-                  }
+                  } android_ripple={{ color: "#096e9124" }}
                 >
                   <Ionicons
                     name="add"
@@ -2166,7 +2166,7 @@ export default function WorkPlanDetailScreen() {
                   <Ionicons
                     name="location-outline"
                     size={27}
-                    color="#53646d"
+                    color="#435667"
                   />
                 </View>
 
@@ -2181,14 +2181,14 @@ export default function WorkPlanDetailScreen() {
 
                 {editable ? (
                   <Pressable
-                    className="mt-5 items-center rounded-2xl bg-primary-600 px-5 py-4"
+                    className="mt-5 items-center rounded-2xl bg-primary-600 px-5 py-4 min-h-[44px]"
                     onPress={() =>
                       openAddVisit(
                         selectedDay,
                       )
-                    }
+                    } android_ripple={{ color: "#096e9124" }}
                   >
-                    <Text className="font-semibold text-white">
+                    <Text className="text-base font-semibold text-white">
                       Agregar primera visita
                     </Text>
                   </Pressable>
@@ -2205,7 +2205,7 @@ export default function WorkPlanDetailScreen() {
                 <Ionicons
                   name="send-outline"
                   size={23}
-                  color="#0e6788"
+                  color="#075671"
                 />
               </View>
 
@@ -2237,7 +2237,7 @@ export default function WorkPlanDetailScreen() {
                 submitting ||
                 items.length ===
                   0
-              }
+              } android_ripple={{ color: "#096e9124" }}
             >
               {submitting ? (
                 <ActivityIndicator
@@ -2311,18 +2311,18 @@ export default function WorkPlanDetailScreen() {
                 </View>
 
                 <Pressable
-                  className="h-10 w-10 items-center justify-center rounded-full bg-slate-100"
+                  className="h-10 w-10 items-center justify-center rounded-full bg-slate-100 min-h-[44px]"
                   onPress={
                     closeVisitModal
                   }
                   disabled={
                     saving
-                  }
+                  } android_ripple={{ color: "#096e9124" }}
                 >
                   <Ionicons
                     name="close"
                     size={22}
-                    color="#475569"
+                    color="#435667"
                   />
                 </Pressable>
               </View>
@@ -2342,7 +2342,7 @@ export default function WorkPlanDetailScreen() {
                       setSelectedPharmacy(null)
                       setSearch('')
                       setCatalogLoading(true)
-                    }}
+                    }} android_ripple={{ color: "#096e9124" }}
                   >
                     <Text className={`text-sm font-semibold ${catalogKind === option.kind ? 'text-white' : 'text-slate-700'}`}>{option.label}</Text>
                   </Pressable>
@@ -2357,7 +2357,7 @@ export default function WorkPlanDetailScreen() {
                 <Ionicons
                   name="search-outline"
                   size={20}
-                  color="#53646d"
+                  color="#435667"
                 />
 
                 <TextInput
@@ -2369,7 +2369,7 @@ export default function WorkPlanDetailScreen() {
                     setSearch
                   }
                   placeholder={catalogKind === 'CEDIS' ? 'Nombre o referencia del almacén...' : 'Nombre, CLUES, región, proyecto...'}
-                  placeholderTextColor="#667980"
+                  placeholderTextColor="#435667"
                   autoCapitalize="none"
                   autoCorrect={
                     false
@@ -2382,12 +2382,12 @@ export default function WorkPlanDetailScreen() {
                       setSearch(
                         '',
                       )
-                    }
+                    } android_ripple={{ color: "#096e9124" }}
                   >
                     <Ionicons
                       name="close-circle"
                       size={20}
-                      color="#667980"
+                      color="#435667"
                     />
                   </Pressable>
                 ) : null}
@@ -2404,7 +2404,7 @@ export default function WorkPlanDetailScreen() {
                       }
                     </Text>
 
-                    <Text className="mt-1 text-[10px] text-slate-500">
+                    <Text className="mt-1 text-xs text-slate-500">
                       Asignadas
                     </Text>
                   </View>
@@ -2416,7 +2416,7 @@ export default function WorkPlanDetailScreen() {
                       }
                     </Text>
 
-                    <Text className="mt-1 text-[10px] text-violet-600">
+                    <Text className="mt-1 text-xs text-violet-600">
                       Coberturas
                     </Text>
                   </View>
@@ -2430,7 +2430,7 @@ export default function WorkPlanDetailScreen() {
                       <Ionicons
                         name="checkmark"
                         size={21}
-                        color="#237347"
+                        color="#087443"
                       />
                     </View>
 
@@ -2439,7 +2439,7 @@ export default function WorkPlanDetailScreen() {
                         Unidad seleccionada
                       </Text>
 
-                      <Text className="mt-1 font-semibold text-emerald-900">
+                      <Text className="text-base mt-1 font-semibold text-emerald-900">
                         {
                           selectedPharmacy.name
                         }
@@ -2488,7 +2488,7 @@ export default function WorkPlanDetailScreen() {
                 <View className="items-center py-8">
                   <ActivityIndicator
                     size="small"
-                    color="#147b9d"
+                    color="#096e91"
                   />
                 </View>
               ) : (
@@ -2549,7 +2549,7 @@ export default function WorkPlanDetailScreen() {
                             handleSelectPharmacy(
                               pharmacy,
                             )
-                          }
+                          } android_ripple={{ color: "#096e9124" }}
                         >
                           <View className="flex-row items-start">
                             <View
@@ -2578,13 +2578,13 @@ export default function WorkPlanDetailScreen() {
                                 size={21}
                                 color={
                                   unavailable
-                                    ? '#667980'
+                                    ? '#435667'
                                     : selected
                                       ? '#ffffff'
                                       : pharmacy.accessType ===
                                           'TEMPORARY_COVERAGE'
                                         ? '#7c3aed'
-                                        : '#475569'
+                                        : '#435667'
                                 }
                               />
                             </View>
@@ -2705,10 +2705,10 @@ export default function WorkPlanDetailScreen() {
                       <Ionicons
                         name="search-outline"
                         size={28}
-                        color="#667980"
+                        color="#435667"
                       />
 
-                      <Text className="mt-3 font-semibold text-slate-700">
+                      <Text className="text-base mt-3 font-semibold text-slate-700">
                         Sin resultados
                       </Text>
 
@@ -2789,7 +2789,7 @@ export default function WorkPlanDetailScreen() {
                           setScheduledDate(
                             day,
                           )
-                        }
+                        } android_ripple={{ color: "#096e9124" }}
                       >
                         <Text
                           className={`text-xs font-semibold ${
@@ -2871,7 +2871,7 @@ export default function WorkPlanDetailScreen() {
 
                           <View className="flex-row items-center gap-1">
                             <Pressable
-                              className="h-9 w-9 items-center justify-center rounded-xl bg-slate-100"
+                              className="h-9 w-9 items-center justify-center rounded-xl bg-slate-100 min-h-[44px]"
                               disabled={
                                 index ===
                                   0 ||
@@ -2882,7 +2882,7 @@ export default function WorkPlanDetailScreen() {
                                   activity.key,
                                   'UP',
                                 )
-                              }
+                              } android_ripple={{ color: "#096e9124" }}
                             >
                               <Ionicons
                                 name="arrow-up"
@@ -2891,13 +2891,13 @@ export default function WorkPlanDetailScreen() {
                                   index ===
                                   0
                                     ? '#cbd5e1'
-                                    : '#475569'
+                                    : '#435667'
                                 }
                               />
                             </Pressable>
 
                             <Pressable
-                              className="h-9 w-9 items-center justify-center rounded-xl bg-slate-100"
+                              className="h-9 w-9 items-center justify-center rounded-xl bg-slate-100 min-h-[44px]"
                               disabled={
                                 index ===
                                   activities.length -
@@ -2909,7 +2909,7 @@ export default function WorkPlanDetailScreen() {
                                   activity.key,
                                   'DOWN',
                                 )
-                              }
+                              } android_ripple={{ color: "#096e9124" }}
                             >
                               <Ionicons
                                 name="arrow-down"
@@ -2919,13 +2919,13 @@ export default function WorkPlanDetailScreen() {
                                   activities.length -
                                     1
                                     ? '#cbd5e1'
-                                    : '#475569'
+                                    : '#435667'
                                 }
                               />
                             </Pressable>
 
                             <Pressable
-                              className="h-9 w-9 items-center justify-center rounded-xl bg-rose-50"
+                              className="h-9 w-9 items-center justify-center rounded-xl bg-rose-50 min-h-[44px]"
                               disabled={
                                 saving
                               }
@@ -2933,7 +2933,7 @@ export default function WorkPlanDetailScreen() {
                                 removeActivity(
                                   activity.key,
                                 )
-                              }
+                              } android_ripple={{ color: "#096e9124" }}
                             >
                               <Ionicons
                                 name="trash-outline"
@@ -2958,7 +2958,7 @@ export default function WorkPlanDetailScreen() {
                               )
                           }
                           placeholder="Ej. Revisión de inventario"
-                          placeholderTextColor="#667980"
+                          placeholderTextColor="#435667"
                           maxLength={160}
                           editable={
                             !saving
@@ -2979,7 +2979,7 @@ export default function WorkPlanDetailScreen() {
                               )
                           }
                           placeholder="Nota opcional"
-                          placeholderTextColor="#667980"
+                          placeholderTextColor="#435667"
                           maxLength={1000}
                           multiline
                           textAlignVertical="top"
@@ -3016,7 +3016,7 @@ export default function WorkPlanDetailScreen() {
                   }
                   onPress={
                     addActivity
-                  }
+                  } android_ripple={{ color: "#096e9124" }}
                 >
                   <Ionicons
                     name="add-circle-outline"
@@ -3024,8 +3024,8 @@ export default function WorkPlanDetailScreen() {
                     color={
                       activities.length >=
                       MAX_VISIT_ACTIVITIES
-                        ? '#667980'
-                        : '#147b9d'
+                        ? '#435667'
+                        : '#096e91'
                     }
                   />
 
@@ -3044,7 +3044,7 @@ export default function WorkPlanDetailScreen() {
 
               <View className="mt-6 flex-row items-center justify-between rounded-3xl border border-slate-200 bg-slate-50 p-4">
                 <View className="mr-4 flex-1">
-                  <Text className="font-semibold text-slate-800">
+                  <Text className="text-base font-semibold text-slate-800">
                     Visita obligatoria
                   </Text>
 
@@ -3102,7 +3102,7 @@ export default function WorkPlanDetailScreen() {
                   !selectedPharmacy ||
                   !selectedDateAuthorized ||
                   !activitiesValid
-                }
+                } android_ripple={{ color: "#096e9124" }}
               >
                 {saving ? (
                   <ActivityIndicator
@@ -3304,7 +3304,7 @@ function VisitCard({
                 <Ionicons
                   name="time-outline"
                   size={14}
-                  color="#475569"
+                  color="#435667"
                 />
 
                 <Text className="ml-1 text-xs font-semibold text-slate-700">
@@ -3368,7 +3368,7 @@ function VisitCard({
                 <Ionicons
                   name="list-outline"
                   size={17}
-                  color="#475569"
+                  color="#435667"
                 />
 
                 <Text className="ml-2 text-xs font-semibold uppercase tracking-wide text-slate-600">
@@ -3395,7 +3395,7 @@ function VisitCard({
                         className="flex-row items-start"
                       >
                         <View className="mt-0.5 h-5 w-5 items-center justify-center rounded-full bg-white">
-                          <Text className="text-[10px] font-semibold text-slate-600">
+                          <Text className="text-xs font-semibold text-slate-600">
                             {activity.order}
                           </Text>
                         </View>
@@ -3436,7 +3436,7 @@ function VisitCard({
               disabled={
                 first ||
                 moving
-              }
+              } android_ripple={{ color: "#096e9124" }}
             >
               <Ionicons
                 name="arrow-up"
@@ -3444,7 +3444,7 @@ function VisitCard({
                 color={
                   first
                     ? '#cbd5e1'
-                    : '#475569'
+                    : '#435667'
                 }
               />
 
@@ -3472,7 +3472,7 @@ function VisitCard({
               disabled={
                 last ||
                 moving
-              }
+              } android_ripple={{ color: "#096e9124" }}
             >
               <Ionicons
                 name="arrow-down"
@@ -3480,7 +3480,7 @@ function VisitCard({
                 color={
                   last
                     ? '#cbd5e1'
-                    : '#475569'
+                    : '#435667'
                 }
               />
 
@@ -3496,15 +3496,15 @@ function VisitCard({
             </Pressable>
 
             <Pressable
-              className="h-11 flex-1 flex-row items-center justify-center rounded-2xl bg-blue-50"
+              className="h-11 flex-1 flex-row items-center justify-center rounded-2xl bg-blue-50 min-h-[44px]"
               onPress={
                 onEdit
-              }
+              } android_ripple={{ color: "#096e9124" }}
             >
               <Ionicons
                 name="create-outline"
                 size={17}
-                color="#0e6788"
+                color="#075671"
               />
 
               <Text className="ml-1 text-xs font-semibold text-blue-700">
@@ -3514,13 +3514,13 @@ function VisitCard({
           </View>
 
           <Pressable
-            className="mt-2 h-11 flex-row items-center justify-center rounded-2xl bg-rose-50"
+            className="mt-2 h-11 flex-row items-center justify-center rounded-2xl bg-rose-50 min-h-[44px]"
             onPress={
               onRemove
             }
             disabled={
               removing
-            }
+            } android_ripple={{ color: "#096e9124" }}
           >
             {removing ? (
               <ActivityIndicator
@@ -3604,9 +3604,9 @@ function AccessBadge({
           size={14}
           color={
             expired
-              ? '#53646d'
+              ? '#435667'
               : scheduled
-                ? '#0e6788'
+                ? '#075671'
                 : '#7c3aed'
           }
         />
@@ -3654,7 +3654,7 @@ function AccessBadge({
       <Ionicons
         name="shield-checkmark-outline"
         size={14}
-        color="#237347"
+        color="#087443"
       />
 
       <Text className="ml-1 text-xs font-semibold text-emerald-700">
@@ -3700,7 +3700,7 @@ function CoverageDetails({
         <Ionicons
           name="person-outline"
           size={17}
-          color="#53646d"
+          color="#435667"
         />
 
         <View className="ml-2 flex-1">
@@ -3721,7 +3721,7 @@ function CoverageDetails({
           <Ionicons
             name="people-outline"
             size={17}
-            color="#53646d"
+            color="#435667"
           />
 
           <View className="ml-2 flex-1">
@@ -3772,7 +3772,7 @@ function SmallBadge({
 }) {
   return (
     <View className="rounded-full bg-slate-100 px-3 py-1">
-      <Text className="text-[11px] font-semibold text-slate-600">
+      <Text className="text-xs font-semibold text-slate-600">
         {
           label
         }

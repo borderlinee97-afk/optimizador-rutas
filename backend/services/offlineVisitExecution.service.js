@@ -87,7 +87,9 @@ export async function applyOfflineVisitEvent({ profile, authUserId, input, helpe
     if (event.action === 'CHECK_IN') {
       if (item.status !== 'PENDING') fail('ITEM_NOT_PENDING','La visita ya no está pendiente.')
       const active = await client.query(`SELECT i.id FROM public.work_plan_item i JOIN public.work_plan p ON p.id=i.plan_id
-        WHERE p.supervisor_id=$1 AND i.status='IN_PROGRESS' AND i.id<>$2 LIMIT 1`,[profile.id,event.itemId])
+        WHERE p.supervisor_id=$1 AND i.status='IN_PROGRESS' AND i.id<>$2
+          AND (i.scheduled_date >= $3::date OR (i.check_in_at AT TIME ZONE 'America/Mexico_City')::date >= $3::date)
+        LIMIT 1`,[profile.id,event.itemId,day(event.occurredAt)])
       if (active.rowCount) fail('ACTIVE_VISIT_EXISTS','Finaliza la visita activa antes de iniciar otra.')
       await client.query(`UPDATE public.work_plan_item SET status='IN_PROGRESS',check_in_at=$2,check_in_lat=$3,check_in_lng=$4,
         check_out_at=NULL,check_out_lat=NULL,check_out_lng=NULL,dwell_seconds=NULL,updated_by=$5,updated_at=now() WHERE id=$1`,[event.itemId,event.occurredAt,event.lat,event.lng,profile.id])

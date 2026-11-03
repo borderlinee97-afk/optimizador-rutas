@@ -5,7 +5,7 @@ async function route(file, profile=admin) {
  const policy=await import('../services/adminReadAccess.service.js'),routes=[],middleware=[],queries=[]
  const source=fs.readFileSync(require.resolve('../routes/'+file),'utf8').replace(/import\s+[\s\S]*?from\s+'[^']+'\s*/g,'').replace(/export default router\s*$/,'')
  const pool={async query(sql,params){queries.push({sql,params});return /WHERE auth_user_id|WHERE persona.auth_user_id/.test(sql)?{rowCount:1,rows:[profile]}:{rowCount:0,rows:[]}}}
- const ctx={...policy,pool,console,requireAuth(){},requireRoles:()=>()=>{},listEditRequests:async()=>({requests:[]}),Router:()=>({use(fn){middleware.push(fn)},get(p,...handlers){routes.push({p,h:handlers.at(-1)})},post(){},put(){},patch(){},delete(){}})}
+ const ctx={...policy,pool,console,requireAuth(){},requireRoles:()=>()=>{},listEditRequests:async()=>({requests:[]}),listOverdueVisits:async()=>({total:0,visits:[]}),Router:()=>({use(fn){middleware.push(fn)},get(p,...handlers){routes.push({p,h:handlers.at(-1)})},post(){},put(){},patch(){},delete(){}})}
  vm.runInNewContext(source,ctx);return{ctx,routes,middleware,queries,pool}
 }
 test('only an active server-loaded ADMIN opts into global read scope',async()=>{

@@ -63,6 +63,7 @@ test('Task drain is deduplicated while a screen and reconnect worker run togethe
 test('Offline banner is hidden on an online network even with preserved legacy data',()=>{
  let network={isConnected:true,isInternetReachable:true}
  const {OfflineStatus}=loadTs('src/components/OfflineStatus.tsx',{
+  '../services/planSync':{mexicoPlanDate:()=> '2026-10-27'},
   '@react-native-community/netinfo':{useNetInfo:()=>network},'react-native':{Pressable:'p',Text:'t',View:'v'},'expo-router':{router:{}},'react-native-safe-area-context':{SafeAreaView:'s'},
   '../context/AuthContext':{useAuth:()=>({profile:{area:'FARMACIAS',rol:'SUPERVISOR'},legacyDataPreserved:true})},'../context/PlanContext':{usePlan:()=>({})},
   'react/jsx-runtime':{jsx:(t,p)=>({t,p}),jsxs:(t,p)=>({t,p})},

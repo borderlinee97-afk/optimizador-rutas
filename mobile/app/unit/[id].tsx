@@ -1,5 +1,6 @@
 import { KeyboardAwareScrollView as ScrollView } from '../../src/components/KeyboardAwareScrollView'
 import { useNetInfo } from '@react-native-community/netinfo'
+import { blocksDailyVisit, operationalDay } from '../../src/services/dailyVisitGuard'
 import { hasPendingVisitExecution, queueVisitExecution } from '../../src/services/executionSync'
 import { AddVisitActivityModal } from '../../src/components/AddVisitActivityModal'
 import { VisitSyncStatus } from '../../src/components/VisitSyncStatus'
@@ -234,7 +235,7 @@ const STATUS_CONFIG: Record<
     containerClass: 'bg-blue-100',
     textClass: 'text-blue-700',
     icon: 'navigate-circle-outline',
-    iconColor: '#0e6788',
+    iconColor: '#075671',
   },
 
   DONE: {
@@ -242,7 +243,7 @@ const STATUS_CONFIG: Record<
     containerClass: 'bg-emerald-100',
     textClass: 'text-emerald-700',
     icon: 'checkmark-circle-outline',
-    iconColor: '#237347',
+    iconColor: '#087443',
   },
 
   SKIPPED: {
@@ -548,7 +549,7 @@ export default function UnitDetailScreen() {
         const activeVisits =
           db.getAllSync(
             `
-            SELECT id
+            SELECT id, scheduled_date, check_in_at
 
             FROM plan_items
 
@@ -562,11 +563,12 @@ export default function UnitDetailScreen() {
             ],
           ) as Array<{
             id: string
+            scheduled_date: string
+            check_in_at: number | null
           }>
 
         setHasOtherActiveVisit(
-          activeVisits.length >
-            0 &&
+          activeVisits.some(active => blocksDailyVisit(active, currentItem.scheduled_date?.slice(0, 10) || operationalDay(Date.now()))) &&
             currentItem.status ===
               'PENDING',
         )
@@ -1726,10 +1728,10 @@ export default function UnitDetailScreen() {
 
   if (loading) {
     return (
-      <SafeAreaView className="flex-1 items-center justify-center bg-surface">
+      <SafeAreaView className="flex-1 items-center justify-center bg-canvas">
         <ActivityIndicator
           size="large"
-          color="#147b9d"
+          color="#096e91"
         />
 
         <Text className="mt-4 text-sm text-slate-500">
@@ -1744,7 +1746,7 @@ export default function UnitDetailScreen() {
     !statusConfig
   ) {
     return (
-      <SafeAreaView className="flex-1 bg-surface">
+      <SafeAreaView className="flex-1 bg-canvas">
         <View className="flex-1 items-center justify-center px-6">
           <View className="h-16 w-16 items-center justify-center rounded-3xl bg-red-100">
             <Ionicons
@@ -1768,7 +1770,7 @@ export default function UnitDetailScreen() {
               router.replace(
                 '/work',
               )
-            }
+            } android_ripple={{ color: "#096e9124" }}
           >
             <Text className="text-base font-semibold text-white">
               Regresar a Trabajo
@@ -1781,7 +1783,7 @@ export default function UnitDetailScreen() {
 
   return (
     <SafeAreaView
-      className="flex-1 bg-surface"
+      className="flex-1 bg-canvas"
       edges={[
         'top',
         'left',
@@ -1790,7 +1792,7 @@ export default function UnitDetailScreen() {
     >
       <View className="flex-row items-center border-b border-slate-200 bg-white px-5 py-3">
         <Pressable
-          className="h-11 w-11 items-center justify-center rounded-2xl bg-slate-100"
+          className="h-11 w-11 items-center justify-center rounded-2xl bg-slate-100 min-h-[44px]"
           onPress={() =>
             router.replace(
               '/work',
@@ -1800,7 +1802,7 @@ export default function UnitDetailScreen() {
             Boolean(
               processing,
             )
-          }
+          } android_ripple={{ color: "#096e9124" }}
         >
           <Ionicons
             name="arrow-back"
@@ -2092,7 +2094,7 @@ export default function UnitDetailScreen() {
                 <Ionicons
                   name="location-outline"
                   size={23}
-                  color="#475569"
+                  color="#435667"
                 />
 
                 <Text className="ml-3 flex-1 text-sm leading-6 text-slate-700">
@@ -2120,9 +2122,9 @@ export default function UnitDetailScreen() {
             {item.status==='IN_PROGRESS' && !hasPendingCancellationRequest ? (
               <Pressable accessibilityRole="button" onPress={()=>setAddActivityVisible(true)}
                 disabled={Boolean(processing)||activities.length>=50}
-                className="mb-3 flex-row items-center justify-center rounded-2xl border border-primary-200 bg-primary-50 px-4 py-3">
-                <Ionicons name="add-circle-outline" size={20} color="#147b9d" />
-                <Text className="ml-2 font-semibold text-primary-700">Agregar actividad adicional</Text>
+                className="mb-3 flex-row items-center justify-center rounded-2xl border border-primary-200 bg-primary-50 px-4 py-3 min-h-[44px]">
+                <Ionicons name="add-circle-outline" size={20} color="#096e91" />
+                <Text className="text-base ml-2 font-semibold text-primary-700">Agregar actividad adicional</Text>
               </Pressable>
             ) : null}
             <View className="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
@@ -2194,11 +2196,11 @@ export default function UnitDetailScreen() {
                                   className={
                                     activity.status ===
                                     'DONE'
-                                      ? 'text-[10px] font-semibold text-emerald-700'
+                                      ? 'text-xs font-semibold text-emerald-700'
                                       : activity.status ===
                                           'SKIPPED'
-                                        ? 'text-[10px] font-semibold text-amber-700'
-                                        : 'text-[10px] font-semibold text-slate-600'
+                                        ? 'text-xs font-semibold text-amber-700'
+                                        : 'text-xs font-semibold text-slate-600'
                                   }
                                 >
                                   {activity.status ===
@@ -2276,7 +2278,7 @@ export default function UnitDetailScreen() {
                               'PENDING' ? (
                               <View className="mt-3 flex-row gap-2">
                                 <Pressable
-                                  className="flex-1 flex-row items-center justify-center rounded-xl bg-emerald-600 px-3 py-3"
+                                  className="flex-1 flex-row items-center justify-center rounded-xl bg-emerald-600 px-3 py-3 min-h-[44px]"
                                   onPress={() =>
                                     openActivityResolution(
                                       activity.id,
@@ -2287,7 +2289,7 @@ export default function UnitDetailScreen() {
                                     Boolean(
                                       processing,
                                     )
-                                  }
+                                  } android_ripple={{ color: "#096e9124" }}
                                 >
                                   <Ionicons
                                     name="checkmark-circle-outline"
@@ -2301,7 +2303,7 @@ export default function UnitDetailScreen() {
                                 </Pressable>
 
                                 <Pressable
-                                  className="flex-1 flex-row items-center justify-center rounded-xl border border-amber-300 bg-amber-50 px-3 py-3"
+                                  className="flex-1 flex-row items-center justify-center rounded-xl border border-amber-300 bg-amber-50 px-3 py-3 min-h-[44px]"
                                   onPress={() =>
                                     openActivityResolution(
                                       activity.id,
@@ -2312,7 +2314,7 @@ export default function UnitDetailScreen() {
                                     Boolean(
                                       processing,
                                     )
-                                  }
+                                  } android_ripple={{ color: "#096e9124" }}
                                 >
                                   <Ionicons
                                     name="close-circle-outline"
@@ -2432,7 +2434,7 @@ export default function UnitDetailScreen() {
         </View>
 
         <Pressable
-          className="mt-5 flex-row items-center rounded-3xl border border-slate-200 bg-white p-5 shadow-sm"
+          className="mt-5 flex-row items-center rounded-3xl border border-slate-200 bg-white p-5 shadow-sm min-h-[44px]"
           onPress={
             goToMaps
           }
@@ -2440,13 +2442,13 @@ export default function UnitDetailScreen() {
             Boolean(
               processing,
             )
-          }
+          } android_ripple={{ color: "#096e9124" }}
         >
           <View className="h-12 w-12 items-center justify-center rounded-2xl bg-emerald-100">
             <Ionicons
               name="navigate"
               size={24}
-              color="#237347"
+              color="#087443"
             />
           </View>
 
@@ -2464,13 +2466,13 @@ export default function UnitDetailScreen() {
           <Ionicons
             name="open-outline"
             size={22}
-            color="#667980"
+            color="#435667"
           />
         </Pressable>
 
         {isEditableExtraStop ? (
           <Pressable
-            className="mt-3 flex-row items-center rounded-3xl border border-violet-200 bg-violet-50 p-5"
+            className="mt-3 flex-row items-center rounded-3xl border border-violet-200 bg-violet-50 p-5 min-h-[44px]"
             onPress={
               openEditExtraStop
             }
@@ -2478,7 +2480,7 @@ export default function UnitDetailScreen() {
               Boolean(
                 processing,
               )
-            }
+            } android_ripple={{ color: "#096e9124" }}
           >
             <View className="h-12 w-12 items-center justify-center rounded-2xl bg-violet-100">
               <Ionicons
@@ -2515,7 +2517,7 @@ export default function UnitDetailScreen() {
             />
 
             <View className="ml-3 flex-1">
-              <Text className="font-semibold text-amber-800">
+              <Text className="text-base font-semibold text-amber-800">
                 Existe otra actividad activa
               </Text>
 
@@ -2624,7 +2626,7 @@ export default function UnitDetailScreen() {
                 Boolean(
                   processing,
                 )
-              }
+              } android_ripple={{ color: "#096e9124" }}
             >
               {processing ===
               'IN' ? (
@@ -2658,7 +2660,7 @@ export default function UnitDetailScreen() {
 
                 {!isHierarchyAssignment ? <>
                 <Pressable
-                  className="mt-4 flex-row items-center rounded-2xl border border-violet-200 bg-violet-50 p-4"
+                  className="mt-4 flex-row items-center rounded-2xl border border-violet-200 bg-violet-50 p-4 min-h-[44px]"
                   onPress={() =>
                     setResolutionMode(
                       'RESCHEDULE',
@@ -2668,7 +2670,7 @@ export default function UnitDetailScreen() {
                     Boolean(
                       processing,
                     )
-                  }
+                  } android_ripple={{ color: "#096e9124" }}
                 >
                   <View className="h-10 w-10 items-center justify-center rounded-xl bg-violet-100">
                     <Ionicons
@@ -2679,7 +2681,7 @@ export default function UnitDetailScreen() {
                   </View>
 
                   <View className="ml-3 flex-1">
-                    <Text className="font-semibold text-violet-900">
+                    <Text className="text-base font-semibold text-violet-900">
                       Reprogramar
                     </Text>
 
@@ -2696,7 +2698,7 @@ export default function UnitDetailScreen() {
                 </Pressable>
 
                 <Pressable
-                  className="mt-3 flex-row items-center rounded-2xl border border-amber-200 bg-amber-50 p-4"
+                  className="mt-3 flex-row items-center rounded-2xl border border-amber-200 bg-amber-50 p-4 min-h-[44px]"
                   onPress={() =>
                     setSkipModalVisible(
                       true,
@@ -2706,7 +2708,7 @@ export default function UnitDetailScreen() {
                     Boolean(
                       processing,
                     )
-                  }
+                  } android_ripple={{ color: "#096e9124" }}
                 >
                   <View className="h-10 w-10 items-center justify-center rounded-xl bg-amber-100">
                     <Ionicons
@@ -2717,7 +2719,7 @@ export default function UnitDetailScreen() {
                   </View>
 
                   <View className="ml-3 flex-1">
-                    <Text className="font-semibold text-amber-900">
+                    <Text className="text-base font-semibold text-amber-900">
                       Marcar como no realizada
                     </Text>
 
@@ -2735,7 +2737,7 @@ export default function UnitDetailScreen() {
 
                 </> : null}
                 <Pressable
-                  className="mt-3 flex-row items-center rounded-2xl border border-rose-200 bg-rose-50 p-4"
+                  className="mt-3 flex-row items-center rounded-2xl border border-rose-200 bg-rose-50 p-4 min-h-[44px]"
                   onPress={() =>
                     setResolutionMode(
                       'CANCELLATION_REQUEST',
@@ -2745,7 +2747,7 @@ export default function UnitDetailScreen() {
                     Boolean(
                       processing,
                     )
-                  }
+                  } android_ripple={{ color: "#096e9124" }}
                 >
                   <View className="h-10 w-10 items-center justify-center rounded-xl bg-rose-100">
                     <Ionicons
@@ -2756,7 +2758,7 @@ export default function UnitDetailScreen() {
                   </View>
 
                   <View className="ml-3 flex-1">
-                    <Text className="font-semibold text-rose-900">
+                    <Text className="text-base font-semibold text-rose-900">
                       Solicitar cancelación
                     </Text>
 
@@ -2784,7 +2786,7 @@ export default function UnitDetailScreen() {
                   Boolean(
                     processing,
                   )
-                }
+                } android_ripple={{ color: "#096e9124" }}
               >
                 <Ionicons
                   name="close-circle-outline"
@@ -2812,7 +2814,7 @@ export default function UnitDetailScreen() {
               Boolean(
                 processing,
               )
-            }
+            } android_ripple={{ color: "#096e9124" }}
           >
             <Ionicons
               name="ban-outline"
@@ -2837,7 +2839,7 @@ export default function UnitDetailScreen() {
               Boolean(
                 processing,
               )
-            }
+            } android_ripple={{ color: "#096e9124" }}
           >
             {processing ===
             'OUT' ? (
@@ -2867,7 +2869,7 @@ export default function UnitDetailScreen() {
               <Ionicons
                 name="checkmark"
                 size={26}
-                color="#237347"
+                color="#087443"
               />
             </View>
 
@@ -3175,19 +3177,19 @@ export default function UnitDetailScreen() {
               </View>
 
               <Pressable
-                className="h-10 w-10 items-center justify-center rounded-full bg-slate-100"
+                className="h-10 w-10 items-center justify-center rounded-full bg-slate-100 min-h-[44px]"
                 onPress={
                   closeActivityResolution
                 }
                 disabled={
                   processing ===
                   'ACTIVITY'
-                }
+                } android_ripple={{ color: "#096e9124" }}
               >
                 <Ionicons
                   name="close"
                   size={22}
-                  color="#475569"
+                  color="#435667"
                 />
               </Pressable>
             </View>
@@ -3208,7 +3210,7 @@ export default function UnitDetailScreen() {
                     setActivitySkipReason
                   }
                   placeholder="Describe por qué no fue posible realizarla"
-                  placeholderTextColor="#667980"
+                  placeholderTextColor="#435667"
                   multiline
                   maxLength={1000}
                   editable={
@@ -3234,7 +3236,7 @@ export default function UnitDetailScreen() {
                   setActivityExecutionNote
                 }
                 placeholder="Agrega observaciones si es necesario"
-                placeholderTextColor="#667980"
+                placeholderTextColor="#435667"
                 multiline
                 maxLength={2000}
                 editable={
@@ -3258,7 +3260,7 @@ export default function UnitDetailScreen() {
               disabled={
                 processing ===
                 'ACTIVITY'
-              }
+              } android_ripple={{ color: "#096e9124" }}
             >
               {processing ===
               'ACTIVITY' ? (
@@ -3309,7 +3311,7 @@ function InfoRow({
         <Ionicons
           name={icon}
           size={20}
-          color="#475569"
+          color="#435667"
         />
       </View>
 

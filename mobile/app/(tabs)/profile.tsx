@@ -68,7 +68,7 @@ export default function ProfileScreen() {
 
   return (
     <SafeAreaView
-      className="flex-1 bg-surface"
+      className="flex-1 bg-canvas"
       edges={['top', 'left', 'right']}
     >
       <ScrollView
@@ -150,7 +150,7 @@ export default function ProfileScreen() {
         <Pressable
           className="mt-6 h-14 items-center justify-center rounded-2xl border border-red-200 bg-red-50"
           onPress={handleSignOut}
-          disabled={signingOut}
+          disabled={signingOut} android_ripple={{ color: "#096e9124" }}
         >
           {signingOut ? (
             <ActivityIndicator color="#c13b3b" />

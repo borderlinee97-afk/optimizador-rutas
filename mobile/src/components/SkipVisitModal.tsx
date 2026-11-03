@@ -105,12 +105,12 @@ export function SkipVisitModal({
       >
         <View className="flex-1 justify-end bg-black/40">
           <Pressable
-            className="flex-1"
+            className="flex-1 min-h-[44px]"
             onPress={() => {
               if (!loading) {
                 onClose()
               }
-            }}
+            }} android_ripple={{ color: "#096e9124" }}
           />
 
           <View className="max-h-[88%] rounded-t-[32px] bg-white px-5 pb-8 pt-5">
@@ -127,14 +127,14 @@ export function SkipVisitModal({
               </View>
 
               <Pressable
-                className="h-10 w-10 items-center justify-center rounded-2xl bg-slate-100"
+                className="h-10 w-10 items-center justify-center rounded-2xl bg-slate-100 min-h-[44px]"
                 onPress={onClose}
-                disabled={loading}
+                disabled={loading} android_ripple={{ color: "#096e9124" }}
               >
                 <Ionicons
                   name="close"
                   size={22}
-                  color="#475569"
+                  color="#435667"
                 />
               </Pressable>
             </View>
@@ -162,7 +162,7 @@ export function SkipVisitModal({
                             option.value,
                           )
                         }
-                        disabled={loading}
+                        disabled={loading} android_ripple={{ color: "#096e9124" }}
                       >
                         <View
                           className={`h-5 w-5 items-center justify-center rounded-full border ${
@@ -207,7 +207,7 @@ export function SkipVisitModal({
                     ? 'Describe el motivo...'
                     : 'Agrega información adicional, si aplica...'
                 }
-                placeholderTextColor="#667980"
+                placeholderTextColor="#435667"
                 multiline
                 textAlignVertical="top"
                 maxLength={1000}
@@ -224,9 +224,9 @@ export function SkipVisitModal({
                 <Pressable
                   className="h-14 flex-1 items-center justify-center rounded-2xl border border-slate-300 bg-white shadow-sm"
                   onPress={onClose}
-                  disabled={loading}
+                  disabled={loading} android_ripple={{ color: "#096e9124" }}
                 >
-                  <Text className="font-semibold text-slate-700">
+                  <Text className="text-base font-semibold text-slate-700">
                     Cancelar
                   </Text>
                 </Pressable>
@@ -238,7 +238,7 @@ export function SkipVisitModal({
                       : 'bg-slate-300'
                   }`}
                   onPress={handleSubmit}
-                  disabled={!canSubmit}
+                  disabled={!canSubmit} android_ripple={{ color: "#096e9124" }}
                 >
                   {loading ? (
                     <ActivityIndicator
@@ -252,7 +252,7 @@ export function SkipVisitModal({
                         color="#ffffff"
                       />
 
-                      <Text className="ml-2 font-semibold text-white">
+                      <Text className="text-base ml-2 font-semibold text-white">
                         Confirmar
                       </Text>
                     </>

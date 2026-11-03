@@ -1,3 +1,4 @@
+import { listOverdueVisits } from '../services/overdueVisits.service.js'
 import { Router } from 'express'
 
 import { pool } from '../db/pool.js'
@@ -17,6 +18,14 @@ const UUID_PATTERN =
 router.use(requireAuth)
 router.use(loadFarmaciasProfile)
 router.use(requireApprovalRole)
+
+router.get('/execution-alerts', async (req, res) => {
+  try { return res.json(await listOverdueVisits(pool, req.profile)) }
+  catch (error) {
+    console.error('[mobile.execution-alerts]', error)
+    return res.status(500).json({error:'No fue posible cargar las visitas que requieren revisión.',code:'EXECUTION_ALERTS_FETCH_FAILED'})
+  }
+})
 
 /**
  * GET

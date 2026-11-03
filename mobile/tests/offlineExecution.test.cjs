@@ -16,7 +16,7 @@ function harness(){
  const evidence=loadTs('src/services/evidenceSync.ts',{'../../storage/db':storage,'react-native':{Platform:{OS:'android'}},'expo-file-system':{File:class{async arrayBuffer(){return new Uint8Array([1,2,3]).buffer}}},'../lib/supabase':{supabase},
   '../lib/api':{ApiError,createVisitEvidenceTicket:async(id,p)=>{log.push('PHOTO:'+id);return{evidence:{id:p.evidenceId},upload:{path:'path',token:'signed'}}},completeEvidenceUpload:async(id)=>({ok:true,evidence:{id,status:'READY'}})}})
  const location=loadTs('src/services/offlineVisitLocation.ts',{})
- const service=loadTs('src/services/executionSync.ts',{'expo-crypto':{randomUUID},'../../storage/db':storage,'./offlineVisitLocation':location,'./evidenceSync':evidence,'../lib/supabase':{supabase},'../lib/api':{ApiError,apiRequest:async(_path,options)=>{
+ const service=loadTs('src/services/executionSync.ts',{'./dailyVisitGuard':loadTs('src/services/dailyVisitGuard.ts',{}),'expo-crypto':{randomUUID},'../../storage/db':storage,'./offlineVisitLocation':location,'./evidenceSync':evidence,'../lib/supabase':{supabase},'../lib/api':{ApiError,apiRequest:async(_path,options)=>{
   const event=JSON.parse(options.body);log.push(event.action+':'+event.itemId);if(hold)await hold;if(fail)throw fail
   return{ok:!badAck,operationId:badAck?'wrong':event.id,item:{id:event.itemId},activities:event.action==='ACTIVITY_ADDED'?[{id:event.activityId}]:[]}
  }}})
@@ -164,4 +164,43 @@ test('manual sync does not refresh another account after a switch during executi
  assert.equal(refreshed,0);assert.equal(h.log.filter(x=>x.startsWith('PHOTO:')).length,0)
  h.switchUser(A);assert.equal(h.storage.db.getFirstSync('SELECT status FROM evidence_queue').status,'PENDING')
  h.close()
+})
+
+
+test('previous-day unfinished visits preserve their records, activities and photos while today can start; same day still blocks',()=>{
+ const h=harness(),old=h.visit(),today=h.visit(),next=h.visit()
+ h.queue(old,'CHECK_IN');h.photo(old)
+ const yesterday=new Date(h.now-86400000)
+ const parts=new Intl.DateTimeFormat('en',{timeZone:'America/Mexico_City',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(yesterday)
+ const date=['year','month','day'].map(k=>parts.find(p=>p.type===k).value).join('-')
+ h.storage.db.runSync('UPDATE plan_items SET scheduled_date=?,check_in_at=? WHERE id=?',[date,h.now-86400000,old.id])
+ const before=h.storage.db.getFirstSync('SELECT * FROM plan_items WHERE id=?',[old.id])
+ h.queue(today,'CHECK_IN')
+ assert.deepEqual(h.storage.db.getFirstSync('SELECT * FROM plan_items WHERE id=?',[old.id]),before)
+ assert.equal(h.storage.db.getFirstSync('SELECT count(*) n FROM evidence_queue WHERE plan_item_id=?',[old.id]).n,1)
+ assert.equal(h.storage.db.getFirstSync('SELECT status FROM plan_item_activities WHERE plan_item_id=?',[old.id]).status,'PENDING')
+ assert.throws(()=>h.queue(next,'CHECK_IN'),/activa/)
+ h.close()
+})
+
+test('a failed previous-day event remains intact but does not hold up synchronization of an independent visit today',async()=>{
+ const h=harness(),old=h.visit(),today=h.visit();const event=h.queue(old,'CHECK_IN')
+ const payload={...event,occurredAt:new Date(h.now-86400000).toISOString()}
+ h.storage.db.runSync("UPDATE execution_outbox SET status='FAILED',payload_json=?,last_error='Requiere aclaracion' WHERE id=?",[JSON.stringify(payload),event.id])
+ h.storage.db.runSync('UPDATE plan_items SET scheduled_date=?,check_in_at=? WHERE id=?',[payload.occurredAt.slice(0,10),h.now-86400000,old.id])
+ // Use an unmistakably old scheduled date independently of UTC midnight.
+ h.storage.db.runSync("UPDATE plan_items SET scheduled_date='2020-01-01' WHERE id=?",[old.id])
+ h.queue(today,'CHECK_IN');await h.service.syncVisitExecution(A)
+ assert.deepEqual(h.log,[`CHECK_IN:${today.id}`])
+ const retained=h.service.executionSummary();assert.equal(retained.length,1);assert.equal(retained[0].id,event.id);assert.equal(retained[0].status,'FAILED');assert.equal(retained[0].last_error,'Requiere aclaracion')
+ h.close()
+})
+
+test('operational dates keep an active visit on the same Mexico day across UTC midnight',()=>{
+ const {operationalDay,blocksDailyVisit}=loadTs('src/services/dailyVisitGuard.ts',{})
+ assert.equal(operationalDay(Date.parse('2026-11-01T01:00:00Z')),'2026-10-31')
+ assert.equal(blocksDailyVisit({scheduled_date:'2026-10-31',check_in_at:Date.parse('2026-11-01T01:00:00Z')},'2026-10-31'),true)
+ assert.equal(blocksDailyVisit({scheduled_date:'2026-10-31',check_in_at:Date.parse('2026-11-01T01:00:00Z')},'2026-11-01'),false)
+ // A bad schedule cannot conceal a real check-in today.
+ assert.equal(blocksDailyVisit({scheduled_date:'2026-10-01',check_in_at:Date.parse('2026-11-01T07:00:00Z')},'2026-11-01'),true)
 })

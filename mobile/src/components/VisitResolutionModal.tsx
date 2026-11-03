@@ -452,18 +452,18 @@ export function VisitResolutionModal({
             </View>
 
             <Pressable
-              className="h-10 w-10 items-center justify-center rounded-full bg-slate-100"
+              className="h-10 w-10 items-center justify-center rounded-full bg-slate-100 min-h-[44px]"
               onPress={
                 handleClose
               }
               disabled={
                 loading
-              }
+              } android_ripple={{ color: "#096e9124" }}
             >
               <Ionicons
                 name="close"
                 size={22}
-                color="#475569"
+                color="#435667"
               />
             </Pressable>
           </View>
@@ -506,7 +506,7 @@ export function VisitResolutionModal({
                             }
                             disabled={
                               loading
-                            }
+                            } android_ripple={{ color: "#096e9124" }}
                           >
                             <View
                               className={`h-9 w-9 items-center justify-center rounded-xl ${
@@ -521,7 +521,7 @@ export function VisitResolutionModal({
                                 color={
                                   selected
                                     ? '#6d28d9'
-                                    : '#53646d'
+                                    : '#435667'
                                 }
                               />
                             </View>
@@ -552,7 +552,7 @@ export function VisitResolutionModal({
                   </View>
                 ) : (
                   <View className="mt-3 rounded-2xl border border-amber-200 bg-amber-50 p-4">
-                    <Text className="font-semibold text-amber-800">
+                    <Text className="text-base font-semibold text-amber-800">
                       No hay otro día disponible esta semana
                     </Text>
 
@@ -580,7 +580,7 @@ export function VisitResolutionModal({
                       setScheduledTime
                     }
                     placeholder="09:30"
-                    placeholderTextColor="#667980"
+                    placeholderTextColor="#435667"
                     maxLength={5}
                     editable={
                       !loading
@@ -599,7 +599,7 @@ export function VisitResolutionModal({
                     }
                     disabled={
                       loading
-                    }
+                    } android_ripple={{ color: "#096e9124" }}
                   >
                     <Text className="text-sm font-semibold text-slate-600">
                       Sin hora
@@ -641,7 +641,7 @@ export function VisitResolutionModal({
                       }
                       disabled={
                         loading
-                      }
+                      } android_ripple={{ color: "#096e9124" }}
                     >
                       <View className="flex-1">
                         <Text
@@ -697,7 +697,7 @@ export function VisitResolutionModal({
                   ? 'Agrega información sobre la reprogramación...'
                   : 'Explica por qué solicitas cancelar la visita...'
               }
-              placeholderTextColor="#667980"
+              placeholderTextColor="#435667"
               multiline
               textAlignVertical="top"
               maxLength={1000}
@@ -735,7 +735,7 @@ export function VisitResolutionModal({
               }
               disabled={
                 loading
-              }
+              } android_ripple={{ color: "#096e9124" }}
             >
               {loading ? (
                 <ActivityIndicator

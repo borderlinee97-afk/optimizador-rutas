@@ -1,3 +1,4 @@
+import { blocksDailyVisit } from './dailyVisitGuard'
 import * as Crypto from 'expo-crypto'
 import { db, getDatabaseUserId, isDatabaseActive, isLegacyRecoveryActive } from '../../storage/db'
 import { apiRequest, ApiError } from '../lib/api'
@@ -45,7 +46,7 @@ export function queueVisitExecution(userId:string,profile:AuthProfile,input:Omit
     if (item.cancellation_request_status==='PENDING') throw new Error('La visita tiene una cancelación pendiente.')
     if (input.action==='CHECK_IN') {
       if (item.status!=='PENDING' || String(item.scheduled_date).slice(0,10)!==day(now)) throw new Error('La visita debe estar pendiente y programada para hoy.')
-      if (database.getFirstSync("SELECT 1 FROM plan_items WHERE status='IN_PROGRESS' AND id<>? LIMIT 1",[item.id])) throw new Error('Finaliza la visita activa antes de iniciar otra.')
+      if (database.getAllSync<ItemRow>("SELECT scheduled_date,check_in_at FROM plan_items WHERE status='IN_PROGRESS' AND id<>?",[item.id]).some(active => blocksDailyVisit(active, day(now)))) throw new Error('Finaliza la visita activa antes de iniciar otra.')
     } else if (item.status!=='IN_PROGRESS' || !item.check_in_at || now<item.check_in_at) throw new Error('La visita no tiene un check-in activo válido.')
     if (input.action.startsWith('CHECK_')) evaluateOfflineLocation(item,input)
     if (input.action==='ACTIVITY_ADDED') {
@@ -94,12 +95,20 @@ export function syncVisitExecution(userId:string) {
 async function process(userId:string,database:typeof db) {
   const current=()=>isDatabaseActive(userId)&&db===database&&getDatabaseUserId(database)===userId&&!isLegacyRecoveryActive(database)
   const rows=executionSummary(database)
+  const blockedItems = new Set<string>()
   for (const row of rows) {
+    if (blockedItems.has(row.plan_item_id)) continue
     if (!current()) return
     // Legacy payloads were not authored by this verified flow; retain them for explicit review.
     let event:OfflineEvent
     try {event=JSON.parse(row.payload_json)}catch{return}
-    if (event.id!==row.id || event.itemId!==row.plan_item_id || !['CHECK_IN','CHECK_OUT','ACTIVITY_DONE','ACTIVITY_SKIPPED','ACTIVITY_ADDED'].includes(event.action) || !event.occurredAt || row.status==='FAILED') return
+    if (event.id!==row.id || event.itemId!==row.plan_item_id || !['CHECK_IN','CHECK_OUT','ACTIVITY_DONE','ACTIVITY_SKIPPED','ACTIVITY_ADDED'].includes(event.action) || !event.occurredAt) return
+    const captured = Date.parse(event.occurredAt)
+    const fromPastDay = Number.isFinite(captured) && day(captured) < day(Date.now())
+    if (row.status === 'FAILED') {
+      if (!fromPastDay) return
+      blockedItems.add(row.plan_item_id); continue
+    }
     try {
       if (event.action!=='CHECK_IN' && event.action!=='ACTIVITY_ADDED') {
         await syncPendingEvidence('',false,{planItemId:event.itemId})
@@ -122,6 +131,9 @@ async function process(userId:string,database:typeof db) {
       const retry=!(error instanceof ApiError)||[0,401,408,425,429].includes(error.status)||error.status>=500||evidenceWaiting
       database.runSync('UPDATE execution_outbox SET status=?,attempts=attempts+1,last_error=?,updated_at=? WHERE id=?',
         [retry?'PENDING':'FAILED',error instanceof Error?error.message:'No se pudo sincronizar la visita.',Date.now(),row.id])
+      if (fromPastDay && error instanceof ApiError && error.status !== 401 && error.status !== 403 && (!retry || evidenceWaiting)) {
+        blockedItems.add(row.plan_item_id); continue
+      }
       return
     }
   }

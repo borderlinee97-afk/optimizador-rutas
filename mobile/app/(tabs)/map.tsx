@@ -42,21 +42,21 @@ const STATUS_CONFIG: Record<
     containerClass: 'bg-slate-100',
     textClass: 'text-slate-700',
     icon: 'time-outline',
-    iconColor: '#475569',
+    iconColor: '#435667',
   },
   IN_PROGRESS: {
     label: 'En progreso',
     containerClass: 'bg-blue-100',
     textClass: 'text-blue-700',
     icon: 'navigate-circle-outline',
-    iconColor: '#0e6788',
+    iconColor: '#075671',
   },
   DONE: {
     label: 'Finalizada',
     containerClass: 'bg-emerald-100',
     textClass: 'text-emerald-700',
     icon: 'checkmark-circle-outline',
-    iconColor: '#237347',
+    iconColor: '#087443',
   },
   SKIPPED: {
     label: 'Omitida',
@@ -180,10 +180,10 @@ export default function MapScreen() {
 
   if (!ready) {
     return (
-      <SafeAreaView className="flex-1 items-center justify-center bg-surface">
+      <SafeAreaView className="flex-1 items-center justify-center bg-canvas">
         <ActivityIndicator
           size="large"
-          color="#147b9d"
+          color="#096e91"
         />
 
         <Text className="mt-4 text-sm text-slate-500">
@@ -195,7 +195,7 @@ export default function MapScreen() {
 
   return (
     <SafeAreaView
-      className="flex-1 bg-surface"
+      className="flex-1 bg-canvas"
       edges={['top', 'left', 'right']}
     >
       <ScrollView
@@ -220,18 +220,18 @@ export default function MapScreen() {
             onPress={() => {
               void refresh()
             }}
-            disabled={syncing}
+            disabled={syncing} android_ripple={{ color: "#096e9124" }}
           >
             {syncing ? (
               <ActivityIndicator
                 size="small"
-                color="#147b9d"
+                color="#096e91"
               />
             ) : (
               <Ionicons
                 name="refresh"
                 size={21}
-                color="#147b9d"
+                color="#096e91"
               />
             )}
           </Pressable>
@@ -246,7 +246,7 @@ export default function MapScreen() {
             />
 
             <View className="ml-3 flex-1">
-              <Text className="font-semibold text-amber-800">
+              <Text className="text-base font-semibold text-amber-800">
                 Datos sin actualizar
               </Text>
 
@@ -270,7 +270,7 @@ export default function MapScreen() {
               <Ionicons
                 name="navigate-circle-outline"
                 size={25}
-                color="#0e6788"
+                color="#075671"
               />
 
               <View className="ml-3 flex-1">
@@ -320,7 +320,7 @@ export default function MapScreen() {
                     onPress={() =>
                       openDetail(item)
                     }
-                    disabled={blocked}
+                    disabled={blocked} android_ripple={{ color: "#096e9124" }}
                   >
                     <View className="flex-row items-start">
                       <View
@@ -335,7 +335,7 @@ export default function MapScreen() {
                           <Ionicons
                             name="lock-closed-outline"
                             size={20}
-                            color="#53646d"
+                            color="#435667"
                           />
                         ) : (
                           <Text
@@ -398,7 +398,7 @@ export default function MapScreen() {
                         <Ionicons
                           name="chevron-forward"
                           size={21}
-                          color="#667980"
+                          color="#435667"
                         />
                       ) : null}
                     </View>
@@ -424,7 +424,7 @@ export default function MapScreen() {
                     onPress={() => {
                       void openMaps(item)
                     }}
-                    disabled={blocked}
+                    disabled={blocked} android_ripple={{ color: "#096e9124" }}
                   >
                     <Ionicons
                       name={
@@ -435,7 +435,7 @@ export default function MapScreen() {
                       size={19}
                       color={
                         blocked
-                          ? '#53646d'
+                          ? '#435667'
                           : '#ffffff'
                       }
                     />
@@ -465,7 +465,7 @@ export default function MapScreen() {
                 <Ionicons
                   name="location-outline"
                   size={27}
-                  color="#53646d"
+                  color="#435667"
                 />
               </View>
 
@@ -487,7 +487,7 @@ export default function MapScreen() {
             <Ionicons
               name="alert-circle-outline"
               size={22}
-              color="#53646d"
+              color="#435667"
             />
 
             <Text className="ml-3 flex-1 text-sm leading-5 text-slate-600">

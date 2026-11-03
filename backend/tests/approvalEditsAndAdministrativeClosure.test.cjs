@@ -8,7 +8,7 @@ test('approval inbox returns ordinary and extraordinary edit requests in its tot
   const routes=[],queries=[],actor={id:'actor',rol:role,area:'FARMACIAS',activo:true}
   const source=fs.readFileSync(path.join(__dirname,'../routes/web.approvals.route.js'),'utf8').replace(/import\s+[\s\S]*?from\s+'[^']+'\s*/g,'').replace(/export default router\s*$/,'')
   const pool={query:async(sql,params)=>{queries.push({sql,params});return{rows:requests}}}
-  const ctx={Router:()=>({use(){},get:(p,h)=>routes.push([p,h]),post(){}}),pool,requireAuth(){},listEditRequests,isActiveAdmin,farmaciasReadRole,console}
+  const ctx={Router:()=>({use(){},get:(p,h)=>routes.push([p,h]),post(){}}),pool,requireAuth(){},listOverdueVisits:async()=>({total:0,visits:[]}),listEditRequests,isActiveAdmin,farmaciasReadRole,console}
   vm.runInNewContext(source,ctx)
   for(const name of ['getPendingPlans','getPendingCancellations','getPendingCoverages'])ctx[name]=async()=>({rows:[]})
   let body;await routes.find(([p])=>p==='/')[1]({profile:actor},{json:v=>{body=v},status(){return this}})
@@ -26,7 +26,7 @@ test('real approvals page displays edits metric and supplies the inbox; refresh 
  let code=compileScript(descriptor,{id:'approval-inbox-test',inlineTemplate:true}).content
  const mounted=[],editComponent={name:'EditInbox'},requests=[{id:'r',plan_id:'p',plan_type:'EXTRAORDINARY',owner_name:'SUPERVISOR'}]
  let current=requests,calls=0
- const ctx={module:{exports:{}},console,__vue:{...vue,onMounted:fn=>mounted.push(fn)},__editComponent:editComponent,__router:{push(){}},__api:{getWebApprovals:async()=>{calls++;return{context:{canDecide:true},counts:{editRequests:current.length,total:current.length},editRequests:current,plans:[],cancellationRequests:[],coverageRequests:[]}}}}
+ const ctx={module:{exports:{}},console,__vue:{...vue,onMounted:fn=>mounted.push(fn)},__editComponent:editComponent,__router:{push(){}},__api:{getWebApprovals:async()=>{calls++;return{context:{canDecide:true},counts:{editRequests:current.length,total:current.length},editRequests:current,plans:[],cancellationRequests:[],coverageRequests:[],executionAlerts:{total:1,visits:[{id:'visit',planId:'plan',personName:'SUPERVISOR PRUEBA',name:'Unidad prueba',scheduledDate:'2026-10-20',reason:'Sin finalizar'}]}}}}}
  code=code.replace(/import\s+WorkPlanEditAccess\s+from\s+['"][^'"]+['"]/g,'const WorkPlanEditAccess=__editComponent')
  code=code.replace(/import\s*\{([^}]+)\}\s*from\s*['"]vue['"]/g,(_,names)=>`const {${names.replace(/\bas\b/g,':')}}=__vue`)
  code=code.replace(/import\s*\{([^}]+)\}\s*from\s*['"]vue-router['"]/g,'const useRouter=()=>__router')
@@ -36,6 +36,7 @@ test('real approvals page displays edits metric and supplies the inbox; refresh 
  const nodes=(n,out=[])=>{if(Array.isArray(n)){n.forEach(x=>nodes(x,out));return out}if(n&&typeof n==='object'){out.push(n);if(Array.isArray(n.children))nodes(n.children,out)}return out}
  const text=n=>typeof n==='string'?n:Array.isArray(n)?n.map(text).join(''):n&&typeof n==='object'?text(n.children):String(n??'')
  let all=nodes(render({},[])),inbox=all.find(n=>n.type===editComponent)
+ assert.ok(all.some(n=>n.props?.role==='alert'&&text(n).includes('requieren revisión o aclaración')));assert.ok(all.some(n=>n.type==='button'&&text(n)==='Revisar plan'));
  assert.equal(inbox.props['inbox-requests'].length,1);assert.ok(Object.hasOwn(inbox.props,'show-empty'))
  const metric=all.find(n=>n.type==='article'&&text(n).includes('Ediciones de plan'));assert.ok(metric);assert.match(text(metric),/1/)
  await inbox.props.onRefresh();assert.equal(calls,2)

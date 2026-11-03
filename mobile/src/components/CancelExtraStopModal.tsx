@@ -134,14 +134,14 @@ export function CancelExtraStopModal({
               </View>
 
               <Pressable
-                className="h-10 w-10 items-center justify-center rounded-full bg-slate-100"
+                className="h-10 w-10 items-center justify-center rounded-full bg-slate-100 min-h-[44px]"
                 onPress={onClose}
-                disabled={loading}
+                disabled={loading} android_ripple={{ color: "#096e9124" }}
               >
                 <Ionicons
                   name="close"
                   size={22}
-                  color="#475569"
+                  color="#435667"
                 />
               </Pressable>
             </View>
@@ -180,7 +180,7 @@ export function CancelExtraStopModal({
                             option.code,
                           )
                         }
-                        disabled={loading}
+                        disabled={loading} android_ripple={{ color: "#096e9124" }}
                       >
                         <View
                           className={
@@ -241,7 +241,7 @@ export function CancelExtraStopModal({
                     ? 'Describe el motivo de cancelación...'
                     : 'Agrega información complementaria...'
                 }
-                placeholderTextColor="#667980"
+                placeholderTextColor="#435667"
                 multiline
                 maxLength={1000}
                 textAlignVertical="top"
@@ -276,7 +276,7 @@ export function CancelExtraStopModal({
                 disabled={
                   !canSubmit ||
                   loading
-                }
+                } android_ripple={{ color: "#096e9124" }}
               >
                 {loading ? (
                   <ActivityIndicator
@@ -300,7 +300,7 @@ export function CancelExtraStopModal({
               <Pressable
                 className="mt-3 h-14 items-center justify-center rounded-2xl border border-slate-200 bg-white shadow-sm"
                 onPress={onClose}
-                disabled={loading}
+                disabled={loading} android_ripple={{ color: "#096e9124" }}
               >
                 <Text className="text-base font-semibold text-slate-700">
                   Regresar sin cancelar

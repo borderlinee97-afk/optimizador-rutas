@@ -55,7 +55,7 @@ export default function LoginScreen() {
   }
 
   return (
-    <SafeAreaView className="flex-1 bg-surface">
+    <SafeAreaView className="flex-1 bg-canvas">
       <KeyboardAvoidingView
         className="flex-1"
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -95,7 +95,7 @@ export default function LoginScreen() {
                   value={email}
                   onChangeText={setEmail}
                   placeholder="nombre@empresa.com"
-                  placeholderTextColor="#667980"
+                  placeholderTextColor="#435667"
                   keyboardType="email-address"
                   autoCapitalize="none"
                   autoCorrect={false}
@@ -115,7 +115,7 @@ export default function LoginScreen() {
                     value={password}
                     onChangeText={setPassword}
                     placeholder="Ingresa tu contraseña"
-                    placeholderTextColor="#667980"
+                    placeholderTextColor="#435667"
                     secureTextEntry={!showPassword}
                     autoCapitalize="none"
                     editable={!submitting}
@@ -128,9 +128,9 @@ export default function LoginScreen() {
                     onPress={() =>
                       setShowPassword((current) => !current)
                     }
-                    disabled={submitting}
+                    disabled={submitting} android_ripple={{ color: "#096e9124" }}
                   >
-                    <Text className="font-semibold text-primary-600">
+                    <Text className="text-base font-semibold text-primary-600">
                       {showPassword ? 'Ocultar' : 'Mostrar'}
                     </Text>
                   </Pressable>
@@ -161,7 +161,7 @@ export default function LoginScreen() {
                     : 'bg-primary-600'
                 }`}
                 onPress={handleLogin}
-                disabled={submitting}
+                disabled={submitting} android_ripple={{ color: "#096e9124" }}
               >
                 {submitting ? (
                   <ActivityIndicator color="#ffffff" />

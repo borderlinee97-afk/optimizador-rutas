@@ -56,7 +56,7 @@ export default function ForgotPasswordScreen() {
   }
 
   return (
-    <SafeAreaView className="flex-1 bg-surface">
+    <SafeAreaView className="flex-1 bg-canvas">
       <KeyboardAvoidingView
         className="flex-1"
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -86,7 +86,7 @@ export default function ForgotPasswordScreen() {
                 value={email}
                 onChangeText={setEmail}
                 placeholder="nombre@empresa.com"
-                placeholderTextColor="#667980"
+                placeholderTextColor="#435667"
                 keyboardType="email-address"
                 autoCapitalize="none"
                 autoCorrect={false}
@@ -114,7 +114,7 @@ export default function ForgotPasswordScreen() {
               <Pressable
                 className="mt-6 h-14 items-center justify-center rounded-2xl bg-primary-600"
                 onPress={handleSendEmail}
-                disabled={submitting}
+                disabled={submitting} android_ripple={{ color: "#096e9124" }}
               >
                 {submitting ? (
                   <ActivityIndicator color="#ffffff" />

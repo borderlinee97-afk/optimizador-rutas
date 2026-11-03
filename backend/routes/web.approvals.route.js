@@ -1,3 +1,4 @@
+import { listOverdueVisits } from '../services/overdueVisits.service.js'
 import { listEditRequests } from '../services/workPlanEdit.service.js'
 import {
   Router,
@@ -68,6 +69,7 @@ router.get(
         cancellationsResult,
         coveragesResult,
         editsResult,
+        executionAlerts,
       ] =
         await Promise.all([
           getPendingPlans(
@@ -83,6 +85,7 @@ router.get(
           ),
 
           listEditRequests(pool, req.profile),
+          listOverdueVisits(pool, req.profile),
         ])
 
       const plans =
@@ -117,6 +120,7 @@ router.get(
       const editRequests = editsResult.requests
 
       const counts = {
+        reviewRequired: executionAlerts.total,
         editRequests: editRequests.length,
         ordinaryPlans:
           ordinaryPlans.length,
@@ -155,6 +159,7 @@ router.get(
         },
 
         counts,
+        executionAlerts,
 
         pendingCount:
           counts.total,

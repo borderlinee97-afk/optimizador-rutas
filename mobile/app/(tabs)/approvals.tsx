@@ -1,3 +1,4 @@
+import { OverdueVisitAlerts } from '../../src/components/OverdueVisitAlerts'
 import { WorkPlanEditAccess } from '../../src/components/WorkPlanEditAccess'
 import { KeyboardAwareScrollView as ScrollView } from '../../src/components/KeyboardAwareScrollView'
 import { AvailabilityPanel } from '../../src/components/AvailabilityPanel'
@@ -1573,7 +1574,7 @@ export default function ApprovalsScreen() {
 
     return (
 
-      <SafeAreaView className="flex-1 items-center justify-center bg-surface px-6">
+      <SafeAreaView className="flex-1 items-center justify-center bg-canvas px-6">
 
         <View className="h-16 w-16 items-center justify-center rounded-3xl bg-amber-100">
 
@@ -1619,7 +1620,7 @@ export default function ApprovalsScreen() {
 
     <SafeAreaView
 
-      className="flex-1 bg-surface"
+      className="flex-1 bg-canvas"
 
       edges={[
 
@@ -1676,6 +1677,7 @@ export default function ApprovalsScreen() {
        keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag">
         <WorkPlanEditAccess />
       <AvailabilityPanel />
+      <OverdueVisitAlerts key={session?.user.id} />
 
         <View>
 
@@ -1771,7 +1773,7 @@ export default function ApprovalsScreen() {
 
           <View className="mt-5 rounded-3xl border border-rose-200 bg-rose-50 p-4">
 
-            <Text className="font-semibold text-rose-800">
+            <Text className="text-base font-semibold text-rose-800">
 
               No se pudo actualizar la bandeja
 
@@ -1803,7 +1805,7 @@ export default function ApprovalsScreen() {
 
               size="large"
 
-              color="#147b9d"
+              color="#096e91"
 
             />
 
@@ -1967,7 +1969,7 @@ export default function ApprovalsScreen() {
 
                   size={22}
 
-                  color="#147b9d"
+                  color="#096e91"
 
                 />
 
@@ -2077,7 +2079,7 @@ export default function ApprovalsScreen() {
 
                 size={31}
 
-                color="#237347"
+                color="#087443"
 
               />
 
@@ -2129,7 +2131,7 @@ export default function ApprovalsScreen() {
 
       >
 
-        <SafeAreaView className="flex-1 bg-surface">
+        <SafeAreaView className="flex-1 bg-canvas">
 
           {detailLoading ? (
 
@@ -2139,7 +2141,7 @@ export default function ApprovalsScreen() {
 
                 size="large"
 
-                color="#147b9d"
+                color="#096e91"
 
               />
 
@@ -2237,7 +2239,7 @@ export default function ApprovalsScreen() {
 
         <KeyboardAvoidingView className="flex-1 items-center justify-center bg-black/40 px-5" behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
 
-          <ScrollView className="w-full max-w-xl rounded-[30px] bg-white p-5" style={{maxHeight:"90%",flexShrink:1,flexGrow:0}} contentContainerStyle={{paddingBottom:24}} keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag">
+          <ScrollView className="w-full max-w-xl rounded-2xl bg-white p-5" style={{maxHeight:"90%",flexShrink:1,flexGrow:0}} contentContainerStyle={{paddingBottom:24}} keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag">
 
             <View className="flex-row items-start justify-between">
 
@@ -2267,7 +2269,7 @@ export default function ApprovalsScreen() {
 
               <Pressable
 
-                className="h-10 w-10 items-center justify-center rounded-full bg-slate-100"
+                className="h-10 w-10 items-center justify-center rounded-full bg-slate-100 min-h-[44px]"
 
                 onPress={
 
@@ -2279,7 +2281,7 @@ export default function ApprovalsScreen() {
 
                   rejecting
 
-                }
+                } android_ripple={{ color: "#096e9124" }}
 
               >
 
@@ -2289,7 +2291,7 @@ export default function ApprovalsScreen() {
 
                   size={21}
 
-                  color="#475569"
+                  color="#435667"
 
                 />
 
@@ -2325,7 +2327,7 @@ export default function ApprovalsScreen() {
 
               placeholder="Explica qué debe corregirse..."
 
-              placeholderTextColor="#667980"
+              placeholderTextColor="#435667"
 
               multiline
 
@@ -2377,11 +2379,11 @@ export default function ApprovalsScreen() {
 
                   rejecting
 
-                }
+                } android_ripple={{ color: "#096e9124" }}
 
               >
 
-                <Text className="font-semibold text-slate-600">
+                <Text className="text-base font-semibold text-slate-600">
 
                   Cancelar
 
@@ -2417,7 +2419,7 @@ export default function ApprovalsScreen() {
 
                   !rejectionComment.trim()
 
-                }
+                } android_ripple={{ color: "#096e9124" }}
 
               >
 
@@ -2433,7 +2435,7 @@ export default function ApprovalsScreen() {
 
                 ) : (
 
-                  <Text className="font-semibold text-white">
+                  <Text className="text-base font-semibold text-white">
 
                     Rechazar
 
@@ -2477,7 +2479,7 @@ export default function ApprovalsScreen() {
 
         <KeyboardAvoidingView className="flex-1 items-center justify-center bg-black/40 px-5" behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
 
-          <ScrollView className="w-full max-w-xl rounded-[30px] bg-white p-5" style={{maxHeight:"90%",flexShrink:1,flexGrow:0}} contentContainerStyle={{paddingBottom:24}} keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag">
+          <ScrollView className="w-full max-w-xl rounded-2xl bg-white p-5" style={{maxHeight:"90%",flexShrink:1,flexGrow:0}} contentContainerStyle={{paddingBottom:24}} keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag">
 
             <View className="flex-row items-start justify-between">
 
@@ -2507,7 +2509,7 @@ export default function ApprovalsScreen() {
 
               <Pressable
 
-                className="h-10 w-10 items-center justify-center rounded-full bg-slate-100"
+                className="h-10 w-10 items-center justify-center rounded-full bg-slate-100 min-h-[44px]"
 
                 onPress={
 
@@ -2523,7 +2525,7 @@ export default function ApprovalsScreen() {
 
                   )
 
-                }
+                } android_ripple={{ color: "#096e9124" }}
 
               >
 
@@ -2533,7 +2535,7 @@ export default function ApprovalsScreen() {
 
                   size={21}
 
-                  color="#475569"
+                  color="#435667"
 
                 />
 
@@ -2609,7 +2611,7 @@ export default function ApprovalsScreen() {
 
               placeholder="Explica por qué debe mantenerse la visita..."
 
-              placeholderTextColor="#667980"
+              placeholderTextColor="#435667"
 
               multiline
 
@@ -2665,11 +2667,11 @@ export default function ApprovalsScreen() {
 
                   )
 
-                }
+                } android_ripple={{ color: "#096e9124" }}
 
               >
 
-                <Text className="font-semibold text-slate-600">
+                <Text className="text-base font-semibold text-slate-600">
 
                   Regresar
 
@@ -2711,7 +2713,7 @@ export default function ApprovalsScreen() {
 
                     .trim()
 
-                }
+                } android_ripple={{ color: "#096e9124" }}
 
               >
 
@@ -2727,7 +2729,7 @@ export default function ApprovalsScreen() {
 
                 ) : (
 
-                  <Text className="font-semibold text-white">
+                  <Text className="text-base font-semibold text-white">
 
                     Rechazar solicitud
 
@@ -3019,11 +3021,11 @@ function CancellationRequestCard({
 
             onReject
 
-          }
+          } android_ripple={{ color: "#096e9124" }}
 
         >
 
-          <Text className="font-semibold text-rose-700">
+          <Text className="text-base font-semibold text-rose-700">
 
             Rechazar
 
@@ -3055,7 +3057,7 @@ function CancellationRequestCard({
 
             onApprove
 
-          }
+          } android_ripple={{ color: "#096e9124" }}
 
         >
 
@@ -3071,7 +3073,7 @@ function CancellationRequestCard({
 
           ) : (
 
-            <Text className="font-semibold text-white">
+            <Text className="text-base font-semibold text-white">
 
               Aprobar
 
@@ -3115,13 +3117,13 @@ function ApprovalCard({
 
     <Pressable
 
-      className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm"
+      className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm min-h-[44px]"
 
       onPress={
 
         onOpen
 
-      }
+      } android_ripple={{ color: "#096e9124" }}
 
     >
 
@@ -3179,7 +3181,7 @@ function ApprovalCard({
 
           size={21}
 
-          color="#667980"
+          color="#435667"
 
         />
 
@@ -3303,7 +3305,7 @@ function ApprovalCard({
 
           size={18}
 
-          color="#147b9d"
+          color="#096e91"
 
         />
 
@@ -3523,7 +3525,7 @@ function ApprovalDetail({
 
           <Pressable
 
-            className="h-11 w-11 items-center justify-center rounded-2xl border border-slate-200 bg-white shadow-sm"
+            className="h-11 w-11 items-center justify-center rounded-2xl border border-slate-200 bg-white shadow-sm min-h-[44px]"
 
             onPress={
 
@@ -3535,7 +3537,7 @@ function ApprovalDetail({
 
               busy
 
-            }
+            } android_ripple={{ color: "#096e9124" }}
 
           >
 
@@ -3595,7 +3597,7 @@ function ApprovalDetail({
 
                 size={23}
 
-                color="#147b9d"
+                color="#096e91"
 
               />
 
@@ -3871,7 +3873,7 @@ function ApprovalDetail({
 
                     )
 
-                  }
+                  } android_ripple={{ color: "#096e9124" }}
 
                 >
 
@@ -4063,7 +4065,7 @@ function ApprovalDetail({
 
               busy
 
-            }
+            } android_ripple={{ color: "#096e9124" }}
 
           >
 
@@ -4079,7 +4081,7 @@ function ApprovalDetail({
 
 
 
-            <Text className="ml-2 font-semibold text-rose-700">
+            <Text className="text-base ml-2 font-semibold text-rose-700">
 
               Rechazar
 
@@ -4111,7 +4113,7 @@ function ApprovalDetail({
 
               busy
 
-            }
+            } android_ripple={{ color: "#096e9124" }}
 
           >
 
@@ -4141,7 +4143,7 @@ function ApprovalDetail({
 
 
 
-                <Text className="ml-2 font-semibold text-white">
+                <Text className="text-base ml-2 font-semibold text-white">
 
                   Aprobar
 
@@ -4193,7 +4195,7 @@ function ReviewVisitCard({
 
         <View className="h-11 w-11 items-center justify-center rounded-2xl bg-primary-50">
 
-          <Text className="font-semibold text-primary-700">
+          <Text className="text-base font-semibold text-primary-700">
 
             {
 
@@ -4265,7 +4267,7 @@ function ReviewVisitCard({
 
                 size={14}
 
-                color="#475569"
+                color="#435667"
 
               />
 
@@ -4389,7 +4391,7 @@ function ReviewVisitCard({
 
                     size={17}
 
-                    color="#475569"
+                    color="#435667"
 
                   />
 
@@ -4407,7 +4409,7 @@ function ReviewVisitCard({
 
                 <View className="rounded-full bg-white px-2.5 py-1">
 
-                  <Text className="text-[10px] font-semibold text-slate-500">
+                  <Text className="text-xs font-semibold text-slate-500">
 
                     {item.activities?.length ?? 0}
 
@@ -4459,7 +4461,7 @@ function ReviewVisitCard({
 
                           <View className="mt-0.5 h-5 w-5 items-center justify-center rounded-full bg-white">
 
-                            <Text className="text-[10px] font-semibold text-slate-600">
+                            <Text className="text-xs font-semibold text-slate-600">
 
                               {activity.order}
 

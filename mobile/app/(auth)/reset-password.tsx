@@ -78,17 +78,17 @@ export default function ResetPasswordScreen() {
     }
   }
 
-  if(resetError)return <SafeAreaView className="flex-1 justify-center bg-white px-6"><Text className="text-xl font-semibold">No fue posible validar el enlace</Text><Text className="mt-4">{resetError}</Text><Pressable className="mt-5 rounded-xl bg-sky-700 p-4" onPress={()=>router.replace('/forgot-password')}><Text className="text-white">Solicitar otro enlace</Text></Pressable></SafeAreaView>
+  if(resetError)return <SafeAreaView className="flex-1 justify-center bg-white px-6"><Text className="text-xl font-semibold">No fue posible validar el enlace</Text><Text className="text-base mt-4">{resetError}</Text><Pressable className="mt-5 rounded-xl bg-sky-700 p-4 min-h-[44px]" onPress={()=>router.replace('/forgot-password')} android_ripple={{ color: "#096e9124" }}><Text className="text-base text-white">Solicitar otro enlace</Text></Pressable></SafeAreaView>
   if (!ready) {
     return (
-      <SafeAreaView className="flex-1 items-center justify-center bg-surface">
-        <ActivityIndicator size="large" color="#147b9d" />
+      <SafeAreaView className="flex-1 items-center justify-center bg-canvas">
+        <ActivityIndicator size="large" color="#096e91" />
       </SafeAreaView>
     )
   }
 
   return (
-    <SafeAreaView className="flex-1 bg-surface px-6 pt-16">
+    <SafeAreaView className="flex-1 bg-canvas px-6 pt-16">
       <KeyboardAvoidingView style={{flex:1}} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}><ScrollView keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag" contentContainerStyle={{flexGrow:1,paddingBottom:24}}><View className="mx-auto w-full max-w-md rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
         <Text className="text-2xl font-semibold text-slate-900">Nueva contraseña</Text>
         <Text className="mt-2 text-sm text-slate-500">Usa al menos 12 caracteres y no la compartas.</Text>
@@ -107,11 +107,11 @@ export default function ResetPasswordScreen() {
           placeholder="Confirmar contraseña"
         />
         <Pressable
-          className="mt-5 items-center rounded-2xl bg-sky-700 px-4 py-4"
+          className="mt-5 items-center rounded-2xl bg-sky-700 px-4 py-4 min-h-[44px]"
           disabled={busy}
-          onPress={() => void updatePassword()}
+          onPress={() => void updatePassword()} android_ripple={{ color: "#096e9124" }}
         >
-          <Text className="font-semibold text-white">{busy ? 'Guardando…' : 'Guardar contraseña'}</Text>
+          <Text className="text-base font-semibold text-white">{busy ? 'Guardando…' : 'Guardar contraseña'}</Text>
         </Pressable>
       </View></ScrollView></KeyboardAvoidingView>
     </SafeAreaView>

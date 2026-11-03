@@ -1,3 +1,4 @@
+import { getWorkPlanScreen, type OfflineCopy } from '../../services/workPlanCache'
 import {
   apiRequest,
 } from '../../lib/api'
@@ -535,7 +536,7 @@ export interface PharmacyCatalogQuery {
   offset?: number
 }
 
-interface WorkPlansResponse {
+interface WorkPlansResponse extends OfflineCopy {
   plans:
     WorkPlanSummary[]
 }
@@ -556,7 +557,7 @@ interface WorkPlanSubmitResponse {
   revisionNumber: number
 }
 
-interface WorkPlanDetailResponse {
+interface WorkPlanDetailResponse extends OfflineCopy {
   plan:
     WorkPlan
 
@@ -694,12 +695,8 @@ export function getMyWorkPlans(
       ? '?includeArchived=true'
       : ''
 
-  return apiRequest<WorkPlansResponse>(
+  return getWorkPlanScreen<WorkPlansResponse>(
     `/api/mobile/work-plans/mine${query}`,
-    {
-      method:
-        'GET',
-    },
     accessToken,
   )
 }
@@ -847,14 +844,10 @@ export function getWorkPlanDetail(
   planId: string,
   accessToken: string,
 ): Promise<WorkPlanDetailResponse> {
-  return apiRequest<WorkPlanDetailResponse>(
+  return getWorkPlanScreen<WorkPlanDetailResponse>(
     `/api/mobile/work-plans/${encodeURIComponent(
       planId,
     )}`,
-    {
-      method:
-        'GET',
-    },
     accessToken,
   )
 }

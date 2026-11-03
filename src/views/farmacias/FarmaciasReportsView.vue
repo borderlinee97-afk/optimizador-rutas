@@ -132,7 +132,7 @@
           v-for="(k, i) in kpis"
           :key="k.label"
           class="kpi"
-          :class="{ blue: i === 0 }"
+          :class="{ blue: i === 0, coverage: k.label === 'Cobertura propia', review: k.label === 'Requieren revisión o aclaración' }"
         >
           <span>{{ k.label }}</span
           ><strong>{{ k.value }}</strong
@@ -147,7 +147,7 @@
         ><span
           >{{ report.summary.vacationDays }} días-persona de vacaciones
           aprobadas</span
-        ><span>{{ report.summary.inProgress }} visitas en curso</span>
+        ><span>{{ report.summary.inProgress }} visitas en curso</span><span role="status">{{ report.summary.overdueVisits || 0 }} visitas de días anteriores requieren revisión o aclaración</span>
       </div>
       <div
         v-if="
@@ -541,6 +541,11 @@ const kpis = computed(() => {
       label: 'No finalizadas',
       value: n(s.notCompleted),
       note: 'Cierre administrativo sin salida; incluidas en las visitas no realizadas, sin sumar horas ni cobertura',
+    },
+    {
+      label: 'Requieren revisión o aclaración',
+      value: n(s.overdueVisits || 0),
+      note: 'Visitas de días anteriores no realizadas o sin finalizar; permiten continuar el trabajo de hoy',
     },
     {
       label: 'Cobertura propia',

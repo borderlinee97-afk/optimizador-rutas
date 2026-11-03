@@ -163,20 +163,21 @@ export function enqueueTaskComment(
 }
 
 const activeTaskSyncs = new WeakMap<typeof db, Promise<TaskOutboxSummary>>()
-export function flushTaskOutbox(accessToken: string, database = db) {
+export function flushTaskOutbox(accessToken: string, database = db, canContinue: () => boolean = () => true) {
   const previous = activeTaskSyncs.get(database)
   if (previous) return previous
-  const active = processTaskOutbox(accessToken, database).finally(() => activeTaskSyncs.delete(database))
+  const active = processTaskOutbox(accessToken, database, canContinue).finally(() => activeTaskSyncs.delete(database))
   activeTaskSyncs.set(database, active)
   return active
 }
 
-async function processTaskOutbox(accessToken: string, database = db) {
+async function processTaskOutbox(accessToken: string, database = db, canContinue: () => boolean = () => true) {
   const rows = database.getAllSync(
     `SELECT idempotency_key, task_id, action_type, payload_json
      FROM operational_task_outbox WHERE status = 'PENDING' ORDER BY created_at`,
   ) as OutboxRow[]
   for (const row of rows) {
+    if (!canContinue()) break
     try {
       const payload = JSON.parse(row.payload_json) as { status?: OperationalTaskStatus; body?: string }
       if (row.action_type === 'STATUS' && payload.status) {

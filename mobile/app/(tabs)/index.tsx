@@ -91,10 +91,10 @@ export default function HomeScreen() {
 
   if (!ready) {
     return (
-      <SafeAreaView className="flex-1 items-center justify-center bg-surface">
+      <SafeAreaView className="flex-1 items-center justify-center bg-canvas">
         <ActivityIndicator
           size="large"
-          color="#147b9d"
+          color="#096e91"
         />
 
         <Text className="mt-4 text-sm text-slate-500">
@@ -106,7 +106,7 @@ export default function HomeScreen() {
 
   return (
     <SafeAreaView
-      className="flex-1 bg-surface"
+      className="flex-1 bg-canvas"
       edges={['top', 'left', 'right']}
     >
       <ScrollView
@@ -115,7 +115,7 @@ export default function HomeScreen() {
         showsVerticalScrollIndicator={false}
       >
         <Text className="mb-5 text-xl font-semibold tracking-tight text-slate-900">App de Rutas</Text>
-        <View className="mb-6 flex-row items-start justify-between">
+        <View className="mb-3 flex-row items-start justify-between">
           <View className="flex-1 pr-4">
             <Text className="text-sm font-semibold uppercase tracking-wider text-primary-600">
               {areaLabel}
@@ -137,7 +137,30 @@ export default function HomeScreen() {
           </View>
         </View>
 
-        <View className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+        {activeVisit ? (<><Text className="mb-2 mt-1 text-lg font-semibold text-slate-900">Visita activa</Text>
+          <Pressable className="overflow-hidden rounded-2xl border border-slate-300 bg-white shadow-sm" onPress={() => {
+                router.push(
+                  `/unit/${encodeURIComponent(
+                    activeVisit.id,
+                  )}` as Href,
+                )
+              }} android_ripple={{ color: "#096e9124" }}>
+            <View className="flex-row items-center justify-between bg-primary-900 px-4 py-3">
+              <Text className="flex-1 text-sm font-semibold text-white">En progreso</Text>
+              <Ionicons name="navigate-circle-outline" size={24} color="#ffffff" />
+            </View>
+            <View className="p-4">
+              <Text className="text-2xl font-semibold text-slate-900" numberOfLines={2}>{activeVisit.name ?? 'Farmacia programada'}</Text>
+              <Text className="mt-2 text-sm leading-5 text-slate-600">Finaliza esta visita antes de iniciar otra actividad.</Text>
+              <View className="mt-4 min-h-[52px] flex-row items-center justify-between rounded-xl bg-primary-600 px-4 py-3">
+                <Text className="flex-1 text-base font-semibold text-white">Continuar visita</Text>
+                <Ionicons name="chevron-forward" size={22} color="#ffffff" />
+              </View>
+            </View>
+          </Pressable></>
+        ) : null}
+
+        <View className="mt-5 rounded-2xl border border-slate-300 bg-white p-5 shadow-sm">
           <View className="flex-row items-start justify-between">
             <View className="mr-4 flex-1">
               <Text className="text-sm font-semibold text-slate-500">
@@ -150,22 +173,22 @@ export default function HomeScreen() {
             </View>
 
             <Pressable
-              className="h-10 w-10 items-center justify-center rounded-2xl bg-primary-50"
+              className="h-10 w-10 items-center justify-center rounded-2xl bg-primary-50 min-h-[44px]"
               onPress={() => {
                 void refresh()
               }}
-              disabled={syncing}
+              disabled={syncing} android_ripple={{ color: "#096e9124" }}
             >
               {syncing ? (
                 <ActivityIndicator
                   size="small"
-                  color="#147b9d"
+                  color="#096e91"
                 />
               ) : (
                 <Ionicons
                   name="refresh"
                   size={20}
-                  color="#147b9d"
+                  color="#096e91"
                 />
               )}
             </Pressable>
@@ -211,7 +234,7 @@ export default function HomeScreen() {
 
             <Text className="mt-2 text-xs text-slate-500">
               {summary.done + summary.skipped} de{' '}
-              {summary.total} actividades cerradas
+              {summary.total} actividades cerradas{'\n'}
               <Text className="mt-1 text-xs text-slate-500">
                 {summary.done} finalizadas ·{' '}
                 {summary.skipped} no realizadas
@@ -229,7 +252,7 @@ export default function HomeScreen() {
             />
 
             <View className="ml-3 flex-1">
-              <Text className="font-semibold text-amber-800">
+              <Text className="text-base font-semibold text-amber-800">
                 Sincronización pendiente
               </Text>
 
@@ -249,56 +272,7 @@ export default function HomeScreen() {
           </View>
         ) : null}
 
-        {activeVisit ? (
-          <>
-            <Text className="mb-3 mt-7 text-lg font-semibold text-slate-900">
-              Visita activa
-            </Text>
 
-            <Pressable
-              className="rounded-3xl border border-emerald-200 bg-white p-5"
-              onPress={() => {
-                router.push(
-                  `/unit/${encodeURIComponent(
-                    activeVisit.id,
-                  )}` as Href,
-                )
-              }}
-            >
-              <View className="flex-row items-center">
-                <View className="h-12 w-12 items-center justify-center rounded-2xl bg-brand-50">
-                  <Ionicons
-                    name="navigate-circle-outline"
-                    size={27}
-                    color="#0e6788"
-                  />
-                </View>
-
-                <View className="ml-4 flex-1">
-                  <Text className="text-xs font-semibold uppercase tracking-wide text-blue-600">
-                    En progreso
-                  </Text>
-
-                  <Text className="mt-1 text-base font-semibold text-blue-900">
-                    {activeVisit.name ??
-                      'Farmacia programada'}
-                  </Text>
-
-                  <Text className="mt-1 text-sm leading-5 text-blue-700">
-                    Finaliza esta visita antes de
-                    iniciar otra actividad.
-                  </Text>
-                </View>
-
-                <Ionicons
-                  name="chevron-forward"
-                  size={22}
-                  color="#147b9d"
-                />
-              </View>
-            </Pressable>
-          </>
-        ) : null}
 
         {!plan && items.length === 0 ? (
           <View className="mt-6 rounded-3xl border border-dashed border-slate-300 bg-white p-7">
@@ -307,7 +281,7 @@ export default function HomeScreen() {
                 <Ionicons
                   name="calendar-outline"
                   size={27}
-                  color="#53646d"
+                  color="#435667"
                 />
               </View>
 
@@ -328,16 +302,16 @@ export default function HomeScreen() {
         </Text>
 
         <Pressable
-          className="mb-3 flex-row items-center rounded-3xl border border-slate-200 bg-white p-5 shadow-sm"
+          className="mb-3 flex-row items-center rounded-3xl border border-slate-200 bg-white p-5 shadow-sm min-h-[44px]"
           onPress={() =>
             router.push('/work' as Href)
-          }
+          } android_ripple={{ color: "#096e9124" }}
         >
           <View className="mr-4 h-12 w-12 items-center justify-center rounded-2xl bg-primary-100">
             <Ionicons
               name="briefcase-outline"
               size={24}
-              color="#147b9d"
+              color="#096e91"
             />
           </View>
 
@@ -355,21 +329,21 @@ export default function HomeScreen() {
           <Ionicons
             name="chevron-forward"
             size={22}
-            color="#667980"
+            color="#435667"
           />
         </Pressable>
 
         <Pressable
-          className="flex-row items-center rounded-3xl border border-slate-200 bg-white p-5 shadow-sm"
+          className="flex-row items-center rounded-3xl border border-slate-200 bg-white p-5 shadow-sm min-h-[44px]"
           onPress={() =>
             router.push('/map' as Href)
-          }
+          } android_ripple={{ color: "#096e9124" }}
         >
           <View className="mr-4 h-12 w-12 items-center justify-center rounded-2xl bg-emerald-100">
             <Ionicons
               name="map-outline"
               size={24}
-              color="#237347"
+              color="#087443"
             />
           </View>
 
@@ -387,7 +361,7 @@ export default function HomeScreen() {
           <Ionicons
             name="chevron-forward"
             size={22}
-            color="#667980"
+            color="#435667"
           />
         </Pressable>
 

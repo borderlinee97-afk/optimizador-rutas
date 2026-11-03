@@ -26,15 +26,15 @@ export function AppUpdateCard({ compact = false }: { compact?: boolean }) {
     {!compact && (!canCheckUpdates || !hasApkInstaller) ? <Text className="mt-2 text-sm text-slate-700">El instalador interno requiere la primera APK con este sistema.</Text> : null}
     {error ? <Text className="mt-2 text-sm text-slate-800">{error}</Text> : null}
     {working ? <View className="mt-3 flex-row items-center gap-3">
-      <ActivityIndicator color="#147b9d" />
+      <ActivityIndicator color="#096e91" />
       <Text className="text-sm font-semibold text-slate-800">{installation.stage === 'downloading' ? `Descargando actualización… ${installation.percent ?? 0}%` : 'Verificando APK aprobada…'}</Text>
     </View> : null}
     {installation.stage === 'permission-required' ? <Text className="mt-2 text-sm text-slate-800">Permite que APP DE RUTAS instale actualizaciones en la pantalla de Android. Al regresar, continuará con la instalación.</Text> : null}
     {installation.stage === 'installer-opened' ? <Text className="mt-2 text-sm text-slate-800">Confirma la actualización en Android. Si cancelaste, puedes volver a abrir el instalador.</Text> : null}
     <View className="mt-3 flex-row flex-wrap gap-4">
-      {release && hasApkInstaller && !working ? <Pressable accessibilityRole="button" onPress={() => { void update() }} disabled={!online || checking}><Text className="font-semibold text-primary-700">{online ? actionLabel : 'Conéctate para actualizar'}</Text></Pressable> : null}
-      {!compact && canCheckUpdates ? <Pressable accessibilityRole="button" onPress={() => { void check() }} disabled={checking || working}><Text className="font-semibold text-primary-700">{checking ? 'Buscando…' : 'Buscar actualizaciones'}</Text></Pressable> : null}
-      {compact ? <Pressable accessibilityRole="button" onPress={dismiss}><Text className="font-semibold text-slate-600">{working ? 'Ocultar aviso' : 'Después'}</Text></Pressable> : null}
+      {release && hasApkInstaller && !working ? <Pressable accessibilityRole="button" onPress={() => { void update() }} disabled={!online || checking} android_ripple={{ color: "#096e9124" }}><Text className="text-base font-semibold text-primary-700">{online ? actionLabel : 'Conéctate para actualizar'}</Text></Pressable> : null}
+      {!compact && canCheckUpdates ? <Pressable accessibilityRole="button" onPress={() => { void check() }} disabled={checking || working} android_ripple={{ color: "#096e9124" }}><Text className="text-base font-semibold text-primary-700">{checking ? 'Buscando…' : 'Buscar actualizaciones'}</Text></Pressable> : null}
+      {compact ? <Pressable accessibilityRole="button" onPress={dismiss} android_ripple={{ color: "#096e9124" }}><Text className="text-base font-semibold text-slate-600">{working ? 'Ocultar aviso' : 'Después'}</Text></Pressable> : null}
     </View>
   </SafeAreaView>
 }

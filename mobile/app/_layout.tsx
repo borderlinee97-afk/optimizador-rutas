@@ -1,9 +1,10 @@
+import '../src/services/backgroundTask'
+import { BackgroundSyncBridge } from '../src/components/BackgroundSyncBridge'
 import { AppUpdateProvider } from '../src/components/AppUpdateProvider'
 import { AppUpdateCard } from '../src/components/AppUpdateCard'
 import '../global.css'
 
 import {
-  DarkTheme,
   DefaultTheme,
   ThemeProvider,
 } from '@react-navigation/native'
@@ -13,7 +14,6 @@ import * as SplashScreen from 'expo-splash-screen'
 import { useEffect } from 'react'
 import 'react-native-reanimated'
 
-import { useColorScheme } from '@/components/useColorScheme'
 import {
   AuthProvider,
   useAuth,
@@ -74,14 +74,12 @@ export default function RootLayout() {
 function AccountNavigator() {
   const { session } = useAuth()
   // Remount all account-local screen state when the authenticated identity changes.
-  return <PlanProvider key={session?.user.id ?? 'signed-out'}><NotificationBridge /><RootNavigator /></PlanProvider>
+  return <PlanProvider key={session?.user.id ?? 'signed-out'}><NotificationBridge /><BackgroundSyncBridge /><RootNavigator /></PlanProvider>
 }
 
 function RootNavigator() {
   const segments=useSegments()
   const resettingPassword=String(segments.at(-1))==='reset-password'
-  const colorScheme =
-    useColorScheme()
 
   const {
     session,
@@ -111,12 +109,7 @@ function RootNavigator() {
 
   return (
     <ThemeProvider
-      value={
-        colorScheme ===
-        'dark'
-          ? DarkTheme
-          : DefaultTheme
-      }
+      value={DefaultTheme}
     >
       <View style={{ flex: 1, backgroundColor: '#ffffff' }}>
       <StatusBar style="dark" />

@@ -405,6 +405,7 @@ export function buildReport(data, filters, allVisits = false) {
       source: row.source,
       status: row.status,
       scheduledDate: row.scheduled_date,
+      requiresReview: ['PENDING','IN_PROGRESS'].includes(row.status) && !row.check_out_at && row.scheduled_date < localDay(Date.now()),
       scheduledTime: row.scheduled_time,
       ...e,
       notes: row.notes,
@@ -572,6 +573,7 @@ export function buildReport(data, filters, allVisits = false) {
           inRange(v.scheduledDate, a, b)
       ).length,
       longVisits: completed.filter((v) => v.dwellSeconds > 12 * 3600).length,
+      overdueVisits: records.filter((v) => v.requiresReview && inRange(v.scheduledDate, a, b)).length,
       notCompleted: records.filter((v) => v.notCompleted && inRange(v.scheduledDate, a, b)).length,
       skipped: records.filter(
         (v) => v.status === 'SKIPPED' && inRange(v.scheduledDate, a, b)

@@ -1,3 +1,5 @@
+import NetInfo from '@react-native-community/netinfo'
+import { downloadWorkPlanScreens } from '../services/workPlanCache'
 import { syncVisitExecution } from '../services/executionSync'
 import {
   AppState,
@@ -61,6 +63,7 @@ export function PlanProvider({
     profile,
     loading: authLoading,
     accessState,
+    profileValidatedAt,
     refreshProfile,
     invalidateProfile,
   } = useAuth()
@@ -157,12 +160,21 @@ export function PlanProvider({
         if (!current.data.session) throw new ApiError('La sesión dejó de ser válida.', 401)
         if (current.data.session.user.id !== userId || !isDatabaseActive(userId) || !currentPlanAccess.current.allowed) return
 
-        await syncTodayPlan(
+        const downloaded = await syncTodayPlan(
           current.data.session.access_token,
         )
 
         reloadFromCache()
         setOffline(false)
+        // The execution cache is already committed. Keep consultation failures
+        // separate so they cannot hide today's successfully downloaded visits.
+        try {
+          await downloadWorkPlanScreens(current.data.session.access_token, userId,
+            (downloaded.plans ?? (downloaded.plan ? [downloaded.plan] : [])).map(p => p.id))
+        } catch (screenError) {
+          if (isAuthorizationFailure(screenError)) throw screenError
+          if (isDatabaseActive(userId)) setError('Las visitas están guardadas. Falta completar la descarga del detalle de los planes; vuelve a actualizar con internet.')
+        }
       } catch (refreshError) {
         if (!isDatabaseActive(userId) || !currentPlanAccess.current.allowed) return
         if (isAuthorizationFailure(refreshError)) {
@@ -370,6 +382,7 @@ export function PlanProvider({
     reloadFromCache,
     refresh,
     accessState,
+    profileValidatedAt,
   ])
 
   useEffect(() => {
@@ -403,6 +416,17 @@ export function PlanProvider({
     isSupervisor,
     refresh,
   ])
+
+  useEffect(() => {
+    if (!isSupervisor) return
+    const subscription = NetInfo.addEventListener(connection => {
+      if (connection.isConnected === true && connection.isInternetReachable !== false && AppState.currentState === 'active') void refresh()
+    })
+    const timer = setInterval(() => {
+      if (AppState.currentState === 'active' && accessState === 'online') void refresh()
+    }, 60_000)
+    return () => { subscription(); clearInterval(timer) }
+  }, [isSupervisor, accessState, refresh])
 
   useEffect(() => {
     const timer = setInterval(reloadFromCache, 60_000)

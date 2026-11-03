@@ -1130,10 +1130,10 @@ export function ExtraStopFormScreen({
 
   if (initializing) {
     return (
-      <SafeAreaView className="flex-1 items-center justify-center bg-surface">
+      <SafeAreaView className="flex-1 items-center justify-center bg-canvas">
         <ActivityIndicator
           size="large"
-          color="#147b9d"
+          color="#096e91"
         />
 
         <Text className="mt-4 text-sm text-slate-500">
@@ -1147,7 +1147,7 @@ export function ExtraStopFormScreen({
     initializationError
   ) {
     return (
-      <SafeAreaView className="flex-1 bg-surface">
+      <SafeAreaView className="flex-1 bg-canvas">
         <View className="flex-1 items-center justify-center px-6">
           <View className="h-16 w-16 items-center justify-center rounded-3xl bg-red-100">
             <Ionicons
@@ -1171,7 +1171,7 @@ export function ExtraStopFormScreen({
               router.replace(
                 '/work',
               )
-            }
+            } android_ripple={{ color: "#096e9124" }}
           >
             <Text className="text-base font-semibold text-white">
               Regresar a Trabajo
@@ -1184,7 +1184,7 @@ export function ExtraStopFormScreen({
 
   return (
     <SafeAreaView
-      className="flex-1 bg-surface"
+      className="flex-1 bg-canvas"
       edges={[
         'top',
         'left',
@@ -1202,11 +1202,11 @@ export function ExtraStopFormScreen({
       >
         <View className="flex-row items-center border-b border-slate-200 bg-white px-5 py-3">
           <Pressable
-            className="h-11 w-11 items-center justify-center rounded-2xl bg-slate-100"
+            className="h-11 w-11 items-center justify-center rounded-2xl bg-slate-100 min-h-[44px]"
             onPress={() =>
               router.back()
             }
-            disabled={saving}
+            disabled={saving} android_ripple={{ color: "#096e9124" }}
           >
             <Ionicons
               name="arrow-back"
@@ -1279,7 +1279,7 @@ export function ExtraStopFormScreen({
           <TextInput
             className="h-14 rounded-2xl border border-slate-200 bg-white px-4 text-base text-slate-800"
             placeholder="Ej. Presidencia Municipal"
-            placeholderTextColor="#667980"
+            placeholderTextColor="#435667"
             value={name}
             onChangeText={
               setName
@@ -1300,13 +1300,13 @@ export function ExtraStopFormScreen({
             <Ionicons
               name="search-outline"
               size={21}
-              color="#53646d"
+              color="#435667"
             />
 
             <TextInput
               className="h-14 flex-1 px-3 text-base text-slate-800"
               placeholder="Busca el lugar en Google Maps"
-              placeholderTextColor="#667980"
+              placeholderTextColor="#435667"
               value={
                 locationQuery
               }
@@ -1326,7 +1326,7 @@ export function ExtraStopFormScreen({
             resolvingPlace ? (
               <ActivityIndicator
                 size="small"
-                color="#147b9d"
+                color="#096e91"
               />
             ) : locationQuery ? (
               <Pressable
@@ -1335,12 +1335,12 @@ export function ExtraStopFormScreen({
                 }
                 disabled={
                   saving
-                }
+                } android_ripple={{ color: "#096e9124" }}
               >
                 <Ionicons
                   name="close-circle"
                   size={21}
-                  color="#667980"
+                  color="#435667"
                 />
               </Pressable>
             ) : null}
@@ -1372,12 +1372,12 @@ export function ExtraStopFormScreen({
                     }}
                     disabled={
                       resolvingPlace
-                    }
+                    } android_ripple={{ color: "#096e9124" }}
                   >
                     <Ionicons
                       name="location-outline"
                       size={21}
-                      color="#147b9d"
+                      color="#096e91"
                     />
 
                     <View className="ml-3 flex-1">
@@ -1489,21 +1489,21 @@ export function ExtraStopFormScreen({
                 disabled={
                   resolvingAddress ||
                   saving
-                }
+                } android_ripple={{ color: "#096e9124" }}
               >
                 {resolvingAddress ? (
                   <ActivityIndicator
-                    color="#237347"
+                    color="#087443"
                   />
                 ) : (
                   <>
                     <Ionicons
                       name="locate-outline"
                       size={20}
-                      color="#237347"
+                      color="#087443"
                     />
 
-                    <Text className="ml-2 font-semibold text-emerald-700">
+                    <Text className="text-base ml-2 font-semibold text-emerald-700">
                       Usar mi ubicación actual
                     </Text>
                   </>
@@ -1518,7 +1518,7 @@ export function ExtraStopFormScreen({
                 <Ionicons
                   name="pin-outline"
                   size={24}
-                  color="#0e6788"
+                  color="#075671"
                 />
 
                 <View className="ml-3 flex-1">
@@ -1581,7 +1581,7 @@ export function ExtraStopFormScreen({
                     }
                     disabled={
                       saving
-                    }
+                    } android_ripple={{ color: "#096e9124" }}
                   >
                     <View
                       className={`h-5 w-5 items-center justify-center rounded-full border ${
@@ -1623,7 +1623,7 @@ export function ExtraStopFormScreen({
           <TextInput
             className="min-h-[110px] rounded-2xl border border-slate-200 bg-white px-4 py-3 text-base text-slate-800"
             placeholder="Ej. Entregar documentación solicitada por Coordinación"
-            placeholderTextColor="#667980"
+            placeholderTextColor="#435667"
             multiline
             textAlignVertical="top"
             maxLength={1000}
@@ -1646,7 +1646,7 @@ export function ExtraStopFormScreen({
             <TextInput
               className="h-14 flex-1 text-base text-slate-800"
               placeholder="Ej. 20"
-              placeholderTextColor="#667980"
+              placeholderTextColor="#435667"
               keyboardType="number-pad"
               maxLength={3}
               value={
@@ -1665,7 +1665,7 @@ export function ExtraStopFormScreen({
               editable={!saving}
             />
 
-            <Text className="font-semibold text-slate-500">
+            <Text className="text-base font-semibold text-slate-500">
               minutos
             </Text>
           </View>
@@ -1683,7 +1683,7 @@ export function ExtraStopFormScreen({
             }}
             disabled={
               !canSave
-            }
+            } android_ripple={{ color: "#096e9124" }}
           >
             {saving ? (
               <ActivityIndicator

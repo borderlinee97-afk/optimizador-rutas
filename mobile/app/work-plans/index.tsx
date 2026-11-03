@@ -58,7 +58,7 @@ const STATUS_CONFIG: Record<
     description:
       'Puedes agregar y modificar visitas.',
     icon: 'create-outline',
-    iconColor: '#475569',
+    iconColor: '#435667',
     badgeClass: 'bg-slate-100',
     textClass: 'text-slate-700',
   },
@@ -78,7 +78,7 @@ const STATUS_CONFIG: Record<
     description:
       'El plan está autorizado para su ejecución.',
     icon: 'checkmark-circle-outline',
-    iconColor: '#237347',
+    iconColor: '#087443',
     badgeClass: 'bg-emerald-100',
     textClass: 'text-emerald-700',
   },
@@ -98,7 +98,7 @@ const STATUS_CONFIG: Record<
     description:
       'El plan fue retirado de la operación.',
     icon: 'archive-outline',
-    iconColor: '#53646d',
+    iconColor: '#435667',
     badgeClass: 'bg-slate-100',
     textClass: 'text-slate-600',
   },
@@ -522,7 +522,7 @@ export default function WorkPlansScreen() {
     !['SUPERVISOR', 'COORDINADOR'].includes(profile?.rol ?? '')
   ) {
     return (
-      <SafeAreaView className="flex-1 items-center justify-center bg-surface px-6">
+      <SafeAreaView className="flex-1 items-center justify-center bg-canvas px-6">
         <View className="h-16 w-16 items-center justify-center rounded-3xl bg-amber-100">
           <Ionicons
             name="lock-closed-outline"
@@ -545,7 +545,7 @@ export default function WorkPlansScreen() {
 
   return (
     <SafeAreaView
-      className="flex-1 bg-surface"
+      className="flex-1 bg-canvas"
       edges={[
         'top',
         'left',
@@ -574,7 +574,7 @@ export default function WorkPlansScreen() {
         }
        keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag">
         <AvailabilityPanel />
-        {legacyDataPreserved ? <Pressable onPress={() => router.push('/legacy-recovery' as Href)}><Text className="my-3 text-sm text-primary-700">Recuperar datos anteriores</Text></Pressable> : null}
+        {legacyDataPreserved ? <Pressable onPress={() => router.push('/legacy-recovery' as Href)} android_ripple={{ color: "#096e9124" }}><Text className="my-3 text-sm text-primary-700">Recuperar datos anteriores</Text></Pressable> : null}
         <View className="flex-row items-start justify-between">
           <View className="mr-4 flex-1">
             <Text className="text-3xl font-semibold text-slate-900">
@@ -592,7 +592,7 @@ export default function WorkPlansScreen() {
             className="h-12 flex-row items-center justify-center rounded-2xl bg-primary-600 px-4"
             onPress={
               openCreateModal
-            }
+            } android_ripple={{ color: "#096e9124" }}
           >
             <Ionicons
               name="add"
@@ -661,7 +661,7 @@ export default function WorkPlansScreen() {
 
         {error ? (
           <View className="mt-5 rounded-2xl border border-rose-200 bg-rose-50 p-4">
-            <Text className="font-semibold text-rose-800">
+            <Text className="text-base font-semibold text-rose-800">
               No se pudieron actualizar los planes
             </Text>
 
@@ -675,7 +675,7 @@ export default function WorkPlansScreen() {
           <View className="mt-12 items-center">
             <ActivityIndicator
               size="large"
-              color="#147b9d"
+              color="#096e91"
             />
 
             <Text className="mt-4 text-sm text-slate-500">
@@ -692,7 +692,7 @@ export default function WorkPlansScreen() {
               <Ionicons
                 name="calendar-outline"
                 size={30}
-                color="#147b9d"
+                color="#096e91"
               />
             </View>
 
@@ -706,12 +706,12 @@ export default function WorkPlansScreen() {
             </Text>
 
             <Pressable
-              className="mt-6 items-center rounded-2xl bg-primary-600 px-5 py-4"
+              className="mt-6 items-center rounded-2xl bg-primary-600 px-5 py-4 min-h-[44px]"
               onPress={
                 openCreateModal
-              }
+              } android_ripple={{ color: "#096e9124" }}
             >
-              <Text className="font-semibold text-white">
+              <Text className="text-base font-semibold text-white">
                 Crear plan semanal
               </Text>
             </Pressable>
@@ -754,11 +754,11 @@ export default function WorkPlansScreen() {
             <Ionicons
               name="information-circle-outline"
               size={23}
-              color="#0e6788"
+              color="#075671"
             />
 
             <View className="ml-3 flex-1">
-              <Text className="font-semibold text-blue-900">
+              <Text className="text-base font-semibold text-blue-900">
                 Organización semanal
               </Text>
 
@@ -810,7 +810,7 @@ export default function WorkPlansScreen() {
                 </View>
 
                 <Pressable
-                  className="h-10 w-10 items-center justify-center rounded-full bg-slate-100"
+                  className="h-10 w-10 items-center justify-center rounded-full bg-slate-100 min-h-[44px]"
                   onPress={() =>
                     setCreateModalVisible(
                       false,
@@ -818,12 +818,12 @@ export default function WorkPlansScreen() {
                   }
                   disabled={
                     creating
-                  }
+                  } android_ripple={{ color: "#096e9124" }}
                 >
                   <Ionicons
                     name="close"
                     size={22}
-                    color="#475569"
+                    color="#435667"
                   />
                 </Pressable>
               </View>
@@ -880,7 +880,7 @@ export default function WorkPlansScreen() {
                   <View className="mt-2 rounded-3xl border border-slate-200 bg-slate-50 p-4">
                     <View className="flex-row items-center justify-between">
                       <Pressable
-                        className="h-11 w-11 items-center justify-center rounded-2xl bg-white"
+                        className="h-11 w-11 items-center justify-center rounded-2xl bg-white min-h-[44px]"
                         onPress={() =>
                           changeWeek(
                             -1,
@@ -888,12 +888,12 @@ export default function WorkPlansScreen() {
                         }
                         disabled={
                           creating
-                        }
+                        } android_ripple={{ color: "#096e9124" }}
                       >
                         <Ionicons
                           name="chevron-back"
                           size={22}
-                          color="#147b9d"
+                          color="#096e91"
                         />
                       </Pressable>
 
@@ -920,7 +920,7 @@ export default function WorkPlansScreen() {
                       </View>
 
                       <Pressable
-                        className="h-11 w-11 items-center justify-center rounded-2xl bg-white"
+                        className="h-11 w-11 items-center justify-center rounded-2xl bg-white min-h-[44px]"
                         onPress={() =>
                           changeWeek(
                             1,
@@ -928,12 +928,12 @@ export default function WorkPlansScreen() {
                         }
                         disabled={
                           creating
-                        }
+                        } android_ripple={{ color: "#096e9124" }}
                       >
                         <Ionicons
                           name="chevron-forward"
                           size={22}
-                          color="#147b9d"
+                          color="#096e91"
                         />
                       </Pressable>
                     </View>
@@ -957,7 +957,7 @@ export default function WorkPlansScreen() {
                       <Ionicons
                         name="checkmark-circle-outline"
                         size={20}
-                        color="#237347"
+                        color="#087443"
                       />
 
                       <Text className="ml-2 flex-1 text-sm leading-5 text-emerald-800">
@@ -1051,7 +1051,7 @@ export default function WorkPlansScreen() {
                       'ORDINARY' &&
                     selectedWeekAlreadyExists
                   )
-                }
+                } android_ripple={{ color: "#096e9124" }}
               >
                 {creating ? (
                   <ActivityIndicator
@@ -1120,7 +1120,7 @@ function PlanCard({
             size={24}
             color={
               isOrdinary
-                ? '#147b9d'
+                ? '#096e91'
                 : '#6d28d9'
             }
           />
@@ -1183,7 +1183,7 @@ function PlanCard({
         </View>
       ) : null}
 
-      <View className="mt-5 flex-row gap-3">
+      <View className="mt-5 flex-row flex-wrap gap-3">
         <PlanMetric
           label="Visitas"
           value={
@@ -1217,7 +1217,7 @@ function PlanCard({
         className="mt-5 h-12 flex-row items-center justify-center rounded-2xl bg-primary-600"
         onPress={
           onOpen
-        }
+        } android_ripple={{ color: "#096e9124" }}
       >
         <Ionicons
           name="open-outline"
@@ -1232,13 +1232,13 @@ function PlanCard({
 
       {canArchive ? (
         <Pressable
-          className="mt-3 h-11 flex-row items-center justify-center rounded-2xl border border-rose-200 bg-rose-50"
+          className="mt-3 h-11 flex-row items-center justify-center rounded-2xl border border-rose-200 bg-rose-50 min-h-[44px]"
           onPress={
             onArchive
           }
           disabled={
             archiving
-          }
+          } android_ripple={{ color: "#096e9124" }}
         >
           {archiving ? (
             <ActivityIndicator
@@ -1302,12 +1302,12 @@ function PlanMetric({
   value: number
 }) {
   return (
-    <View className="flex-1">
-      <Text className="text-center text-lg font-semibold text-slate-900">
+    <View className="w-[47%] min-w-[96px] rounded-xl border border-slate-200 bg-slate-50 px-3 py-3">
+      <Text className="text-lg font-semibold text-slate-900">
         {value}
       </Text>
 
-      <Text className="mt-1 text-center text-[11px] font-semibold text-slate-500">
+      <Text className="mt-1 text-xs font-semibold text-slate-500">
         {label}
       </Text>
     </View>
@@ -1341,15 +1341,15 @@ function PlanTypeButton({
       }
       disabled={
         disabled
-      }
+      } android_ripple={{ color: "#096e9124" }}
     >
       <Ionicons
         name={icon}
         size={21}
         color={
           selected
-            ? '#147b9d'
-            : '#53646d'
+            ? '#096e91'
+            : '#435667'
         }
       />
 

@@ -938,7 +938,7 @@ export default function NewHierarchyAssignmentScreen() {
     !canAssign
   ) {
     return (
-      <SafeAreaView className="flex-1 items-center justify-center bg-surface px-6">
+      <SafeAreaView className="flex-1 items-center justify-center bg-canvas px-6">
         <Ionicons
           name="lock-closed-outline"
           size={38}
@@ -960,10 +960,10 @@ export default function NewHierarchyAssignmentScreen() {
     loadingTeam
   ) {
     return (
-      <SafeAreaView className="flex-1 items-center justify-center bg-surface">
+      <SafeAreaView className="flex-1 items-center justify-center bg-canvas">
         <ActivityIndicator
           size="large"
-          color="#147b9d"
+          color="#096e91"
         />
 
         <Text className="mt-4 text-sm text-slate-500">
@@ -975,7 +975,7 @@ export default function NewHierarchyAssignmentScreen() {
 
   return (
     <SafeAreaView
-      className="flex-1 bg-surface"
+      className="flex-1 bg-canvas"
       edges={[
         'top',
         'left',
@@ -989,10 +989,10 @@ export default function NewHierarchyAssignmentScreen() {
        keyboardDismissMode="on-drag">
         <View className="flex-row items-center">
           <Pressable
-            className="mr-3 h-11 w-11 items-center justify-center rounded-2xl bg-white"
+            className="mr-3 h-11 w-11 items-center justify-center rounded-2xl bg-white min-h-[44px]"
             onPress={() =>
               router.back()
-            }
+            } android_ripple={{ color: "#096e9124" }}
           >
             <Ionicons
               name="arrow-back"
@@ -1047,9 +1047,9 @@ export default function NewHierarchyAssignmentScreen() {
                       setSelectedTargetId(
                         member.id,
                       )
-                    }
+                    } android_ripple={{ color: "#096e9124" }}
                   >
-                    <Text className="font-semibold text-slate-900">
+                    <Text className="text-base font-semibold text-slate-900">
                       {
                         member.name
                       }
@@ -1083,7 +1083,7 @@ export default function NewHierarchyAssignmentScreen() {
             setScheduledDate
           }
           placeholder="AAAA-MM-DD"
-          placeholderTextColor="#667980"
+          placeholderTextColor="#435667"
           autoCapitalize="none"
         />
 
@@ -1101,7 +1101,7 @@ export default function NewHierarchyAssignmentScreen() {
             setScheduledTime
           }
           placeholder="HH:MM"
-          placeholderTextColor="#667980"
+          placeholderTextColor="#435667"
           keyboardType="numbers-and-punctuation"
         />
 
@@ -1155,7 +1155,7 @@ export default function NewHierarchyAssignmentScreen() {
                   setPharmacySearch
                 }
                 placeholder="Nombre, CLUES, región..."
-                placeholderTextColor="#667980"
+                placeholderTextColor="#435667"
                 returnKeyType="search"
                 onSubmitEditing={() => {
                   void handlePharmacySearch()
@@ -1169,7 +1169,7 @@ export default function NewHierarchyAssignmentScreen() {
                 }}
                 disabled={
                   searchingPharmacies
-                }
+                } android_ripple={{ color: "#096e9124" }}
               >
                 {searchingPharmacies ? (
                   <ActivityIndicator
@@ -1209,9 +1209,9 @@ export default function NewHierarchyAssignmentScreen() {
                         setSelectedPharmacy(
                           pharmacy,
                         )
-                      }
+                      } android_ripple={{ color: "#096e9124" }}
                     >
-                      <Text className="font-semibold text-slate-900">
+                      <Text className="text-base font-semibold text-slate-900">
                         {
                           pharmacy.name
                         }
@@ -1254,7 +1254,7 @@ export default function NewHierarchyAssignmentScreen() {
               <Ionicons
                 name="search-outline"
                 size={20}
-                color="#53646d"
+                color="#435667"
               />
 
               <TextInput
@@ -1280,14 +1280,14 @@ export default function NewHierarchyAssignmentScreen() {
                   )
                 }}
                 placeholder="Ej. Secretaría de Salud"
-                placeholderTextColor="#667980"
+                placeholderTextColor="#435667"
               />
 
               {searchingPlaces ||
               resolvingPlace ? (
                 <ActivityIndicator
                   size="small"
-                  color="#147b9d"
+                  color="#096e91"
                 />
               ) : null}
             </View>
@@ -1315,9 +1315,9 @@ export default function NewHierarchyAssignmentScreen() {
                         void handleSelectPrediction(
                           prediction,
                         )
-                      }}
+                      }} android_ripple={{ color: "#096e9124" }}
                     >
-                      <Text className="font-semibold text-slate-900">
+                      <Text className="text-base font-semibold text-slate-900">
                         {
                           prediction.mainText
                         }
@@ -1350,7 +1350,7 @@ export default function NewHierarchyAssignmentScreen() {
                 setFreePointName
               }
               placeholder="Nombre del lugar"
-              placeholderTextColor="#667980"
+              placeholderTextColor="#435667"
             />
 
             <FieldLabel
@@ -1368,7 +1368,7 @@ export default function NewHierarchyAssignmentScreen() {
               }
               multiline
               placeholder="Dirección del lugar"
-              placeholderTextColor="#667980"
+              placeholderTextColor="#435667"
             />
 
             <View className="mt-4 flex-row gap-3">
@@ -1385,7 +1385,7 @@ export default function NewHierarchyAssignmentScreen() {
                   }
                   keyboardType="numbers-and-punctuation"
                   placeholder="20.000000"
-                  placeholderTextColor="#667980"
+                  placeholderTextColor="#435667"
                 />
               </View>
 
@@ -1402,7 +1402,7 @@ export default function NewHierarchyAssignmentScreen() {
                   }
                   keyboardType="numbers-and-punctuation"
                   placeholder="-103.000000"
-                  placeholderTextColor="#667980"
+                  placeholderTextColor="#435667"
                 />
               </View>
             </View>
@@ -1435,7 +1435,7 @@ export default function NewHierarchyAssignmentScreen() {
                         setCategory(
                           option.code,
                         )
-                      }
+                      } android_ripple={{ color: "#096e9124" }}
                     >
                       <Text
                         className={
@@ -1469,7 +1469,7 @@ export default function NewHierarchyAssignmentScreen() {
               }
               keyboardType="number-pad"
               placeholder="Ej. 30"
-              placeholderTextColor="#667980"
+              placeholderTextColor="#435667"
             />
           </View>
         )}
@@ -1493,7 +1493,7 @@ export default function NewHierarchyAssignmentScreen() {
             1000
           }
           placeholder="Describe qué debe realizar la persona durante esta visita."
-          placeholderTextColor="#667980"
+          placeholderTextColor="#435667"
         />
 
         {selectedTarget ? (
@@ -1502,7 +1502,7 @@ export default function NewHierarchyAssignmentScreen() {
               Se asignará a
             </Text>
 
-            <Text className="mt-1 font-semibold text-slate-800">
+            <Text className="text-base mt-1 font-semibold text-slate-800">
               {
                 selectedTarget.name
               }
@@ -1521,7 +1521,7 @@ export default function NewHierarchyAssignmentScreen() {
           }}
           disabled={
             saving
-          }
+          } android_ripple={{ color: "#096e9124" }}
         >
           {saving ? (
             <ActivityIndicator
@@ -1609,7 +1609,7 @@ function ModeButton({
       }`}
       onPress={
         onPress
-      }
+      } android_ripple={{ color: "#096e9124" }}
     >
       <Ionicons
         name={
@@ -1618,8 +1618,8 @@ function ModeButton({
         size={23}
         color={
           active
-            ? '#147b9d'
-            : '#53646d'
+            ? '#096e91'
+            : '#435667'
         }
       />
 

@@ -1,3 +1,4 @@
+import { OfflineReadiness } from '../../src/components/OfflineReadiness'
 import { VisitSyncStatus } from '../../src/components/VisitSyncStatus'
 import { Ionicons } from '@expo/vector-icons'
 import {
@@ -50,7 +51,7 @@ const STATUS_CONFIG: Record<
     containerClass: 'bg-slate-100',
     textClass: 'text-slate-700',
     icon: 'time-outline',
-    iconColor: '#475569',
+    iconColor: '#435667',
   },
 
   IN_PROGRESS: {
@@ -58,7 +59,7 @@ const STATUS_CONFIG: Record<
     containerClass: 'bg-blue-100',
     textClass: 'text-blue-700',
     icon: 'navigate-circle-outline',
-    iconColor: '#0e6788',
+    iconColor: '#075671',
   },
 
   DONE: {
@@ -66,7 +67,7 @@ const STATUS_CONFIG: Record<
     containerClass: 'bg-emerald-100',
     textClass: 'text-emerald-700',
     icon: 'checkmark-circle-outline',
-    iconColor: '#237347',
+    iconColor: '#087443',
   },
 
   SKIPPED: {
@@ -238,10 +239,10 @@ export default function WorkScreen() {
 
   if (!ready) {
     return (
-      <SafeAreaView className="flex-1 items-center justify-center bg-surface">
+      <SafeAreaView className="flex-1 items-center justify-center bg-canvas">
         <ActivityIndicator
           size="large"
-          color="#147b9d"
+          color="#096e91"
         />
 
         <Text className="mt-4 text-sm text-slate-500">
@@ -253,7 +254,7 @@ export default function WorkScreen() {
 
   return (
     <SafeAreaView
-      className="flex-1 bg-surface"
+      className="flex-1 bg-canvas"
       edges={[
         'top',
         'left',
@@ -274,7 +275,7 @@ export default function WorkScreen() {
               Mi trabajo
             </Text>
 
-            <Text className="mt-2 text-base leading-6 text-slate-500">
+            <Text className="mt-2 text-sm leading-5 text-slate-600">
               {isCoordinator
                 ? 'Consulta tu plan, las visitas que te fueron asignadas y registra su ejecución.'
                 : 'Consulta todas las actividades autorizadas para hoy y registra su ejecución.'}
@@ -288,12 +289,12 @@ export default function WorkScreen() {
             }}
             disabled={
               syncing
-            }
+            } android_ripple={{ color: "#096e9124" }}
           >
             {syncing ? (
               <ActivityIndicator
                 size="small"
-                color="#147b9d"
+                color="#096e91"
               />
             ) : (
               <Text className="text-sm font-semibold text-primary-600">
@@ -302,6 +303,8 @@ export default function WorkScreen() {
             )}
           </Pressable>
         </View>
+
+        <OfflineReadiness />
 
         {items.length >
         0 ? (
@@ -338,7 +341,7 @@ export default function WorkScreen() {
               />
             </View>
 
-            <View className="mt-4 rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
+            <View className="mt-3 rounded-xl border border-slate-300 bg-white p-3">
               <Text className="text-xs font-semibold uppercase tracking-wide text-slate-500">
                 Actividades de hoy
               </Text>
@@ -392,6 +395,27 @@ export default function WorkScreen() {
           </>
         ) : null}
 
+        {activeVisit ? (
+          <Pressable className="mt-4 overflow-hidden rounded-2xl border border-slate-300 bg-white shadow-sm" onPress={() =>
+              openItem(
+                activeVisit,
+              )
+            } android_ripple={{ color: "#096e9124" }}>
+            <View className="flex-row items-center justify-between bg-primary-900 px-4 py-3">
+              <Text className="flex-1 text-sm font-semibold text-white">Actividad en progreso</Text>
+              <Ionicons name="navigate-circle-outline" size={24} color="#ffffff" />
+            </View>
+            <View className="p-4">
+              <Text className="text-2xl font-semibold text-slate-900" numberOfLines={2}>{activeVisit.name ?? 'Actividad sin nombre'}</Text>
+
+              <View className="mt-4 min-h-[52px] flex-row items-center justify-between rounded-xl bg-primary-600 px-4 py-3">
+                <Text className="flex-1 text-base font-semibold text-white">Continuar visita</Text>
+                <Ionicons name="chevron-forward" size={22} color="#ffffff" />
+              </View>
+            </View>
+          </Pressable>
+        ) : null}
+
         {/*
          * SUPERVISOR Y COORDINADOR:
          * ambos administran su propio
@@ -399,10 +423,10 @@ export default function WorkScreen() {
          */}
         {canManageOwnPlans ? (
           <Pressable
-            className="mt-5 flex-row items-center rounded-2xl border border-slate-200 bg-white p-4"
+            className="mt-5 flex-row items-center rounded-2xl border border-slate-200 bg-white p-4 min-h-[44px]"
             onPress={
               openWorkPlans
-            }
+            } android_ripple={{ color: "#096e9124" }}
           >
             <View className="h-10 w-10 items-center justify-center rounded-xl bg-brand-600">
               <Ionicons
@@ -417,7 +441,7 @@ export default function WorkScreen() {
                 Mis planes de trabajo
               </Text>
 
-              <Text className="hidden">
+              <Text className="text-base hidden">
                 Crea borradores, consulta
                 aprobaciones y revisa los planes
                 rechazados.
@@ -427,7 +451,7 @@ export default function WorkScreen() {
             <Ionicons
               name="chevron-forward"
               size={22}
-              color="#6a9fb4"
+              color="#435667"
             />
           </Pressable>
         ) : null}
@@ -438,10 +462,10 @@ export default function WorkScreen() {
          */}
         {isSupervisor ? (
           <Pressable
-            className="mt-3 flex-row items-center rounded-2xl border border-slate-200 bg-white p-4"
+            className="mt-3 flex-row items-center rounded-2xl border border-slate-200 bg-white p-4 min-h-[44px]"
             onPress={
               openNewExtraStop
-            }
+            } android_ripple={{ color: "#096e9124" }}
           >
             <View className="h-10 w-10 items-center justify-center rounded-xl bg-primary-600">
               <Ionicons
@@ -456,7 +480,7 @@ export default function WorkScreen() {
                 Agregar parada adicional
               </Text>
 
-              <Text className="hidden">
+              <Text className="text-base hidden">
                 Registra una entrega, pago,
                 trámite o actividad surgida
                 durante la ejecución.
@@ -466,7 +490,7 @@ export default function WorkScreen() {
             <Ionicons
               name="chevron-forward"
               size={22}
-              color="#6a9fb4"
+              color="#435667"
             />
           </Pressable>
         ) : null}
@@ -478,10 +502,10 @@ export default function WorkScreen() {
         {isCoordinator ? (
           <>
             <Pressable
-              className="mt-4 flex-row items-center rounded-3xl border border-indigo-200 bg-indigo-50 p-5"
+              className="mt-4 flex-row items-center rounded-3xl border border-indigo-200 bg-indigo-50 p-5 min-h-[44px]"
               onPress={
                 openHierarchyAssignment
-              }
+              } android_ripple={{ color: "#096e9124" }}
             >
               <View className="h-12 w-12 items-center justify-center rounded-2xl bg-indigo-600">
                 <Ionicons
@@ -534,7 +558,7 @@ export default function WorkScreen() {
 
         {error ? (
           <View className="mt-5 rounded-2xl border border-amber-200 bg-amber-50 p-4">
-            <Text className="font-semibold text-amber-800">
+            <Text className="text-base font-semibold text-amber-800">
               Sincronización pendiente
             </Text>
 
@@ -552,44 +576,7 @@ export default function WorkScreen() {
           </View>
         ) : null}
 
-        {activeVisit ? (
-          <Pressable
-            className="mt-5 flex-row items-center rounded-2xl border border-blue-200 bg-blue-50 px-4 py-4"
-            onPress={() =>
-              openItem(
-                activeVisit,
-              )
-            }
-          >
-            <View className="h-11 w-11 items-center justify-center rounded-2xl bg-blue-100">
-              <Ionicons
-                name="navigate-circle-outline"
-                size={25}
-                color="#0e6788"
-              />
-            </View>
 
-            <View className="ml-3 flex-1">
-              <Text className="text-sm font-semibold text-blue-800">
-                Actividad en progreso
-              </Text>
-
-              <Text
-                className="mt-1 text-sm text-blue-700"
-                numberOfLines={2}
-              >
-                {activeVisit.name ??
-                  'Actividad sin nombre'}
-              </Text>
-            </View>
-
-            <Ionicons
-              name="chevron-forward"
-              size={21}
-              color="#6a9fb4"
-            />
-          </Pressable>
-        ) : null}
 
         <View className="mt-6 gap-3">
           {items.map(
@@ -643,7 +630,7 @@ export default function WorkScreen() {
                   key={
                     item.id
                   }
-                  style={item.status === 'IN_PROGRESS' ? { borderTopWidth: 3, borderTopColor: '#237347' } : undefined}
+                  style={item.status === 'IN_PROGRESS' ? { borderTopWidth: 3, borderTopColor: '#087443' } : undefined}
                   className={`rounded-3xl border p-5 ${
                     isCancelled
                       ? 'border-rose-200 bg-rose-50'
@@ -666,7 +653,7 @@ export default function WorkScreen() {
                   }
                   disabled={
                     blocked
-                  }
+                  } android_ripple={{ color: "#096e9124" }}
                 >
                   <View className="flex-row items-start">
                     <View
@@ -707,7 +694,7 @@ export default function WorkScreen() {
                           color="#c2410c"
                         />
                       ) : (
-                        <Text className="font-semibold text-primary-700">
+                        <Text className="text-base font-semibold text-primary-700">
                           {index +
                             1}
                         </Text>
@@ -766,7 +753,7 @@ export default function WorkScreen() {
                           <Ionicons
                             name="time-outline"
                             size={14}
-                            color="#475569"
+                            color="#435667"
                           />
 
                           <Text className="ml-1 text-xs font-semibold text-slate-700">
@@ -887,7 +874,7 @@ export default function WorkScreen() {
               <Ionicons
                 name="calendar-outline"
                 size={28}
-                color="#53646d"
+                color="#435667"
               />
             </View>
 
@@ -1027,7 +1014,7 @@ function OriginBadge({
       <Ionicons
         name="calendar-outline"
         size={13}
-        color="#0e6788"
+        color="#075671"
       />
 
       <Text className="ml-1 text-xs font-semibold text-blue-700">
@@ -1109,9 +1096,9 @@ function SummaryCard({
   containerClass: string
 }) {
   return (
-    <View className="flex-1 border-b border-slate-200 bg-white px-3 py-4">
+    <View className="flex-1 rounded-xl border border-slate-300 bg-white px-3 py-3">
       <View
-        className={`h-9 w-9 items-center justify-center rounded-xl ${containerClass}`}
+        className={`hidden h-9 w-9 items-center justify-center rounded-xl ${containerClass}`}
       >
         <Ionicons
           name={
@@ -1124,7 +1111,7 @@ function SummaryCard({
         />
       </View>
 
-      <Text className="mt-3 text-xl font-semibold text-slate-900">
+      <Text className="text-2xl font-semibold text-slate-900">
         {
           value
         }

@@ -134,6 +134,8 @@ test('PlanProvider never clears storage when the session/profile disappears and 
   let auth = { session: { user: { id: A }, access_token: 'token-a' }, profile: { id: 'persona-a', area: 'FARMACIAS', rol: 'SUPERVISOR' },
     loading: false, accessState: 'offline', refreshProfile: async () => {}, invalidateProfile: async () => {} }
   const provider = loadTs('src/context/PlanContext.tsx', {
+    '@react-native-community/netinfo': { default: { addEventListener: () => () => {} } },
+    '../services/workPlanCache': { downloadWorkPlanScreens: async () => {} },
     ...runner.modules, './AuthContext': { useAuth: () => auth }, '../lib/api': { ApiError },
     '../lib/supabase': { supabase: { auth: {} } },
     '../services/planSync': h.planSync, '../../storage/db': h.storage,
@@ -156,6 +158,8 @@ test('PlanProvider uses the renewed SDK token after evidence sync, not the expir
   const auth = { session: { user: { id: A }, access_token: 'expired' }, profile: { id: 'persona-a', area: 'FARMACIAS', rol: 'SUPERVISOR' },
     loading: false, accessState: 'online', refreshProfile: async () => {}, invalidateProfile: async () => { throw new Error('must not revoke a refreshed session') } }
   const provider = loadTs('src/context/PlanContext.tsx', {
+    '@react-native-community/netinfo': { default: { addEventListener: () => () => {} } },
+    '../services/workPlanCache': { downloadWorkPlanScreens: async () => {} },
     ...runner.modules, './AuthContext': { useAuth: () => auth }, '../lib/api': { ApiError },
     '../lib/supabase': { supabase: { auth: { getSession: async () => ({ data: { session: { user: { id: A }, access_token: 'renewed' } } }) } } },
     '../services/planSync': h.planSync, '../../storage/db': h.storage,
@@ -252,4 +256,79 @@ test('real backend Date rows survive JSON, weekly SQLite caching and the Mi trab
     h.storage.deactivateUserDatabase();h.storage.activateUserDatabase(A)
     assert.equal(h.planSync.readCachedTodayPlan('2026-10-19').items.length,3)
   } finally {h.close()}
+})
+
+function screenHarness(h) {
+  let online = true, error = null, deferred = null
+  const calls = []
+  const cache = loadTs('src/services/workPlanCache.ts', {
+    '../../storage/db': h.storage,
+    '@react-native-community/netinfo': { default: { fetch: async () => ({ isConnected: online, isInternetReachable: online }) } },
+    './profileCache': { isNetworkFailure: error => error?.code === 'NETWORK_ERROR' },
+    '../lib/api': { ApiError, apiRequest: async path => {
+      calls.push(path)
+      if (error) throw error
+      if (deferred) return deferred
+      return path.endsWith('mine') ? { plans: [{ id: A, status: 'APPROVED' }] } : { plan: { id: A, status: 'APPROVED' }, items: [{ id: 'one' }], revisions: [], events: [] }
+    } },
+  })
+  return { cache, calls, offline() { online = false }, fail(e) { error = e }, defer(p) { deferred = p } }
+}
+
+test('plan consultation downloads list and detail, restores offline without a network request, and isolates accounts', async () => {
+  const h=sqliteHarness();h.storage.activateUserDatabase(A)
+  const screen=screenHarness(h)
+  await screen.cache.downloadWorkPlanScreens('token-a', A, [A])
+  assert.equal(screen.calls.length,2)
+  screen.offline()
+  const detail=await screen.cache.getWorkPlanScreen(`/api/mobile/work-plans/${A}`,'token-a')
+  assert.equal(detail.offline,true);assert.equal(detail.items[0].id,'one');assert.ok(detail.cachedAt)
+  assert.equal(screen.calls.length,2)
+  assert.equal((await screen.cache.getWorkPlanScreen('/api/mobile/work-plans/mine','token-a')).plans[0].status,'APPROVED')
+  h.storage.activateUserDatabase(B)
+  await assert.rejects(screen.cache.getWorkPlanScreen(`/api/mobile/work-plans/${A}`,'token-b'),/no está descargado/)
+  h.close()
+})
+
+test('cached plan consultation never bypasses 401/403, and an in-flight response cannot write after switching accounts', async () => {
+  const h=sqliteHarness();h.storage.activateUserDatabase(A)
+  const screen=screenHarness(h)
+  const path=`/api/mobile/work-plans/${A}`
+  await screen.cache.getWorkPlanScreen(path,'token-a')
+  for (const status of [401,403]) {
+    screen.fail(new ApiError('Denied',status))
+    await assert.rejects(screen.cache.getWorkPlanScreen(path,'token-a'),e=>e.status===status)
+  }
+  screen.fail(null)
+  let resolve
+  screen.defer(new Promise(done=>{resolve=done}))
+  const pending=screen.cache.getWorkPlanScreen(path,'token-a')
+  await new Promise(done=>setImmediate(done))
+  h.storage.activateUserDatabase(B)
+  resolve({plan:{id:A},items:[]})
+  await assert.rejects(pending,/cuenta cambió/)
+  h.close()
+})
+
+test('PlanProvider downloads an approved plan when connection returns and on the foreground timer', async () => {
+  const h=sqliteHarness();h.storage.activateUserDatabase(A)
+  const runner=hooks(); let reconnect, tick; let screenDownloads=0
+  const auth={session:{user:{id:A},access_token:'token'},profile:{id:'persona',area:'FARMACIAS',rol:'SUPERVISOR'},loading:false,accessState:'online',refreshProfile:async()=>{},invalidateProfile:async()=>{}}
+  const provider=loadTs('src/context/PlanContext.tsx',{
+    ...runner.modules,'./AuthContext':{useAuth:()=>auth},'../lib/api':{ApiError},
+    '@react-native-community/netinfo':{default:{addEventListener:cb=>{reconnect=cb;return ()=>{}}}},
+    '../services/workPlanCache':{downloadWorkPlanScreens:async()=>{screenDownloads++}},
+    '../lib/supabase':{supabase:{auth:{getSession:async()=>({data:{session:auth.session}})}}},
+    '../services/planSync':h.planSync,'../../storage/db':h.storage,
+    '../services/executionSync':{syncVisitExecution:async()=>{}},'../services/evidenceSync':{syncPendingEvidence:async()=>({synced:0})},
+    '../services/profileCache':{isAuthorizationFailure:()=>false,isNetworkFailure:()=>false},
+    'react-native':{AppState:{currentState:'active',addEventListener:()=>({remove(){}})}},
+  },{setInterval:cb=>{tick??=cb;return 1},clearInterval:()=>{}})
+  runner.mount(provider.PlanProvider);await runner.flush()
+  const initial=h.tokens.length
+  reconnect({isConnected:true,isInternetReachable:true});await runner.flush()
+  assert.equal(h.tokens.length,initial+1)
+  tick();await runner.flush();assert.equal(h.tokens.length,initial+2)
+  assert.equal(screenDownloads,h.tokens.length)
+  runner.stop();h.close()
 })

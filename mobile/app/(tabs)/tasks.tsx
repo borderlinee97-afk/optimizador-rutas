@@ -280,7 +280,7 @@ export default function TasksScreen() {
 
   return (
     <SafeAreaView
-      className="flex-1 bg-surface"
+      className="flex-1 bg-canvas"
       edges={['top', 'left', 'right']}
     >
       <ScrollView
@@ -299,8 +299,8 @@ export default function TasksScreen() {
           </View>
 
           <Pressable
-            className="rounded-xl bg-sky-700 px-4 py-3"
-            onPress={() => setCreateVisible(true)}
+            className="rounded-xl bg-sky-700 px-4 py-3 min-h-[44px]"
+            onPress={() => setCreateVisible(true)} android_ripple={{ color: "#096e9124" }}
           >
             <Text className="text-xs font-semibold text-white">
               Nueva
@@ -330,9 +330,9 @@ export default function TasksScreen() {
 
             <View className="mt-2 flex-row gap-2">
               <Pressable
-                className="rounded-lg bg-white px-3 py-2"
+                className="rounded-lg bg-white px-3 py-2 min-h-[44px]"
                 onPress={() => void retryFailedMutations()}
-                disabled={Boolean(busyId)}
+                disabled={Boolean(busyId)} android_ripple={{ color: "#096e9124" }}
               >
                 <Text className="text-xs font-semibold text-rose-800">
                   Reintentar
@@ -340,9 +340,9 @@ export default function TasksScreen() {
               </Pressable>
 
               <Pressable
-                className="rounded-lg px-3 py-2"
+                className="rounded-lg px-3 py-2 min-h-[44px]"
                 onPress={confirmDiscardFailedMutations}
-                disabled={Boolean(busyId)}
+                disabled={Boolean(busyId)} android_ripple={{ color: "#096e9124" }}
               >
                 <Text className="text-xs font-semibold text-rose-800">
                   Descartar
@@ -360,7 +360,7 @@ export default function TasksScreen() {
                 className={`flex-1 rounded-xl px-3 py-2.5 ${
                   mode === option ? 'bg-white' : ''
                 }`}
-                onPress={() => setMode(option)}
+                onPress={() => setMode(option)} android_ripple={{ color: "#096e9124" }}
               >
                 <Text
                   className={`text-center text-xs font-semibold ${
@@ -418,7 +418,7 @@ export default function TasksScreen() {
           <ActivityIndicator
             className="mt-10"
             size="large"
-            color="#147b9d"
+            color="#096e91"
           />
         ) : groups.length === 0 ? (
           <Empty />
@@ -464,11 +464,11 @@ export default function TasksScreen() {
                 {detail?.task.title}
               </Text>
 
-              <Pressable onPress={() => setDetail(null)}>
+              <Pressable onPress={() => setDetail(null)} android_ripple={{ color: "#096e9124" }}>
                 <Ionicons
                   name="close"
                   size={25}
-                  color="#475569"
+                  color="#435667"
                 />
               </Pressable>
             </View>
@@ -505,7 +505,7 @@ export default function TasksScreen() {
                 : 'Pendiente'}
             </Text>
 
-            <Text className="mt-6 font-semibold text-slate-900">
+            <Text className="text-base mt-6 font-semibold text-slate-900">
               Evidencias · {detail?.evidence.length ?? 0}
             </Text>
 
@@ -521,7 +521,7 @@ export default function TasksScreen() {
               />
             ) : null}
 
-            <Text className="mt-6 font-semibold text-slate-900">
+            <Text className="text-base mt-6 font-semibold text-slate-900">
               Comentarios
             </Text>
 
@@ -557,7 +557,7 @@ export default function TasksScreen() {
               disabled={!comment.trim() || Boolean(busyId)}
             />
 
-            <Text className="mt-6 font-semibold text-slate-900">
+            <Text className="text-base mt-6 font-semibold text-slate-900">
               Historial
             </Text>
 
@@ -624,7 +624,7 @@ export default function TasksScreen() {
                         ? 'bg-sky-700'
                         : 'bg-slate-100'
                     }`}
-                    onPress={() => setNewPriority(value)}
+                    onPress={() => setNewPriority(value)} android_ripple={{ color: "#096e9124" }}
                   >
                     <Text
                       className={`text-xs font-semibold ${
@@ -689,8 +689,8 @@ function TaskCard({
 }) {
   return (
     <Pressable
-      className="mb-3 rounded-3xl border border-slate-200 bg-white p-5 shadow-sm"
-      onPress={onOpen}
+      className="mb-3 rounded-3xl border border-slate-200 bg-white p-5 shadow-sm min-h-[44px]"
+      onPress={onOpen} android_ripple={{ color: "#096e9124" }}
     >
       <View className="flex-row items-start justify-between gap-3">
         <View className="flex-1">
@@ -709,7 +709,7 @@ function TaskCard({
             PRIORITY_STYLES[task.priority]
           }`}
         >
-          <Text className="text-[10px] font-semibold text-slate-800">
+          <Text className="text-xs font-semibold text-slate-800">
             {PRIORITY_LABELS[task.priority]}
           </Text>
         </View>
@@ -768,12 +768,12 @@ function ChipSelect({
 
   return (
     <Pressable
-      className="flex-1 rounded-xl border border-slate-200 bg-white px-3 py-3"
+      className="flex-1 rounded-xl border border-slate-200 bg-white px-3 py-3 min-h-[44px]"
       onPress={() =>
         onChange(values[(index + 1) % values.length])
-      }
+      } android_ripple={{ color: "#096e9124" }}
     >
-      <Text className="text-[10px] uppercase text-slate-400">
+      <Text className="text-xs uppercase text-slate-400">
         {label}
       </Text>
 
@@ -787,7 +787,7 @@ function ChipSelect({
 function Empty() {
   return (
     <View className="mt-6 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-      <Text className="text-center font-semibold text-slate-800">
+      <Text className="text-base text-center font-semibold text-slate-800">
         Agenda al día
       </Text>
 
@@ -809,12 +809,12 @@ function MiniButton({
 }) {
   return (
     <Pressable
-      className="rounded-lg bg-sky-50 px-3 py-2"
+      className="rounded-lg bg-sky-50 px-3 py-2 min-h-[44px]"
       onPress={event => {
         event.stopPropagation()
         onPress()
       }}
-      disabled={disabled}
+      disabled={disabled} android_ripple={{ color: "#096e9124" }}
     >
       <Text className="text-xs font-semibold text-sky-700">
         {label}
@@ -836,12 +836,12 @@ function TaskButton({
 }) {
   return (
     <Pressable
-      className="mt-3 min-w-28 flex-1 flex-row items-center justify-center rounded-xl bg-sky-700 px-3 py-3"
+      className="mt-3 min-w-28 flex-1 flex-row items-center justify-center rounded-xl bg-sky-700 px-3 py-3 min-h-[44px]"
       onPress={onPress}
       disabled={disabled}
       style={{
         opacity: disabled ? 0.5 : 1,
-      }}
+      }} android_ripple={{ color: "#096e9124" }}
     >
       <Ionicons
         name={icon}
