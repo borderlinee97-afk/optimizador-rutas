@@ -1,4 +1,5 @@
 import {createAndroidReleaseRouter} from './routes/androidRelease.route.js'
+import diagnosticsRouter from './routes/diagnostics.route.js'
 import {readCurrentAndroidRelease} from './services/androidReleaseAdmin.service.js'
 import adminAndroidUpdatesRouter from './routes/web.androidUpdates.route.js'
 import bulkCancellationRouter from './routes/web.workPlanBulkCancellation.route.js'
@@ -300,6 +301,8 @@ app.use(
     credentials:
       true,
 
+    exposedHeaders: ['X-Request-Id'],
+
     methods: [
       'GET',
       'POST',
@@ -491,6 +494,7 @@ app.use(
   webWorkPlansRouter,
 )
 
+app.use('/api',diagnosticsRouter)
 app.use('/api/web/farmacias-reports', farmaciasReportsRouter)
 app.use('/api/web/work-plans',bulkCancellationRouter)
 

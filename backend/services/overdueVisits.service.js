@@ -1,6 +1,8 @@
 // Read-only, current unresolved execution alerts. No fabricated checkout or automatic closure.
-export async function listOverdueVisits(db, actor) {
+export async function listOverdueVisits(db, actor, filters = {}) {
   if (!actor?.activo || actor.area !== 'FARMACIAS' || !['COORDINADOR','GERENTE'].includes(actor.rol)) return {total:0,visits:[]}
+  const offset=Number(filters.offset ?? 0),limit=100
+  if (!Number.isSafeInteger(offset)||offset<0||offset>100000) throw Object.assign(new Error('Página no válida.'),{status:400})
   const result = await db.query(`
     SELECT i.id, i.plan_id AS "planId", p.supervisor_id AS "personId", person.nombre AS "personName",
       COALESCE(f.unidad, i.custom_name, 'Visita sin nombre') AS name,
@@ -16,8 +18,10 @@ export async function listOverdueVisits(db, actor) {
       AND i.scheduled_date < (CURRENT_TIMESTAMP AT TIME ZONE 'America/Mexico_City')::date
       AND person.activo AND person.area::text='FARMACIAS'
       AND person.id <> $1::uuid AND public.can_review_farmacias_plan($1::uuid,person.id)
-    ORDER BY i.scheduled_date, person.nombre, i.id LIMIT 100`, [actor.id])
-  return {total:Number(result.rows[0]?.total ?? 0), visits:result.rows.map(({total,...row})=>({
+    ORDER BY i.scheduled_date, person.nombre, i.id LIMIT 100 OFFSET $2`, [actor.id,offset])
+  if (!result.rows.length && offset) return listOverdueVisits(db,actor,{offset:0})
+  const total=Number(result.rows[0]?.total ?? 0)
+  return {total, offset, hasMore:offset+result.rows.length<total, visits:result.rows.map(({total,...row})=>({
     ...row, reason:row.status==='IN_PROGRESS'?'Sin finalizar':'No realizada', requiresReview:true,
   }))}
 }

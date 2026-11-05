@@ -37,12 +37,14 @@ export async function registerPushDevice(profile, authUserId, body, db = pool) {
   } finally { client.release() }
 }
 
-// Supabase signOut() uses global scope; disable this account's devices before logout.
-export async function revokePushDevices(authUserId, db = pool) {
+// Updated clients revoke this installation. Legacy clients retain their prior
+// account-wide notification revocation (never an Auth session revocation).
+export async function revokePushDevices(authUserId, db = pool, installationId = null) {
+  if (installationId !== null && !UUID.test(installationId)) throw Object.assign(new Error('Instalación no válida.'),{status:400})
   await db.query(`WITH revoked AS (
-    UPDATE public.app_push_device SET active=false,updated_at=now() WHERE auth_user_id=$1 RETURNING installation_id
+    UPDATE public.app_push_device SET active=false,updated_at=now() WHERE auth_user_id=$1 AND ($2::uuid IS NULL OR installation_id=$2::uuid) RETURNING installation_id
    ) UPDATE public.plan_push_outbox SET status='CANCELLED',updated_at=now()
-   WHERE device_id IN (SELECT installation_id FROM revoked) AND status IN ('PENDING','SENDING')`, [authUserId])
+   WHERE device_id IN (SELECT installation_id FROM revoked) AND status IN ('PENDING','SENDING')`, [authUserId, installationId])
   return { ok: true }
 }
 

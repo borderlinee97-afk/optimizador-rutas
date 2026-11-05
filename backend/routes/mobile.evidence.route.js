@@ -103,6 +103,8 @@ router.post(
 
           ownerId:
             target.item.supervisor_id,
+          itemType:
+            target.item.item_type,
         },
       )
     } catch (
@@ -1213,8 +1215,9 @@ async function lockEvidenceTarget(
 }
 
 async function enforceEvidenceLimits(client, target, maxPerItem, excludeEvidenceId) {
-  // Activity photos have no quantity cap. General visit photos keep their existing cap.
-  if (!target.planItemId || target.activityId) return
+  // Additional stops and activity photos have no quantity cap. The item type
+  // comes from the owned server record, never from a client-supplied field.
+  if (!target.planItemId || target.activityId || target.itemType === 'EXTRA_STOP') return
   const result = await client.query(`SELECT COUNT(*)::integer AS item_count
     FROM public.visit_evidence WHERE plan_item_id = $1::uuid AND activity_id IS NULL
       AND status IN ('PENDING_UPLOAD','READY')

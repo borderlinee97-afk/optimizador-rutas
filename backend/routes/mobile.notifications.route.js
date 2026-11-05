@@ -23,7 +23,7 @@ router.post('/devices', async (req, res) => {
 
 router.delete('/devices/current', async (req, res) => {
   try {
-    return res.json(await revokePushDevices(req.auth.user.id))
+    return res.json(await revokePushDevices(req.auth.user.id, pool, req.body?.installationId ?? null))
   } catch {
     return res.status(500).json({
       error: 'No fue posible desactivar las notificaciones.',

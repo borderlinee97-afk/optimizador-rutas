@@ -9,7 +9,7 @@ const ticketSource = source.slice(
   source.indexOf('async function lockEvidenceTarget('),
 )
 
-function harness({ status = 'PENDING_UPLOAD', mimeType = 'image/jpeg', reason = null, activityId = null, existing = true, itemCount = 0 } = {}) {
+function harness({ status = 'PENDING_UPLOAD', mimeType = 'image/jpeg', reason = null, activityId = null, existing = true, itemCount = 0, itemType = 'PHARMACY' } = {}) {
   const row = {
     id: 'evidence', idempotency_key: 'key', supervisor_id: 'owner',
     plan_item_id: 'item', activity_id: activityId, task_id: null,
@@ -58,7 +58,7 @@ function harness({ status = 'PENDING_UPLOAD', mimeType = 'image/jpeg', reason = 
     status(code) { this.statusCode = code; return this },
     json(body) { this.body = body; return this },
   }
-  const target = { ownerId: 'owner', planItemId: 'item', activityId, taskId: null }
+  const target = { ownerId: 'owner', planItemId: 'item', activityId, taskId: null, itemType }
   return {
     row, queries, response,
     async run() { await createUploadTicket({ body: {} }, response, target); return response },
@@ -124,6 +124,22 @@ test('the original general-visit photo cap remains and counts only photos withou
   assert.match(query,/activity_id IS NULL/)
   const available=harness({existing:false,itemCount:9})
   assert.equal((await available.run()).statusCode,201)
+})
+
+test('additional stops accept general photos after ten without requiring an activity', async () => {
+  for (const itemCount of [10, 11, 25, 100]) {
+    const h = harness({ existing: false, itemCount, itemType: 'EXTRA_STOP' })
+    assert.equal((await h.run()).statusCode, 201)
+    assert.equal(h.signedCount(), 1)
+    assert.ok(!h.queries.some(sql => sql.includes('COUNT(*)')))
+  }
+})
+
+test('a stale additional-stop upload can resume with its original idempotency key after photo ten', async () => {
+  const h = harness({ status: 'REJECTED', reason: 'stale', itemCount: 25, itemType: 'EXTRA_STOP' })
+  assert.equal((await h.run()).statusCode, 200)
+  assert.equal(h.row.idempotency_key, 'key')
+  assert.equal(h.signedCount(), 1)
 })
 
 test('the published evidence policy no longer advertises a per-activity count cap',async()=>{

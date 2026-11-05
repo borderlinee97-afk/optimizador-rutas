@@ -3,6 +3,7 @@ import { pool } from '../db/pool.js'
 import { requireAuth } from '../middleware/requireAuth.js'
 import supervisorTerritorialRouter from './web.supervisorTerritorialRoutes.route.js'
 import operationalTasksRouter from './mobile.tasks.route.js'
+import { listOverdueVisits } from '../services/overdueVisits.service.js'
 
 const router = Router()
 
@@ -16,6 +17,12 @@ const WEB_AREAS = [
 
 router.use(requireAuth)
 router.use(loadOperationalProfile)
+router.get('/execution-follow-up', async (req, res) => {
+  if (req.profile.area !== 'FARMACIAS' || !['COORDINADOR','GERENTE','DIRECTOR'].includes(req.profile.rol)) return res.status(403).json({error:'No tienes acceso al seguimiento de visitas.'})
+  res.set('Cache-Control','no-store')
+  try { res.json(await listOverdueVisits(pool,req.profile,req.query)) }
+  catch (error) { res.status(error.status || 500).json({error:error.status?error.message:'No fue posible cargar el seguimiento.',requestId:req.requestId}) }
+})
 router.use(
   '/tasks',
   (req, res, next) => {

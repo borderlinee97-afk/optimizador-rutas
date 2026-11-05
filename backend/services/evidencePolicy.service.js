@@ -263,6 +263,7 @@ export function getEvidencePolicy() {
       ),
 
     maxPerActivity: null,
+    maxPerExtraStop: null,
 
     maxPerItem:
       positiveInteger(

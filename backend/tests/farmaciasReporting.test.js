@@ -473,7 +473,7 @@ test(
     } finally {
       if (server) await new Promise((resolve) => server.close(resolve))
       if (db) await db.end()
-      if (created) await admin.query(`DROP DATABASE "${dbName}" WITH (FORCE)`)
+      if (created) await admin.query(`DROP DATABASE "${dbName}"`)
       await admin.end()
     }
   }

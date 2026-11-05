@@ -1,6 +1,7 @@
 import {
   randomUUID,
 } from 'node:crypto'
+import {recordDiagnostic} from '../services/diagnostics.service.js'
 
 const SAFE_REQUEST_ID =
   /^[A-Za-z0-9._:-]{1,128}$/
@@ -47,6 +48,9 @@ export function requestContext(
         ) /
         1_000_000
 
+      const operation = `${req.method}_${String(req.baseUrl||'').replace(/[0-9a-f]{8}-[0-9a-f-]{27,}/gi,':id').replace(/\d+/g,':n')}_${typeof req.route?.path==='string'?req.route.path:'unmatched'}`
+      recordDiagnostic({source:'server',kind:'request',operation,version:process.env.RENDER_GIT_COMMIT||'local',status:res.statusCode,durationMs,requestId})
+
       console.log(
         JSON.stringify({
           level:
@@ -61,7 +65,7 @@ export function requestContext(
             req.method,
 
           path:
-            req.originalUrl,
+            operation,
 
           status:
             res.statusCode,
