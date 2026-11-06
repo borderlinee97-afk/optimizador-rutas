@@ -52,7 +52,7 @@
             <div v-else class="visit-list">
               <div v-for="(item, index) in day.items" :key="item.id" class="visit-row">
                 <div class="order-controls"><strong>{{ item.order }}</strong><button type="button" aria-label="Subir visita" :disabled="busy || !canReorderDay(day) || index === 0" @click="moveItem(day, index, -1)">↑</button><button type="button" aria-label="Bajar visita" :disabled="busy || !canReorderDay(day) || index === day.items.length - 1" @click="moveItem(day, index, 1)">↓</button></div>
-                <div class="visit-copy"><h3>{{ item.name || 'Visita' }}</h3><p>{{ item.scheduledTime || 'Sin hora' }} · CLUES {{ item.clues || '—' }}<span v-if="item.region"> · {{ item.region }}</span><span v-if="item.project"> · {{ item.project }}</span></p><p>{{ item.required ? 'Obligatoria' : 'Opcional' }} · {{ itemStatusLabel(item.status) }}</p><ol v-if="item.activities?.length" class="activity-list"><li v-for="activity in item.activities" :key="activity.id || activity.order">{{ activity.activityType }}<span v-if="activity.note"> — {{ activity.note }}</span></li></ol></div>
+                <div class="visit-copy"><h3>{{ item.name || 'Visita' }}</h3><p>{{ item.scheduledTime || 'Sin hora' }} · CLUES {{ item.clues || '—' }}<span v-if="item.region"> · {{ item.region }}</span><span v-if="item.project"> · {{ item.project }}</span></p><p>{{ item.required ? 'Obligatoria' : 'Opcional' }} · {{ itemStatusLabel(item.status) }}</p><ol v-if="item.activities?.length" class="activity-list"><li v-for="activity in item.activities" :key="activity.id || activity.order">{{ activity.activityType }}<span v-if="activity.note"> — {{ activity.note }}</span></li></ol><VisitEvidenceGallery :item-id="item.id" /></div>
                 <div v-if="canEditItem(item)" class="visit-actions"><button type="button" class="secondary" :disabled="busy" @click="openVisit(item)">Editar</button><button type="button" class="danger" :disabled="busy" @click="removeVisit(item)">Retirar</button></div>
               </div>
             </div>
@@ -62,16 +62,17 @@
         <div v-if="plan.status!=='APPROVED'" class="footer-actions"><button type="button" class="danger" :disabled="busy" @click="archivePlan">Archivar borrador</button></div>
       </template>
 
-      <div v-if="visitOpen && plan" class="modal-backdrop" @click.self="closeVisit">
+      <Teleport to="body"><div v-if="visitOpen && plan" class="modal-backdrop plan-visit-overlay" @click.self="closeVisit" @keydown.esc="closeVisit" @keydown.tab="trapVisitFocus">
         <section class="modal" role="dialog" aria-modal="true" aria-labelledby="visit-title">
           <header class="modal-heading"><div><span class="kicker">{{ editingItem ? 'Editar' : 'Agregar' }}</span><h2 id="visit-title">Visita del plan</h2></div><button type="button" class="text-button" :disabled="busy" @click="closeVisit">Cerrar</button></header>
           <p v-if="formError" class="notice error" role="alert">{{ formError }}</p>
-          <div class="field"><label>Farmacia</label><strong>{{ chosenPharmacy?.name || editingItem?.name || 'Selecciona una farmacia' }}</strong><small v-if="visitForm.pharmacyId">{{ ['ALMACENES','REGIONES SANITARIAS'].includes(chosenPharmacy?.locationName || editingItem?.locationName) ? 'Referencia interna' : 'CLUES' }} {{ chosenPharmacy?.clues || editingItem?.clues || '—' }}</small></div>
+          <div class="field selected-pharmacy" :class="{'has-selection':Boolean(visitForm.pharmacyId)}" role="status" aria-live="polite"><label>Farmacia <span v-if="visitForm.pharmacyId" class="selection-badge">✓ Seleccionada</span></label><strong>{{ selectedPharmacy?.name || 'Selecciona una farmacia' }}</strong><small v-if="visitForm.pharmacyId">{{ ['ALMACENES','REGIONES SANITARIAS'].includes(selectedPharmacy?.locationName) ? 'Referencia interna' : 'CLUES' }} {{ selectedPharmacy?.clues || '—' }}<span v-if="selectedPharmacy?.region"> · {{ selectedPharmacy.region }}</span></small></div>
           <div class="catalog">
-            <div class="catalog-kinds" role="group" aria-label="Tipo de unidad"><button v-for="option in [{key:'UNITS',name:'Unidades asignadas'},{key:'CEDIS',name:'CEDIS'},{key:'REG_SAN',name:'Regiones sanitarias'}]" :key="option.key" type="button" :aria-pressed="catalogKind===option.key" :class="{primary:catalogKind===option.key,secondary:catalogKind!==option.key}" @click="catalogKind=option.key;searchCatalog()">{{ option.name }}</button></div>
-            <div class="catalog-filters"><input v-model="catalogSearch" type="search" placeholder="Buscar nombre o CLUES" aria-label="Buscar farmacia" @keyup.enter="searchCatalog" /><select v-model="catalogRegion" aria-label="Región" @change="searchCatalog"><option value="">Todas las regiones</option><option v-for="region in catalogFilters.regions" :key="region" :value="region">{{ region }}</option></select><select v-model="catalogProject" aria-label="Proyecto" @change="searchCatalog"><option value="">Todos los proyectos</option><option v-for="project in catalogFilters.projects" :key="project" :value="project">{{ project }}</option></select><select v-model="catalogState" aria-label="Estado" @change="searchCatalog"><option value="">Todos los estados</option><option v-for="state in catalogFilters.states" :key="state" :value="state">{{ state }}</option></select><select v-model="catalogStatus" aria-label="Estatus" @change="searchCatalog"><option value="">Todos los estatus</option><option v-for="status in catalogFilters.statuses" :key="status" :value="status">{{ status }}</option></select><button type="button" class="secondary" :disabled="catalogLoading" @click="searchCatalog">Buscar</button></div>
+            <label class="catalog-search-label" for="unit-search">Filtro de unidades · opcional</label>
+            <div class="catalog-filters"><input id="unit-search" v-model="catalogSearch" type="search" maxlength="150" placeholder="CLUES, nombre de unidad, dirección, región o proyecto" @keyup.enter="searchCatalog" /><button type="button" class="secondary" :disabled="catalogLoading" @click="searchCatalog">Buscar</button></div>
+            <small class="muted">Escribe una coincidencia y selecciona una unidad de los resultados. Incluye unidades, CEDIS y regiones sanitarias autorizadas.</small>
             <p v-if="catalogLoading" class="muted">Buscando farmacias…</p>
-            <p v-else-if="!catalog.length && !catalogError" class="muted">No hay farmacias para estos filtros.</p>
+            <p v-else-if="!catalog.length && !catalogError" class="muted">No hay unidades que coincidan con tu búsqueda.</p>
             <div v-else-if="catalog.length" class="catalog-list"><button v-for="pharmacy in catalog" :key="pharmacy.id" type="button" class="catalog-option" :class="{ selected: visitForm.pharmacyId === pharmacy.id }" :disabled="pharmacy.accessType === 'NONE'" @click="choosePharmacy(pharmacy)"><strong>{{ pharmacy.name }}</strong><small>{{ ['ALMACENES','REGIONES SANITARIAS'].includes(pharmacy.locationName) ? 'Referencia interna' : 'CLUES' }} {{ pharmacy.clues }} · {{ pharmacy.region || 'Sin región' }}<span v-if="pharmacy.project"> · {{ pharmacy.project }}</span></small><small>{{ accessLabel(pharmacy) }}<span v-if="pharmacy.temporaryCoverage"> · {{ pharmacy.temporaryCoverage.startDate }} a {{ pharmacy.temporaryCoverage.endDate }}</span></small></button></div>
             <p v-if="catalogError" class="notice error" role="alert">{{ catalogError }}</p>
             <button v-if="catalogHasMore" type="button" class="secondary more" :disabled="catalogLoading" @click="loadCatalog(true)">Cargar más</button>
@@ -80,21 +81,22 @@
           <p v-if="visitAccessError" class="notice error" role="alert">{{ visitAccessError }}</p>
           <label class="checkbox"><input v-model="visitForm.required" type="checkbox" /> Visita obligatoria</label>
           <section class="activities"><div class="section-heading"><h3>Actividades planeadas</h3><button type="button" class="secondary" :disabled="visitForm.activities.length >= 50" @click="addActivity">+ Actividad</button></div><p class="muted">Al menos una actividad. Máximo 50.</p><div v-for="(activity, index) in visitForm.activities" :key="activity.key" class="activity-edit"><div class="activity-header"><strong>Actividad {{ index + 1 }}</strong><div><button type="button" :disabled="index === 0" @click="moveActivity(index, -1)">↑</button><button type="button" :disabled="index === visitForm.activities.length - 1" @click="moveActivity(index, 1)">↓</button><button type="button" @click="visitForm.activities.splice(index, 1)">Eliminar</button></div></div><input v-model="activity.activityType" maxlength="160" placeholder="Descripción de la actividad" aria-label="Descripción de la actividad" /><textarea v-model="activity.note" maxlength="1000" rows="2" placeholder="Nota opcional" aria-label="Nota de la actividad"></textarea></div></section>
-          <div class="form-actions"><button type="button" class="secondary" :disabled="busy" @click="closeVisit">Cancelar</button><button type="button" class="primary" :disabled="busy || Boolean(visitAccessError)" @click="saveVisit">{{ busy ? 'Guardando…' : 'Guardar visita' }}</button></div>
+          <div class="form-actions modal-actions"><button type="button" class="secondary" :disabled="busy" @click="closeVisit">Cancelar</button><button type="button" class="primary" :disabled="busy || Boolean(visitAccessError)" @click="saveVisit">{{ busy ? 'Guardando…' : 'Guardar visita' }}</button></div>
         </section>
-      </div>
+      </div></Teleport>
     </div>
   </main>
 </template>
 
 <script setup>
+import VisitEvidenceGallery from '../../components/VisitEvidenceGallery.vue'
 import WorkPlanEditAccess from '../../components/WorkPlanEditAccess.vue'
-import { computed, onMounted, ref, watch } from 'vue'
+import { computed, onMounted, onBeforeUnmount, nextTick, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuth } from '../../composables/useAuth.js'
 import {
   getPlanEditAccess, addSupervisorWorkPlanItem, archiveSupervisorWorkPlan, getSupervisorWorkPlan,
-  getSupervisorWorkPlanPharmacies, getSupervisorWorkPlanPharmacyFilters,
+  getSupervisorWorkPlanPharmacies,
   removeSupervisorWorkPlanItem, reorderSupervisorWorkPlanItems,
   submitSupervisorWorkPlan, updateSupervisorWorkPlan,
   updateSupervisorWorkPlanItem,
@@ -120,18 +122,19 @@ const periodWeek = ref('')
 const periodStart = ref('')
 const periodEnd = ref('')
 const visitOpen = ref(false)
+let focusBeforeVisit=null,overflowBeforeVisit=''
+watch(visitOpen,async open=>{
+  if(open){focusBeforeVisit=document.activeElement;overflowBeforeVisit=document.body.style.overflow;document.body.style.overflow='hidden';await nextTick();document.querySelector('.plan-visit-overlay .modal-heading button')?.focus()}
+  else {document.body.style.overflow=overflowBeforeVisit;if(focusBeforeVisit?.isConnected)focusBeforeVisit.focus()}
+})
+onBeforeUnmount(()=>{if(visitOpen.value)document.body.style.overflow=overflowBeforeVisit})
+function trapVisitFocus(event){const nodes=[...document.querySelectorAll('.plan-visit-overlay button:not(:disabled),.plan-visit-overlay input:not(:disabled),.plan-visit-overlay select:not(:disabled),.plan-visit-overlay textarea:not(:disabled)')].filter(node=>node.getClientRects().length);if(!nodes.length)return;const first=nodes[0],last=nodes.at(-1);if(event.shiftKey&&document.activeElement===first){event.preventDefault();last.focus()}else if(!event.shiftKey&&document.activeElement===last){event.preventDefault();first.focus()}}
 const editingItem = ref(null)
 const chosenPharmacy = ref(null)
 const visitForm = ref({ pharmacyId: '', scheduledDate: '', scheduledTime: '', required: true, activities: [] })
 const formError = ref('')
 const catalog = ref([])
-const catalogFilters = ref({ regions: [], projects: [], states: [], statuses: [] })
-const catalogKind=ref('UNITS')
 const catalogSearch = ref('')
-const catalogRegion = ref('')
-const catalogProject = ref('')
-const catalogState = ref('')
-const catalogStatus = ref('')
 const catalogOffset = ref(0)
 const catalogHasMore = ref(false)
 const catalogLoading = ref(false)
@@ -245,10 +248,6 @@ function openVisit(item = null, date = null) {
   if (!visitForm.value.activities.length) addActivity()
   formError.value = ''
   catalogSearch.value = ''
-  catalogRegion.value = ''
-  catalogProject.value = ''
-  catalogState.value = ''
-  catalogStatus.value = ''
   ++catalogSession
   ++catalogRequestSequence
   catalog.value = []
@@ -258,7 +257,7 @@ function openVisit(item = null, date = null) {
   catalogError.value = ''
   catalogQuery = ''
   visitOpen.value = true
-  void loadFiltersAndCatalog()
+  void searchCatalog()
 }
 function closeVisit() { if (!busy.value) { visitOpen.value = false; ++catalogSession; ++catalogRequestSequence; catalogLoading.value = false } }
 function addActivity() { if (visitForm.value.activities.length < 50) visitForm.value.activities.push({ key: ++nextActivityKey, activityType: '', note: '' }) }
@@ -270,21 +269,8 @@ function moveActivity(index, delta) {
 }
 function choosePharmacy(pharmacy) { if (pharmacy.accessType === 'NONE') return; chosenPharmacy.value = pharmacy; visitForm.value.pharmacyId = pharmacy.id }
 
-async function loadFiltersAndCatalog() {
-  const session = catalogSession
-  try {
-    const filters = await getSupervisorWorkPlanPharmacyFilters()
-    if (session !== catalogSession) return
-    catalogFilters.value = { regions: filters.regions || [], projects: filters.projects || [], states: filters.states || [], statuses: filters.statuses || [] }
-  } catch (err) { if (session === catalogSession) formError.value = err?.message || 'No fue posible cargar los filtros.' }
-  if (session === catalogSession && visitOpen.value) await searchCatalog()
-}
 function currentCatalogParams() {
-  return {
-    search: catalogSearch.value.trim() || undefined, region: catalogRegion.value || undefined,
-    project: catalogProject.value || undefined, state: catalogState.value || undefined,
-    status: catalogStatus.value || undefined, kind:catalogKind.value==='UNITS'?'UNITS_ONLY':catalogKind.value,
-  }
+  return { search: catalogSearch.value.trim() || undefined }
 }
 async function searchCatalog() {
   const params = currentCatalogParams()
@@ -417,9 +403,15 @@ function displayDay(value) { const date = parseDate(value); return date ? new In
 .field label { font-size: 13px; font-weight: 700; }
 .field input, .field select, .catalog-filters input, .catalog-filters select, .activity-edit input, .activity-edit textarea { width: 100%; min-height: 40px; padding: 8px 10px; border: 1px solid var(--color-border); border-radius: var(--radius-md); background: white; color: var(--color-text); font: inherit; }
 .form-actions { justify-content: flex-end; margin-top: 16px; }
-.modal-backdrop { position: fixed; inset: 0; z-index: 100; display: grid; place-items: center; padding: 16px; background: #0f172a99; }
-.modal { width: min(760px, 100%); max-height: min(94vh, 1000px); overflow-y: auto; padding: 24px; border-radius: var(--radius-lg); background: var(--color-surface); box-shadow: var(--shadow-lg); }
-.modal-heading { margin-bottom: 16px; }
+.modal-backdrop { --color-primary:#096e91;--color-primary-dark:#075671;--color-primary-soft:#dfeef5;--color-text:#102332;--color-text-secondary:#435667;--color-border:#b7cad7;--radius-md:8px;position: fixed; inset: 0; z-index: 13000; display: grid; place-items: center; padding: 16px; background: #0f172a99; color:#102332;font-size:15px; }
+.modal { box-sizing:border-box; width: min(760px, 100%); max-height: calc(100dvh - 32px); overflow-y: auto; overscroll-behavior:contain; padding: 0 24px; border:1px solid #9db3c3; border-radius: 13px; background: #fff; box-shadow: 0 18px 60px #10233240; }
+.modal-heading { position:sticky;top:0;z-index:2;margin-bottom:16px;padding:18px 0 12px;background:#fff;border-bottom:1px solid #cbd5df; }
+.modal-actions { position:sticky;bottom:0;z-index:2;padding:14px 0;background:#fff;border-top:1px solid #cbd5df; }
+.selected-pharmacy { padding:14px;border:1px dashed #9db3c3;border-radius:10px;background:#f5f8fa; }
+.selected-pharmacy.has-selection { border:2px solid #087443;border-left-width:6px;background:#ecf8f1; }
+.selected-pharmacy strong { font-size:18px;line-height:1.4;overflow-wrap:anywhere; }
+.selection-badge { display:inline-block;margin-left:8px;padding:3px 8px;border-radius:6px;background:#087443;color:#fff;font-size:12px; }
+.plan-visit-overlay button,.plan-visit-overlay input,.plan-visit-overlay select { min-height:44px; }
 .modal-heading h2 { margin: 2px 0; }
 .catalog { margin: 12px 0 18px; padding: 14px; border: 1px solid var(--color-border); border-radius: var(--radius-md); }
 .catalog-filters { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
@@ -434,6 +426,10 @@ function displayDay(value) { const date = parseDate(value); return date ? new In
 .activity-edit { display: grid; gap: 7px; margin-top: 12px; padding: 12px; border: 1px solid var(--color-border); border-radius: var(--radius-md); }
 .activity-header button { margin-left: 5px; padding: 5px 8px; }
 button:disabled { cursor: not-allowed; opacity: .5; }
-@media (max-width: 800px) { .editor-page { padding: 16px; } .heading, .toolbar, .visit-row { align-items: stretch; flex-direction: column; } .toolbar-actions, .visit-actions { justify-content: flex-start; } .catalog-filters { grid-template-columns: 1fr 1fr; } .modal { padding: 16px; } }
+@media (max-width: 800px) { .editor-page { padding: 16px; } .heading, .toolbar, .visit-row { align-items: stretch; flex-direction: column; } .toolbar-actions, .visit-actions { justify-content: flex-start; } .catalog-filters { grid-template-columns: 1fr 1fr; } .modal { padding: 0 16px; } }
 @media (max-width: 520px) { .form-grid, .catalog-filters { grid-template-columns: 1fr; } .card { padding: 16px; } .day-heading { align-items: flex-start; } }
+</style>
+
+<style scoped>
+.catalog-search-label{display:block;font-weight:700;margin-bottom:8px;color:#17445a}.catalog-filters{display:flex!important;gap:10px}.catalog-filters input{flex:1;min-width:0}.catalog-filters button{flex-shrink:0}
 </style>

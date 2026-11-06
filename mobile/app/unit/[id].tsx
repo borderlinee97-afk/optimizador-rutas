@@ -2260,10 +2260,8 @@ export default function UnitDetailScreen() {
                                 activityId={activity.id}
                                 accessToken={session.access_token}
                                 disabled={
-                                  item.status !==
-                                    'IN_PROGRESS' ||
-                                  activity.status !==
-                                    'PENDING' ||
+                                  !['IN_PROGRESS', 'DONE'].includes(item.status) ||
+                                  !['PENDING', 'DONE'].includes(activity.status) ||
                                   Boolean(
                                     processing,
                                   )
@@ -2358,19 +2356,13 @@ export default function UnitDetailScreen() {
           </>
         ) : null}
 
-        {session?.access_token &&
-        item.status ===
-          'IN_PROGRESS' &&
-        activities.length ===
-          0 ? (
+        {session?.access_token ? (
           <View className="mt-7">
             <EvidenceCapture
               planItemId={item.id}
               activityId={null}
               accessToken={session.access_token}
-              disabled={Boolean(
-                processing,
-              )}
+              disabled={activities.length > 0 || !['IN_PROGRESS', 'DONE'].includes(item.status) || Boolean(processing)}
               onSynced={loadVisit}
             />
           </View>

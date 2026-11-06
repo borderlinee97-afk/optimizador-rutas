@@ -48,6 +48,7 @@ export type EvidenceUploadTicket = {
 }
 
 export type VisitEvidenceListResponse = {
+  removedEvidenceIds?: string[]
   evidence: Array<{
     id: string
     planItemId: string | null
@@ -64,5 +65,6 @@ export type VisitEvidenceListResponse = {
     uploadedAt: string | null
     signedUrl: string
     signedUrlExpiresIn: number
+    canRemove?: boolean
   }>
 }

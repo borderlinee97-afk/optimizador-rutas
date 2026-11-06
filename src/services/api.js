@@ -56,6 +56,18 @@ export function getActiveWebArea() {
   return ACTIVE_WEB_AREA
 }
 
+export function getVisitFollowUp(params = {}) {
+  return fetchJSON(`${BASE_API}/web/execution-follow-up${buildWebQS(params)}`, { method:'GET' })
+}
+
+export function getSystemDiagnostics() {
+  return fetchJSON(`${BASE_API}/admin/diagnostics`, { method:'GET' })
+}
+
+export function reportClientIncident(payload) {
+  return fetchJSON(`${BASE_API}/diagnostics/client`, { method:'POST',body:JSON.stringify(payload),timeoutMs:5000 })
+}
+
 /*
  * ============================================================
  * QUERY STRING
@@ -191,6 +203,8 @@ async function parseErrorResponse(
     payload?.details ||
     null
 
+  error.requestId = payload?.requestId || res.headers.get('X-Request-Id') || null
+
   return error
 }
 
@@ -284,6 +298,18 @@ async function buildHeaders(
  * ============================================================
  */
 
+let pendingSessionRefresh = null
+async function refreshRequestSession(owner) {
+  const current = (await supabase.auth.getSession()).data?.session
+  if (!owner || current?.user?.id !== owner) return null
+  if (!pendingSessionRefresh) {
+    pendingSessionRefresh = supabase.auth.refreshSession().finally(() => { pendingSessionRefresh = null })
+  }
+  const result = await pendingSessionRefresh
+  const latest = (await supabase.auth.getSession()).data?.session
+  return !result.error && latest?.user?.id === owner ? latest : null
+}
+
 async function fetchJSON(
   url,
   options = {}
@@ -314,11 +340,12 @@ async function fetchJSON(
     options
 
   try {
+    const requestSession = auth ? (await supabase.auth.getSession()).data?.session : null
     const headers =
       await buildHeaders(
         fetchOptions.headers,
         {
-          auth,
+          auth: false,
 
           hasBody:
             fetchOptions.body !==
@@ -328,7 +355,8 @@ async function fetchJSON(
         }
       )
 
-    const res =
+    if (auth && requestSession?.access_token) headers.set('Authorization', `Bearer ${requestSession.access_token}`)
+    let res =
       await fetch(
         url,
         {
@@ -342,6 +370,13 @@ async function fetchJSON(
         }
       )
 
+    if (auth && res.status === 401 && requestSession?.user?.id) {
+      const refreshed = await refreshRequestSession(requestSession.user.id)
+      if (refreshed && !controller.signal.aborted && !fetchOptions.signal?.aborted) {
+        headers.set('Authorization', `Bearer ${refreshed.access_token}`)
+        res = await fetch(url, { ...fetchOptions, headers, signal: fetchOptions.signal || controller.signal })
+      }
+    }
     if (!res.ok) {
       throw await parseErrorResponse(
         res
@@ -1221,4 +1256,11 @@ export function changePlanEditRequest(id,action,reason) { return fetchJSON(`${BA
 // Administrator-only release control; reuses the existing authenticated web client.
 export function androidUpdatesApi(path='',body){
  return fetchJSON(`${BASE_API}/web/admin/android-updates${path}`,{method:body===undefined?'GET':'POST',...(body===undefined?{}:{body:JSON.stringify(body)}),timeoutMs:path==='/prepare'?240000:45000})
+}
+
+export function getVisitEvidence(itemId) {
+  return fetchJSON(`${BASE_API}/mobile/evidence/items/${encodeURIComponent(itemId)}`, { method: 'GET' })
+}
+export function removeVisitEvidence(itemId, evidenceId) {
+  return fetchJSON(`${BASE_API}/mobile/evidence/items/${encodeURIComponent(itemId)}/${encodeURIComponent(evidenceId)}`, { method: 'DELETE' })
 }

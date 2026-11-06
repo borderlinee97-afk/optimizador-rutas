@@ -637,6 +637,8 @@ router.get(
               ''
             ) ILIKE
               '%' || $1 || '%'
+            OR COALESCE(farmacia.estado, '') ILIKE '%' || $1 || '%'
+            OR COALESCE(farmacia.estatus::text, '') ILIKE '%' || $1 || '%'
           )
 
           AND (

@@ -238,6 +238,11 @@ export function initDB() {
       PRIMARY KEY (source_table, source_id)
     );
 
+    CREATE TABLE IF NOT EXISTS evidence_removals (
+      evidence_id TEXT PRIMARY KEY NOT NULL,
+      removed_at INTEGER NOT NULL
+    );
+
     CREATE TABLE IF NOT EXISTS evidence_queue (
       evidence_id TEXT PRIMARY KEY NOT NULL,
       idempotency_key TEXT NOT NULL UNIQUE,

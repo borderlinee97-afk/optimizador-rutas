@@ -65,3 +65,17 @@ backend/sql/local-agenda-schema.sql
 backend/sql/personas-pgadmin-a-supabase-v3.sql
 backend/sql/restore-operational-supabase-v1.sql
 backend/sql/restore-operational-supabase-v2.sql
+
+# Internal working context is excluded from application distributions.
+AGENTS.md
+**/AGENTS.md
+SKILL.md
+**/SKILL.md
+.codex/
+.agents/
+docs/PROJECT_STATE.md
+docs/CODEX_HANDOFF.md
+F7B-RUTA-TERRITORIAL.md
+output/
+outputs/
+work/

@@ -3,6 +3,7 @@ import {
 } from 'vue'
 
 import './style.css'
+import {installClientDiagnostics} from './services/clientDiagnostics.js'
 
 import App
   from './App.vue'
@@ -36,6 +37,8 @@ loader
       app.use(
         router,
       )
+
+      installClientDiagnostics(app,router)
 
       app.mount(
         '#app',

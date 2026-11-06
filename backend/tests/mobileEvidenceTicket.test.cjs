@@ -44,7 +44,6 @@ function harness({ status = 'PENDING_UPLOAD', mimeType = 'image/jpeg', reason = 
     pool: { connect: async () => client },
     lockEvidenceTarget: async () => {},
     expireStalePendingUploads: async () => {},
-    enforceEvidenceLimits: vm.runInNewContext(source.slice(source.indexOf('async function enforceEvidenceLimits('),source.indexOf('async function expireStalePendingUploads('))+'\nenforceEvidenceLimits', {Number, EvidenceLimitError:class extends Error{constructor(message,code){super(message);this.code=code;this.status=409}}}),
     createSignedUploadTicket: async () => { signed++; return { token: 'signed' } },
     mapEvidence: evidence => ({ byteSize: evidence.byte_size, status: evidence.status }),
     STALE_PENDING_UPLOAD_REASON: 'stale',
@@ -116,14 +115,12 @@ test('activity photos keep uploading after photo three and total photo ten, incl
   }
 })
 
-test('the original general-visit photo cap remains and counts only photos without an activity',async()=>{
-  const h=harness({existing:false,itemCount:10})
-  await assert.rejects(h.run(),{code:'EVIDENCE_ITEM_LIMIT_REACHED',status:409})
-  assert.equal(h.signedCount(),0)
-  const query=h.queries.find(sql=>sql.includes('COUNT(*)'))
-  assert.match(query,/activity_id IS NULL/)
-  const available=harness({existing:false,itemCount:9})
-  assert.equal((await available.run()).statusCode,201)
+test('ordinary visits accept more than ten photos',async()=>{
+  for(const itemCount of [10,25,100]) {
+    const h=harness({existing:false,itemCount})
+    assert.equal((await h.run()).statusCode,201)
+    assert.equal(h.signedCount(),1)
+  }
 })
 
 test('additional stops accept general photos after ten without requiring an activity', async () => {
@@ -146,5 +143,5 @@ test('the published evidence policy no longer advertises a per-activity count ca
   const {getEvidencePolicy}=await import('../services/evidencePolicy.service.js')
   const policy=getEvidencePolicy()
   assert.equal(policy.maxPerActivity,null)
-  assert.ok(policy.maxBytes>0);assert.ok(policy.maxPerItem>0)
+  assert.ok(policy.maxBytes>0);assert.equal(policy.maxPerItem,null)
 })

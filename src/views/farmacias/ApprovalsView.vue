@@ -190,22 +190,6 @@
           </div>
         </div>
 
-        <section v-if="executionAlerts.total" class="approval-section execution-review" role="alert">
-          <header class="section-header">
-            <div><span>Seguimiento de visitas</span><strong>{{ executionAlerts.total }} requieren revisión o aclaración</strong></div>
-          </header>
-          <p>Visitas de días anteriores no realizadas o sin finalizar. El responsable puede continuar las visitas de hoy; estos registros conservan su estado y evidencias.</p>
-          <div class="plan-grid">
-            <article v-for="visit in executionAlerts.visits" :key="visit.id" class="plan-card">
-              <strong>{{ visit.personName }}</strong>
-              <span>{{ visit.name }} · {{ visit.scheduledDate.split('-').reverse().join('/') }}</span>
-              <span>{{ visit.reason }} · Requiere revisión o aclaración</span>
-              <button type="button" class="refresh-button" @click="reviewPlan(visit)">Revisar plan</button>
-            </article>
-          </div>
-          <p v-if="executionAlerts.total > executionAlerts.visits.length">Se muestran las primeras {{ executionAlerts.visits.length }} visitas. Consulta Indicadores y reportes para revisar por periodo y responsable.</p>
-        </section>
-
         <WorkPlanEditAccess
           :inbox-requests="editRequests"
           :readonly="!canDecide"
@@ -1164,8 +1148,6 @@ const plans =
         ? response.value.plans
         : []
   )
-
-const executionAlerts = computed(() => response.value?.executionAlerts || {total:0,visits:[]})
 
 const editRequests = computed(() => Array.isArray(response.value?.editRequests) ? response.value.editRequests : [])
 

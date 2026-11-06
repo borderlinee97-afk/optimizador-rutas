@@ -11,7 +11,7 @@ function harness(options = {}) {
   class ApiError extends Error { constructor(message, status, code) { super(message); this.status = status; this.code = code } }
   const ticket = { ok: true, evidence: { id: 'e1', status: 'READY' }, upload: { path: 'p', token: 'signed' } }
   const db = {
-    getFirstSync: () => options.pendingCheckIn ? {id:'pending-check-in'} : null,
+    getFirstSync: sql => sql.includes('execution_outbox') && options.pendingCheckIn ? {id:'pending-check-in'} : null,
     getAllSync: (_sql, args) => row.status !== 'READY' && (row.status !== 'FAILED' || args?.[0]) ? [row] : [],
     runSync(sql, args) {
       if (sql.includes("status = 'UPLOADING'")) row.status = 'UPLOADING'

@@ -1,3 +1,4 @@
+import { EvidenceGallery } from './EvidenceGallery'
 import { useNetInfo } from '@react-native-community/netinfo'
 import {
   randomUUID,
@@ -15,7 +16,6 @@ import {
 import {
   ActivityIndicator,
   Alert,
-  Image,
   Pressable,
   Text,
   View,
@@ -320,25 +320,32 @@ export function EvidenceCapture({
       if (!owner || !isDatabaseActive(owner)) return
       refresh()
 
-      const syncResult = network.isConnected === false || network.isInternetReachable === false
-        ? { synced: 0, pending: 1, failed: 0 }
-        : await syncPendingEvidence(accessToken)
+      if (network.isConnected !== false && network.isInternetReachable !== false) {
+        await syncPendingEvidence(accessToken)
+      }
 
+      if (!owner || !isDatabaseActive(owner)) return
       refresh()
+      const captured = listLocalEvidence({ planItemId, activityId, taskId }, database)
+        .find(item => item.id === evidenceId)
 
-      if (
-        syncResult.synced >
-        0
-      ) {
+      if (captured?.status === 'READY') {
         onSynced?.()
         Alert.alert(
           'Evidencia sincronizada',
           'La fotografía quedó guardada de forma privada y vinculada al registro.',
         )
+      } else if (captured?.status === 'FAILED') {
+        Alert.alert(
+          'Evidencia guardada: requiere revisión',
+          `${captured.lastError || 'El servidor no aceptó la carga.'}\nLa fotografía se conserva en este teléfono. Revisa el motivo y utiliza Reintentar; no necesitas volver a tomarla.`,
+        )
       } else {
         Alert.alert(
           'Evidencia guardada en el dispositivo',
-          'Se sincronizará automáticamente cuando vuelva la conexión.',
+          captured?.lastError
+            ? `${captured.lastError}\nLa fotografía se conserva pendiente de envío. Puedes utilizar Reintentar.`
+            : 'La fotografía está pendiente de envío. Se reintentará al recuperar conexión o al actualizar.',
         )
       }
     } catch (
@@ -413,46 +420,7 @@ export function EvidenceCapture({
         Incluye fecha, ubicación y precisión. Una foto sincronizada es obligatoria para cerrar este registro en el piloto.
       </Text>
 
-      {evidence.length > 0 ? (
-        <View className="mt-3 flex-row flex-wrap gap-2">
-          {evidence.map(
-            item => (
-              <View
-                key={item.id}
-                className="overflow-hidden rounded-xl border border-sky-200 bg-white"
-              >
-                <Image
-                  source={{
-                    uri:
-                      item.localUri,
-                  }}
-                  className="h-16 w-16"
-                />
-
-                <Text
-                  className={
-                    item.status ===
-                    'READY'
-                      ? 'px-1 py-1 text-center text-[9px] font-semibold text-emerald-700'
-                      : item.status ===
-                          'FAILED'
-                        ? 'px-1 py-1 text-center text-[9px] font-semibold text-red-700'
-                        : 'px-1 py-1 text-center text-[9px] font-semibold text-amber-700'
-                  }
-                >
-                  {item.status ===
-                  'READY'
-                    ? 'SINCRONIZADA'
-                    : item.status ===
-                        'FAILED'
-                      ? 'REVISAR'
-                      : 'PENDIENTE'}
-                </Text>
-              </View>
-            ),
-          )}
-        </View>
-      ) : null}
+      <EvidenceGallery planItemId={planItemId} activityId={activityId} accessToken={accessToken} localEvidence={evidence} onRemoved={() => { refresh(); onSynced?.() }} />
 
       <View className="mt-3 flex-row gap-2">
         <EvidenceButton

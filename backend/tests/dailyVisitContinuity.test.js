@@ -101,6 +101,24 @@ test('daily continuity and scoped review alerts on real disposable PostgreSQL', 
    await db.query("UPDATE work_plan SET status='ARCHIVED',archived_at=now() WHERE id=$1",[cp]);assert.equal((await listOverdueVisits(db,people.manager)).total,1)
    await db.query('UPDATE work_plan SET approved_at=NULL WHERE id=$1',[cp]);assert.equal((await listOverdueVisits(db,people.manager)).total,0)
   })
+  await t.test('device logout cancels only its own notification queue on real PostgreSQL',async()=>{
+   const{revokePushDevices}=await import('../services/planNotifications.service.js')
+   await db.query('CREATE TABLE app_push_device(installation_id uuid PRIMARY KEY,auth_user_id uuid,active boolean,updated_at timestamptz);CREATE TABLE plan_push_outbox(device_id uuid,status text,updated_at timestamptz)')
+   const one=randomUUID(),two=randomUUID(),other=randomUUID(),authA=randomUUID(),authB=randomUUID()
+   for(const[device,auth]of[[one,authA],[two,authA],[other,authB]]){await db.query('INSERT INTO app_push_device VALUES($1,$2,true,now())',[device,auth]);await db.query("INSERT INTO plan_push_outbox VALUES($1,'PENDING',now())",[device])}
+   await revokePushDevices(authA,db,one)
+   assert.equal((await db.query('SELECT active FROM app_push_device WHERE installation_id=$1',[one])).rows[0].active,false)
+   for(const device of[two,other]){assert.equal((await db.query('SELECT active FROM app_push_device WHERE installation_id=$1',[device])).rows[0].active,true);assert.equal((await db.query('SELECT status FROM plan_push_outbox WHERE device_id=$1',[device])).rows[0].status,'PENDING')}
+   assert.equal((await db.query('SELECT status FROM plan_push_outbox WHERE device_id=$1',[one])).rows[0].status,'CANCELLED')
+   await revokePushDevices(authA,db);assert.equal((await db.query('SELECT active FROM app_push_device WHERE installation_id=$1',[other])).rows[0].active,true)
+  })
+  await t.test('follow-up pagination retains full scoped totals and rejects invalid offsets',async()=>{
+   for(let i=0;i<101;i++)await item(yesterday)
+   const first=await listOverdueVisits(db,people.coordA),last=await listOverdueVisits(db,people.coordA,{offset:100})
+   assert.equal(first.total,101);assert.equal(first.visits.length,100);assert.equal(first.hasMore,true);assert.equal(last.total,101);assert.equal(last.visits.length,1);assert.equal(last.hasMore,false);assert.ok(!first.visits.some(v=>v.id===last.visits[0].id));assert.equal((await listOverdueVisits(db,people.outsider)).total,0)
+   assert.equal((await listOverdueVisits(db,people.coordA,{offset:200})).offset,0)
+   await assert.rejects(listOverdueVisits(db,people.coordA,{offset:-1}),{status:400})
+  })
  } finally {if(db)await db.end();if(created)await control.query('DROP DATABASE "'+name+'" WITH (FORCE)');await control.end()}
 })
 

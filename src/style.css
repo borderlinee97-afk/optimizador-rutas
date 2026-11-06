@@ -359,3 +359,14 @@ textarea:disabled {
   #app .farmacias-layout .kpi-grid { grid-template-columns: minmax(0,1fr); }
   #app .farmacias-layout :is(.metric-card,.summary-card,.kpi,.metric) { padding: 16px; }
 }
+
+/* Operational banners: a separate surface with clear visual presence. */
+@media screen {
+  #app .farmacias-layout :is(.plans-header,.agenda-header,.approvals-header,.page-header,.people-hero,.heading,.page-head,.report-hero,.module-header) {
+    position:relative;isolation:isolate;padding:24px 26px;border:1px solid #a9c0cf;border-left:6px solid #096e91;border-radius:14px;
+    background:linear-gradient(110deg,#fff 0%,#f8fbfd 68%,#e2eff5 100%);box-shadow:0 3px 0 #c9d8e266,0 12px 25px #10233209;
+  }
+  #app .farmacias-layout :is(.plans-header,.agenda-header,.approvals-header,.page-header,.people-hero,.heading,.page-head,.report-hero,.module-header) h1 {margin-top:7px}
+  #app .farmacias-layout :is(.notice,.availability-message,.offline-banner) {border:1px solid #b7cad7;border-left-width:5px;box-shadow:0 2px 0 #10233212}
+  @media(max-width:600px){#app .farmacias-layout :is(.plans-header,.agenda-header,.approvals-header,.page-header,.people-hero,.heading,.page-head,.report-hero,.module-header){padding:18px;border-radius:11px}}
+}

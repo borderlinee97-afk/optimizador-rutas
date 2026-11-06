@@ -6,14 +6,14 @@ function setup(file,{type='EXTRAORDINARY',grant=true}={}){
   const {descriptor}=parse(fs.readFileSync(require.resolve('../../src/views/farmacias/'+file),'utf8'))
   let source=compileScript(descriptor,{id:'regression'}).content
   source=source.replace(/import\s+[\s\S]*?from\s+'[^']+'\s*/g,'').replace('export default','module.exports =')
-  const calls={updates:[],adds:[],routes:[]}
+  const calls={updates:[],adds:[],routes:[],catalog:[]}
   const plan={id:'plan',status:'APPROVED',planType:type,periodStart:day(-2),periodEnd:day(3),revisionNumber:1}
   const item={id:'item',itemType:'PHARMACY',source:'PLAN',status:'PENDING',scheduledDate:today(),pharmacyId:'7',name:'Unidad prueba',activities:[{activityType:'Inventario',note:''}]}
   const response={plan,items:[item]},auth={profile:vue.ref({area:'FARMACIAS',rol:'SUPERVISOR'})}
-  const ctx={module:{exports:{}},computed:vue.computed,ref:vue.ref,onMounted(){},watch(){},Intl,Date,WorkPlanEditAccess:{},AvailabilityPanel:{},
+  const ctx={module:{exports:{}},computed:vue.computed,ref:vue.ref,onMounted(){},onBeforeUnmount(){},nextTick:async()=>{},watch(){},Intl,Date,WorkPlanEditAccess:{},VisitEvidenceGallery:{},AvailabilityPanel:{},
     useRoute:()=>({params:{planId:'plan'}}),useRouter:()=>({push:r=>calls.routes.push(r),replace:r=>calls.routes.push(r)}),useAuth:()=>auth,
     getPlanEditAccess:async()=>({canEdit:grant,minDate:today()}),getSupervisorWorkPlan:async()=>response,
-    getSupervisorWorkPlanPharmacyFilters:async()=>({}),getSupervisorWorkPlanPharmacies:async()=>({pharmacies:[]}),
+    getSupervisorWorkPlanPharmacyFilters:async()=>({}),getSupervisorWorkPlanPharmacies:async params=>{calls.catalog.push(params);return {pharmacies:[]}},
     updateSupervisorWorkPlanItem:async(...args)=>calls.updates.push(args),addSupervisorWorkPlanItem:async(...args)=>calls.adds.push(args),
     archiveSupervisorWorkPlan(){},removeSupervisorWorkPlanItem(){},reorderSupervisorWorkPlanItems(){},submitSupervisorWorkPlan(){},updateSupervisorWorkPlan(){},
     createSupervisorWorkPlan(){},getSupervisorWorkPlans:async()=>({plans:[plan]})}
@@ -47,4 +47,12 @@ test('Mis planes exposes requesting for current/future approved ordinary and ext
   assert.match(h.template,/v-if="canRequestEdit\(plan\)"/)
   assert.match(h.template,/Solicitar edición/)
   assert.match(h.template,/<WorkPlanEditAccess[^>]+initially-open/)
+})
+
+test('weekly-plan search uses one optional search string without hidden dropdown filters',async()=>{
+  const h=setup('SupervisorWorkPlanEditorView.vue',{type:'ORDINARY'});await h.state.loadDetail()
+  h.state.catalogSearch.value='CL-070 Puebla';await h.state.searchCatalog()
+  assert.deepEqual(JSON.parse(JSON.stringify(h.calls.catalog.at(-1))),{search:'CL-070 Puebla',limit:20,offset:0})
+  h.state.catalogSearch.value='';await h.state.searchCatalog()
+  assert.equal(h.calls.catalog.at(-1).search,undefined)
 })

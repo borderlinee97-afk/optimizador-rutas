@@ -50,6 +50,50 @@ const DEFAULT_PENDING_UPLOAD_TTL_MINUTES =
 const STALE_PENDING_UPLOAD_REASON =
   'Carga incompleta expirada antes de completarse.'
 
+// Keep the original object, owner, upload date and withdrawal date for audit.
+// REJECTED is terminal: neither ticket retries nor completion can restore it.
+const WITHDRAWN_EVIDENCE_REASON = 'Retirada por su propietario.'
+
+router.delete('/items/:itemId/:evidenceId', async (req, res, next) => {
+  const { itemId, evidenceId } = req.params
+  if (!UUID_PATTERN.test(itemId) || !UUID_PATTERN.test(evidenceId)) {
+    return res.status(400).json({ error: 'Identificador inválido', code: 'INVALID_EVIDENCE_ID' })
+  }
+  const actor = req.identityProfile
+  if (actor?.area !== 'FARMACIAS' || !['SUPERVISOR', 'COORDINADOR'].includes(actor?.rol)) {
+    return res.status(403).json({ error: 'No tienes permiso para retirar esta evidencia', code: 'EVIDENCE_OWNER_REQUIRED' })
+  }
+  let client
+  try {
+    client = await pool.connect()
+    await client.query('BEGIN')
+    // Same parent lock as ticket creation and visit execution. Completed visits
+    // remain editable for evidence withdrawal without changing their execution.
+    const target = await client.query(`SELECT wpi.id FROM public.work_plan_item wpi
+      JOIN public.work_plan wp ON wp.id = wpi.plan_id
+      WHERE wpi.id = $1::uuid AND wp.supervisor_id = $2::uuid FOR UPDATE OF wpi`, [itemId, actor.id])
+    if (!target.rowCount) {
+      await client.query('ROLLBACK')
+      return res.status(404).json({ error: 'La visita no existe o no te pertenece', code: 'PLAN_ITEM_NOT_FOUND' })
+    }
+    const existing = await client.query(`SELECT * FROM public.visit_evidence
+      WHERE id = $1::uuid AND plan_item_id = $2::uuid AND supervisor_id = $3::uuid FOR UPDATE`, [evidenceId, itemId, actor.id])
+    const row = existing.rows[0]
+    if (row && row.rejection_reason !== WITHDRAWN_EVIDENCE_REASON) {
+      await client.query(`UPDATE public.visit_evidence SET status = 'REJECTED',
+        rejection_reason = $2, updated_at = NOW() WHERE id = $1::uuid`, [evidenceId, WITHDRAWN_EVIDENCE_REASON])
+    }
+    await client.query('COMMIT')
+    // Also acknowledges a local photo which has not requested its ticket yet.
+    return res.json({ ok: true, evidenceId, removed: true })
+  } catch (error) {
+    await client?.query('ROLLBACK').catch(() => {})
+    return next(error)
+  } finally {
+    client?.release()
+  }
+})
+
 router.get(
   '/policy',
   (
@@ -590,25 +634,27 @@ router.get(
           SELECT *
           FROM public.visit_evidence
           WHERE plan_item_id = $1::uuid
-            AND status = 'READY'
+            AND (status = 'READY' OR rejection_reason = $2)
           ORDER BY
             captured_at ASC,
             created_at ASC
           `,
           [
             item.id,
+            WITHDRAWN_EVIDENCE_REASON,
           ],
         )
 
       const evidence =
         await Promise.all(
-          evidenceResult.rows.map(
-            addSignedReadUrl,
+          evidenceResult.rows.filter(row => row.status === 'READY').map(
+            async row => ({ ...await addSignedReadUrl(row), canRemove: row.supervisor_id === req.identityProfile.id }),
           ),
         )
 
       return res.json({
         evidence,
+        removedEvidenceIds: evidenceResult.rows.filter(row => row.rejection_reason === WITHDRAWN_EVIDENCE_REASON && row.supervisor_id === req.identityProfile.id).map(row => row.id),
       })
     } catch (
       error
@@ -814,12 +860,6 @@ async function createUploadTicket(
       )
   }
 
-  const maxPerItem =
-    positiveInteger(
-      process.env.EVIDENCE_MAX_PER_ITEM,
-      10,
-    )
-
   const pendingUploadTtlMinutes =
     positiveInteger(
       process.env.EVIDENCE_PENDING_UPLOAD_TTL_MINUTES,
@@ -959,13 +999,6 @@ async function createUploadTicket(
             })
         }
 
-        await enforceEvidenceLimits(
-          client,
-          target,
-          maxPerItem,
-          evidence.id,
-        )
-
         const reactivatedResult =
           await client.query(
             `
@@ -1030,13 +1063,6 @@ async function createUploadTicket(
           reconciledResult.rows[0]
       }
     } else {
-      await enforceEvidenceLimits(
-        client,
-        target,
-        maxPerItem,
-        null,
-      )
-
       const extension =
         ALLOWED_MIME_TYPES.get(
           parsed.value.mimeType,
@@ -1211,19 +1237,6 @@ async function lockEvidenceTarget(
         target.taskId,
       ],
     )
-  }
-}
-
-async function enforceEvidenceLimits(client, target, maxPerItem, excludeEvidenceId) {
-  // Additional stops and activity photos have no quantity cap. The item type
-  // comes from the owned server record, never from a client-supplied field.
-  if (!target.planItemId || target.activityId || target.itemType === 'EXTRA_STOP') return
-  const result = await client.query(`SELECT COUNT(*)::integer AS item_count
-    FROM public.visit_evidence WHERE plan_item_id = $1::uuid AND activity_id IS NULL
-      AND status IN ('PENDING_UPLOAD','READY')
-      AND ($2::uuid IS NULL OR id <> $2::uuid)`, [target.planItemId, excludeEvidenceId])
-  if (Number(result.rows[0]?.item_count ?? 0) >= maxPerItem) {
-    throw new EvidenceLimitError(`La visita admite como máximo ${maxPerItem} evidencias generales`, 'EVIDENCE_ITEM_LIMIT_REACHED')
   }
 }
 
@@ -1957,27 +1970,6 @@ function positiveNumber(
       ? parsed
       : fallback
   )
-}
-
-class EvidenceLimitError
-  extends Error {
-  constructor(
-    message,
-    code,
-  ) {
-    super(
-      message,
-    )
-
-    this.name =
-      'EvidenceLimitError'
-
-    this.code =
-      code
-
-    this.status =
-      409
-  }
 }
 
 export default router

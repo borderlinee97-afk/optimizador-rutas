@@ -234,11 +234,27 @@ export async function syncTodayPlan(
 
   const syncedAt =
     Date.now()
+  let preservedLocalOperations = false
 
   db.withTransactionSync(
     () => {
       if (hasPendingPlanOperations(response.items.map(item => item.id))) {
-        throw new ApiError('Hay evidencias u operaciones locales pendientes. Se conservó el plan descargado hasta resolverlas.', 409, 'LOCAL_PENDING_OPERATIONS')
+        // A photo awaiting retry must not hide a newly created stop. Append only
+        // entirely new server visits; retain all existing execution/activities,
+        // queues, recovery receipts and download metadata until they can sync.
+        const protectedIds = new Set(db.getAllSync<{ plan_item_id: string | null }>(`
+          SELECT plan_item_id FROM evidence_queue WHERE status <> 'READY'
+          UNION SELECT plan_item_id FROM execution_outbox WHERE status <> 'SYNCED'
+        `).map(row => row.plan_item_id))
+        for (const item of response.items) {
+          if (protectedIds.has(item.id) ||
+            db.getFirstSync('SELECT 1 FROM plan_items WHERE id = ?', [item.id]) ||
+            db.getFirstSync("SELECT 1 FROM legacy_recovery_receipts WHERE source_table = 'plan_items' AND source_id = ?", [item.id])) continue
+          insertPlanItem(item, syncedAt)
+          insertPlanItemActivities(item.id, item.activities ?? [], syncedAt)
+        }
+        preservedLocalOperations = true
+        return
       }
       db.runSync(`
         DELETE FROM plan_item_activities
@@ -316,6 +332,10 @@ export async function syncTodayPlan(
       }
     },
   )
+
+  if (preservedLocalOperations) {
+    throw new ApiError('Las visitas nuevas se incorporaron cuando estaban disponibles. Se conservan las evidencias y operaciones pendientes; revisa Mis pendientes y reintenta su envío.', 409, 'LOCAL_PENDING_OPERATIONS')
+  }
 
   return response
 }

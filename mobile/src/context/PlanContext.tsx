@@ -69,6 +69,7 @@ export function PlanProvider({
   } = useAuth()
   const userId = session?.user.id
   const activeRefresh = useRef(false)
+  const refreshAgain = useRef(false)
   const [offline, setOffline] = useState(false)
   const [downloadWindow, setDownloadWindow] = useState<{ startDate: string; endDate: string } | null>(null)
 
@@ -128,15 +129,21 @@ export function PlanProvider({
     }, [userId])
 
   const refresh =
-    useCallback(async () => {
+    useCallback(async (): Promise<void> => {
       const accessToken =
         session?.access_token
 
       if (
         !accessToken ||
         !isSupervisor
-        || !userId || !isDatabaseActive(userId) || activeRefresh.current
+        || !userId || !isDatabaseActive(userId)
       ) {
+        return
+      }
+      if (activeRefresh.current) {
+        // A stop created during an older download needs a fresh response after
+        // that batch; do not silently discard the caller's refresh request.
+        refreshAgain.current = true
         return
       }
       if (accessState !== 'online') {
@@ -178,7 +185,10 @@ export function PlanProvider({
       } catch (refreshError) {
         if (!isDatabaseActive(userId) || !currentPlanAccess.current.allowed) return
         if (isAuthorizationFailure(refreshError)) {
-          await invalidateProfile(getPlanErrorMessage(refreshError))
+          // A rejected resource is not proof that the account was revoked.
+          // Only /auth/me decides whether the operational profile is invalid.
+          await refreshProfile()
+          setError(getPlanErrorMessage(refreshError))
           return
         }
         console.error(
@@ -199,6 +209,11 @@ export function PlanProvider({
         activeRefresh.current = false
         setSyncing(false)
         setReady(true)
+        const repeat = refreshAgain.current
+        refreshAgain.current = false
+        if (repeat && isDatabaseActive(userId) && currentPlanAccess.current.userId === userId && currentPlanAccess.current.allowed) {
+          await refresh()
+        }
       }
     }, [
       session?.access_token,

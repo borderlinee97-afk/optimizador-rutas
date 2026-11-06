@@ -411,7 +411,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
       if (session?.access_token && currentAccess.current?.profile?.area === 'FARMACIAS') {
         try { await unregisterPushSession(session.access_token) } catch { /* Logout remains available offline. */ }
       }
-      const { error } = await supabase.auth.signOut()
+      const { error } = await supabase.auth.signOut({ scope: 'local' })
       return { error }
     } finally {
       explicitSignOut.current = false

@@ -1,3 +1,4 @@
+import {renewRequestToken} from '../services/sessionRenewal'
 import type {
   ApiErrorResponse,
   AuthMeResponse,
@@ -37,6 +38,7 @@ if (!apiBaseUrl) {
 export class ApiError extends Error {
   status: number
   code?: string
+  requestId?: string
 
   constructor(
     message: string,
@@ -128,6 +130,13 @@ export async function apiRequest<T>(
           ...(controller ? { signal: controller.signal } : {}),
         },
       )
+    if (response.status === 401 && accessToken && !options.signal?.aborted && !controller?.signal.aborted) {
+      const renewed = await renewRequestToken(accessToken)
+      if (renewed && !options.signal?.aborted && !controller?.signal.aborted) {
+        headers.set('Authorization', `Bearer ${renewed}`)
+        response = await fetch(`${apiBaseUrl}${normalizedPath}`,{...options,headers,...(controller?{signal:controller.signal}:{})})
+      }
+    }
   } catch (error) {
     console.error(
       'Backend connection error:',
@@ -150,14 +159,16 @@ export async function apiRequest<T>(
 
   if (!response.ok) {
     const apiError =
-      payload as ApiErrorResponse
+      payload as ApiErrorResponse & {requestId?:string}
 
-    throw new ApiError(
+    const error = new ApiError(
       apiError.error ||
         `El servidor respondió con estado ${response.status}.`,
       response.status,
       apiError.code,
     )
+    error.requestId=apiError.requestId || response.headers.get('X-Request-Id') || undefined
+    throw error
   }
 
   return payload as T
@@ -466,20 +477,22 @@ export function completeEvidenceUpload(
   )
 }
 
-export function listVisitEvidence(
-  itemId: string,
-  accessToken: string,
-): Promise<VisitEvidenceListResponse> {
-  return apiRequest<VisitEvidenceListResponse>(
-    `/api/mobile/evidence/items/${encodeURIComponent(
-      itemId,
-    )}`,
-    {
-      method:
-        'GET',
-    },
-    accessToken,
-  )
+export function removeVisitEvidence(itemId: string, evidenceId: string, accessToken: string): Promise<{ ok: boolean; removed: boolean }> {
+  return apiRequest(`/api/mobile/evidence/items/${encodeURIComponent(itemId)}/${encodeURIComponent(evidenceId)}`, { method: 'DELETE' }, accessToken)
+}
+
+// Activity galleries for one visit mount together. Share their concurrent read
+// without caching signed URLs or retaining a previous account's response.
+const evidenceReads = new Map<string, Promise<VisitEvidenceListResponse>>()
+export function listVisitEvidence(itemId: string, accessToken: string): Promise<VisitEvidenceListResponse> {
+  const key = `${accessToken}:${itemId}`
+  const current = evidenceReads.get(key)
+  if (current) return current
+  const request = apiRequest<VisitEvidenceListResponse>(
+    `/api/mobile/evidence/items/${encodeURIComponent(itemId)}`, { method: 'GET' }, accessToken,
+  ).finally(() => { if (evidenceReads.get(key) === request) evidenceReads.delete(key) })
+  evidenceReads.set(key, request)
+  return request
 }
 
 export function listOperationalTasks(
@@ -590,11 +603,14 @@ export function getOperationalTaskDetail(
   )
 }
 
-// Best effort before the existing global Supabase sign-out; never block offline logout.
+// Best effort for the current installation; never block offline logout.
 export async function unregisterPushSession(accessToken: string) {
+  const AsyncStorage = (await import('@react-native-async-storage/async-storage')).default
+  const installationId = await AsyncStorage.getItem('notifications:installation-id')
+  if (!installationId) return { ok: true }
   const controller = new AbortController()
   const timer = setTimeout(() => controller.abort(), 5_000)
   try {
-    return await apiRequest('/api/mobile/notifications/devices/current', { method: 'DELETE', signal: controller.signal }, accessToken)
+    return await apiRequest('/api/mobile/notifications/devices/current', { method: 'DELETE', signal: controller.signal, body: JSON.stringify({ installationId }) }, accessToken)
   } finally { clearTimeout(timer) }
 }

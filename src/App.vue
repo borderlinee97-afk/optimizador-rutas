@@ -237,7 +237,7 @@
                 <span class="sidebar-nav-icon">
                   <!-- Agenda -->
                   <svg
-                    v-if="item.key === 'agenda'"
+                    v-if="['agenda','pending'].includes(item.key)"
                     viewBox="0 0 24 24"
                     aria-hidden="true"
                   >
@@ -300,7 +300,7 @@
 
                   <!-- Planes -->
                   <svg
-                    v-else-if="item.key === 'plans'"
+                    v-else-if="['plans','manual'].includes(item.key)"
                     viewBox="0 0 24 24"
                     aria-hidden="true"
                   >
@@ -347,7 +347,7 @@
                   <svg v-if="item.key==='app-updates'" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12m-4-4 4 4 4-4M4 16v5h16v-5" /></svg>
                   <!-- Aprobaciones -->
                   <svg
-                    v-else-if="item.key === 'approvals'"
+                    v-else-if="['approvals','diagnostics'].includes(item.key)"
                     viewBox="0 0 24 24"
                     aria-hidden="true"
                   >
@@ -363,7 +363,7 @@
                   <!-- Asignaciones -->
                   <svg
                     v-else-if="
-                      item.key === 'assignments'
+                      ['assignments','follow-up'].includes(item.key)
                     "
                     viewBox="0 0 24 24"
                     aria-hidden="true"
@@ -803,6 +803,10 @@ const showAreaSwitcher =
  */
 
 const farmaciasMenuDefinition = [
+  {key:'pending',label:'Mis pendientes',to:'/farmacias/pendientes',roles:['DIRECTOR','GERENTE','COORDINADOR','SUPERVISOR']},
+  {key:'follow-up',label:'Seguimiento de visitas',to:'/farmacias/seguimiento',roles:['GERENTE','COORDINADOR']},
+  {key:'manual',label:'Manual de uso',to:'/farmacias/manual',roles:['DIRECTOR','GERENTE','COORDINADOR','SUPERVISOR']},
+  {key:'diagnostics',label:'Diagnóstico',to:'/admin/diagnostico',roles:[],adminOnly:true},
   {key:'app-updates',label:'Actualizaciones APK',to:'/admin/actualizaciones',adminOnly:true,roles:[]},
   { key:'indicators',label:'Indicadores',to:'/farmacias/indicadores',roles:['DIRECTOR','GERENTE','COORDINADOR'] },
   { key:'reports',label:'Reportes',to:'/farmacias/reportes',roles:['DIRECTOR','GERENTE','COORDINADOR'] },
@@ -900,6 +904,8 @@ const operationMenu =
       farmaciasMenu.value.filter(
         item =>
           [
+            'pending',
+            'manual',
             'agenda',
             'territorial',
             'map',
@@ -916,6 +922,8 @@ const managementMenu =
       farmaciasMenu.value.filter(
         item =>
           [
+            'follow-up',
+            'diagnostics',
             'app-updates',
             'approvals',
             'assignments',

@@ -1,4 +1,3 @@
-import { OverdueVisitAlerts } from '../../src/components/OverdueVisitAlerts'
 import { WorkPlanEditAccess } from '../../src/components/WorkPlanEditAccess'
 import { KeyboardAwareScrollView as ScrollView } from '../../src/components/KeyboardAwareScrollView'
 import { AvailabilityPanel } from '../../src/components/AvailabilityPanel'
@@ -1677,7 +1676,6 @@ export default function ApprovalsScreen() {
        keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag">
         <WorkPlanEditAccess />
       <AvailabilityPanel />
-      <OverdueVisitAlerts key={session?.user.id} />
 
         <View>
 

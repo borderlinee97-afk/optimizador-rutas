@@ -11,6 +11,7 @@ import {
   completeEvidenceUpload,
   createTaskEvidenceTicket,
   createVisitEvidenceTicket,
+  removeVisitEvidence,
 } from '../lib/api'
 
 import {
@@ -188,14 +189,49 @@ export function listLocalEvidence({
       values,
     ) as EvidenceQueueRow[]
 
-  return rows.map(
+  return rows.filter(row => !isEvidenceRemoved(row.evidence_id, database)).map(
     mapEvidenceRow,
   )
 }
 
 type EvidenceSyncResult = { synced: number; pending: number; failed: number }
-type ActiveEvidenceSync = { promise: Promise<EvidenceSyncResult>; retryFailed: boolean; planItemId?: string }
+type ActiveEvidenceSync = { promise: Promise<EvidenceSyncResult>; retryFailed: boolean; planItemId?: string; exclusive?: boolean }
 const activeSyncs = new WeakMap<typeof db, ActiveEvidenceSync>()
+
+export function isEvidenceRemoved(id: string, database = db): boolean {
+  return Boolean(database.getFirstSync('SELECT 1 FROM evidence_removals WHERE evidence_id = ?', [id]))
+}
+
+export function rememberWithdrawnEvidence(ids: string[], database = db) {
+  database.withTransactionSync(() => {
+    for (const id of ids) {
+      database.runSync('INSERT OR IGNORE INTO evidence_removals(evidence_id, removed_at) VALUES (?, ?)', [id, Date.now()])
+      database.runSync('DELETE FROM evidence_queue WHERE evidence_id = ?', [id])
+    }
+  })
+}
+
+export async function withdrawVisitEvidence(itemId: string, evidenceId: string, accessToken: string, database = db): Promise<void> {
+  const owner = getDatabaseUserId(database)
+  // Serialize with uploads: an in-flight ticket/complete must settle before
+  // withdrawal, and no new batch may snapshot this photo during withdrawal.
+  while (activeSyncs.has(database)) await activeSyncs.get(database)!.promise
+  const operation = Promise.resolve().then(async () => {
+    const { data, error } = await supabase.auth.getSession()
+    if (error) throw error
+    if (!owner || database !== db || !isDatabaseActive(owner) || data.session?.user.id !== owner) {
+      throw new Error('Inicia sesión con la cuenta propietaria de la evidencia.')
+    }
+    const result = await removeVisitEvidence(itemId, evidenceId, data.session.access_token || accessToken)
+    if (!result.ok || !result.removed) throw new Error('El servidor no confirmó el retiro de la fotografía.')
+    // This handle remains pinned to the old owner even if the account changes.
+    rememberWithdrawnEvidence([evidenceId], database)
+  })
+  const gate = operation.then(() => ({ synced: 0, pending: 0, failed: 0 }), () => ({ synced: 0, pending: 0, failed: 0 }))
+    .finally(() => { activeSyncs.delete(database) })
+  activeSyncs.set(database, { promise: gate, retryFailed: false, exclusive: true })
+  await operation
+}
 
 export function syncPendingEvidence(
   accessToken: string,
@@ -208,7 +244,7 @@ export function syncPendingEvidence(
   if (previous) {
     const includesRetry = previous.retryFailed || !retryFailed
     const includesScope = !previous.planItemId || previous.planItemId === scope?.planItemId
-    if (includesRetry && includesScope) return previous.promise
+    if (!previous.exclusive && includesRetry && includesScope) return previous.promise
     // An explicit retry must not silently join a narrower automatic batch that skips FAILED photos.
     return previous.promise.then(() => {
       if (!owner || db !== database || !isDatabaseActive(owner) || getDatabaseUserId(database) !== owner) {
@@ -264,6 +300,7 @@ async function processPendingEvidence(
   for (
     const row of rows
   ) {
+    if (isEvidenceRemoved(row.evidence_id, database)) continue
     if (scope && row.plan_item_id !== scope.planItemId) continue
     if (row.plan_item_id && database.getFirstSync("SELECT 1 FROM execution_outbox WHERE plan_item_id=? AND action_type='CHECK_IN' AND status<>'SYNCED' LIMIT 1", [row.plan_item_id])) {
       pending += 1

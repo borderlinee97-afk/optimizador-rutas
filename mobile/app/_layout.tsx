@@ -8,7 +8,6 @@ import {
   DefaultTheme,
   ThemeProvider,
 } from '@react-navigation/native'
-import { useFonts } from 'expo-font'
 import { Stack,useSegments } from 'expo-router'
 import * as SplashScreen from 'expo-splash-screen'
 import { useEffect } from 'react'
@@ -23,45 +22,21 @@ import {
 } from '../src/context/PlanContext'
 import { NotificationBridge } from '../src/components/NotificationBridge'
 import { OfflineStatus } from '../src/components/OfflineStatus'
-import { View } from 'react-native'
+import { View,Text,Pressable } from 'react-native'
+import type {ErrorBoundaryProps} from 'expo-router'
+import Constants from 'expo-constants'
+import {supabase} from '../src/lib/supabase'
+import {apiRequest} from '../src/lib/api'
 import { StatusBar } from 'expo-status-bar'
 
-export {
-  ErrorBoundary,
-} from 'expo-router'
+export function ErrorBoundary({retry}:ErrorBoundaryProps){
+  useEffect(()=>{void(async()=>{try{const {data}=await supabase.auth.getSession();if(data.session)await apiRequest('/api/diagnostics/client',{method:'POST',body:JSON.stringify({source:'mobile',kind:'runtime_error',operation:'expo_screen',version:Constants.expoConfig?.version||'mobile'})},data.session.access_token)}catch{}})()},[])
+  return <View style={{flex:1,padding:28,justifyContent:'center',backgroundColor:'#eef2f5'}}><Text style={{fontSize:24,fontWeight:'700',color:'#102332'}}>No fue posible abrir esta pantalla</Text><Text style={{fontSize:16,marginTop:16,color:'#435667'}}>Los registros guardados se conservan. Vuelve a intentar y revisa Mis pendientes.</Text><Pressable onPress={retry} style={{minHeight:48,marginTop:24,padding:14,borderRadius:10,backgroundColor:'#096e91'}}><Text style={{color:'#fff',fontSize:16,fontWeight:'700'}}>Reintentar</Text></Pressable></View>
+}
 
 SplashScreen.preventAutoHideAsync()
 
 export default function RootLayout() {
-  const [
-    fontsLoaded,
-    fontError,
-  ] =
-    useFonts({
-      SpaceMono: require(
-        '../assets/fonts/SpaceMono-Regular.ttf',
-      ),
-    })
-
-  useEffect(
-    () => {
-      if (
-        fontError
-      ) {
-        throw fontError
-      }
-    },
-    [
-      fontError,
-    ],
-  )
-
-  if (
-    !fontsLoaded
-  ) {
-    return null
-  }
-
   return (
     <AppUpdateProvider>
     <AuthProvider>
@@ -150,14 +125,6 @@ function RootNavigator() {
         >
           <Stack.Screen
             name="(tabs)"
-          />
-
-          <Stack.Screen
-            name="modal"
-            options={{
-              presentation:
-                'modal',
-            }}
           />
 
           <Stack.Screen

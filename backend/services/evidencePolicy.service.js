@@ -265,11 +265,7 @@ export function getEvidencePolicy() {
     maxPerActivity: null,
     maxPerExtraStop: null,
 
-    maxPerItem:
-      positiveInteger(
-        process.env.EVIDENCE_MAX_PER_ITEM,
-        10,
-      ),
+    maxPerItem: null,
 
     maxAccuracyM:
       positiveNumber(

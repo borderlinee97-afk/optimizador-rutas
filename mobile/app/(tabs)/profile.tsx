@@ -1,4 +1,5 @@
 import { AppUpdateCard } from '../../src/components/AppUpdateCard'
+import {router} from 'expo-router'
 import {
   ActivityIndicator,
   Alert,
@@ -146,6 +147,9 @@ export default function ProfileScreen() {
         </View>
 
         <AppUpdateCard />
+        <Pressable className="mt-5 min-h-[48px] rounded-xl border border-slate-300 bg-white p-4" onPress={()=>router.push('/pending')}><Text className="text-base font-bold text-primary-700">Mis pendientes y diagnóstico →</Text></Pressable>
+        {['COORDINADOR','GERENTE'].includes(profile?.rol||'')?<Pressable className="mt-3 min-h-[48px] rounded-xl border border-slate-300 bg-white p-4" onPress={()=>router.push('/follow-up')}><Text className="text-base font-bold text-primary-700">Seguimiento de visitas →</Text></Pressable>:null}
+        <Pressable className="mt-3 min-h-[48px] rounded-xl border border-slate-300 bg-white p-4" onPress={()=>router.push('/manual')}><Text className="text-base font-bold text-primary-700">Manual de uso →</Text></Pressable>
 
         <Pressable
           className="mt-6 h-14 items-center justify-center rounded-2xl border border-red-200 bg-red-50"

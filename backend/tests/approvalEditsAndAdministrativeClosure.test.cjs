@@ -36,7 +36,7 @@ test('real approvals page displays edits metric and supplies the inbox; refresh 
  const nodes=(n,out=[])=>{if(Array.isArray(n)){n.forEach(x=>nodes(x,out));return out}if(n&&typeof n==='object'){out.push(n);if(Array.isArray(n.children))nodes(n.children,out)}return out}
  const text=n=>typeof n==='string'?n:Array.isArray(n)?n.map(text).join(''):n&&typeof n==='object'?text(n.children):String(n??'')
  let all=nodes(render({},[])),inbox=all.find(n=>n.type===editComponent)
- assert.ok(all.some(n=>n.props?.role==='alert'&&text(n).includes('requieren revisión o aclaración')));assert.ok(all.some(n=>n.type==='button'&&text(n)==='Revisar plan'));
+ assert.ok(!all.some(n=>n.props?.role==='alert'&&text(n).includes('requieren revisión o aclaración')));assert.ok(!all.some(n=>n.type==='button'&&text(n)==='Revisar plan'));
  assert.equal(inbox.props['inbox-requests'].length,1);assert.ok(Object.hasOwn(inbox.props,'show-empty'))
  const metric=all.find(n=>n.type==='article'&&text(n).includes('Ediciones de plan'));assert.ok(metric);assert.match(text(metric),/1/)
  await inbox.props.onRefresh();assert.equal(calls,2)

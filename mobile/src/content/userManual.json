@@ -1,0 +1,115 @@
+{
+  "title": "APP DE RUTAS — Manual de uso",
+  "edition": "3 de noviembre de 2026 · Operación Pro",
+  "intro": "Guía de web y Android para planificar, autorizar y ejecutar trabajo de supervisión. Cada cuenta muestra los módulos y registros autorizados. Esta edición describe el código actualizado; su disponibilidad depende de publicar la web e instalar la APK correspondiente.",
+  "sections": [
+    {
+      "title": "1. Acceso y responsabilidades",
+      "steps": [
+        "Ingresa con correo y contraseña. La primera validación del celular y la descarga requieren internet. No compartas tu cuenta.",
+        "Supervisor: prepara planes, consulta su agenda y ejecuta visitas autorizadas. Coordinador: revisa su estructura y utiliza las funciones de campo habilitadas. Gerente: revisa la estructura bajo su alcance. Administración: gestiona las funciones administrativas autorizadas.",
+        "Web y APK deben mantener sesiones independientes de la misma cuenta. Salir de un dispositivo no debe cerrar el otro. Cambiar o recuperar la contraseña puede exigir iniciar sesión nuevamente por seguridad.",
+        "Si el servidor rechaza el acceso, anota el mensaje y solicita revisión. No borres los datos locales ni intentes resolverlo cambiando asignaciones. Un error de red no concede permisos."
+      ]
+    },
+    {
+      "title": "2. Preparar un plan en la web",
+      "steps": [
+        "Abre Planes y crea un plan semanal o extraordinario. Confirma el periodo antes de agregar las visitas.",
+        "En el borrador pulsa Agregar visita. Elige Unidades asignadas, CEDIS o Regiones sanitarias. Busca por nombre, referencia o filtros.",
+        "Selecciona la unidad. El recuadro Farmacia debe mostrar Seleccionada, el nombre y su CLUES o referencia. Confirma esos datos antes de continuar.",
+        "Captura fecha dentro del periodo y hora opcional. Define si la visita es obligatoria, agrega al menos una actividad y las notas necesarias. Pulsa Guardar visita.",
+        "Revisa fechas, orden y actividades del plan. Enviar al coordinador lo deja pendiente de aprobación: el envío no autoriza su ejecución.",
+        "Para cambiar un plan aprobado utiliza la autorización de edición disponible. No alteres visitas ejecutadas para simular cumplimiento."
+      ]
+    },
+    {
+      "title": "3. Revisar y autorizar",
+      "steps": [
+        "En Aprobaciones abre el detalle y revisa responsable, periodo, visitas y actividades. Aprueba o rechaza sólo cuando corresponda; al rechazar captura una observación clara.",
+        "Las solicitudes de edición, cancelación, vacaciones y cobertura conservan sus validaciones. Autorizar una edición no equivale a aprobar el cumplimiento de una visita.",
+        "En Puebla los coordinadores comparten únicamente los supervisores configurados. Los planes propios de un coordinador corresponden a gerencia. Si falta una solicitud, revisa estado, vigencia y alcance antes de cambiar asignaciones."
+      ]
+    },
+    {
+      "title": "4. Preparar el celular para campo",
+      "steps": [
+        "Con internet y el plan aprobado, abre Trabajo y pulsa Actualizar. Espera el resultado y verifica visitas y actividades.",
+        "Comprueba el indicador de semana descargada y abre los detalles que necesitarás. Sin red sólo podrás consultar información previamente guardada.",
+        "Concede cámara y ubicación cuando se necesiten para el registro. Si rechazaste un permiso, revísalo en los ajustes del teléfono. La app no debe inventar ubicación ni evidencia.",
+        "Revisa Mis pendientes desde Perfil antes de salir. Los mapas y servicios externos pueden necesitar internet aunque las visitas estén guardadas."
+      ]
+    },
+    {
+      "title": "5. Ejecutar una visita",
+      "steps": [
+        "En Trabajo abre una visita aprobada y programada para hoy. Confirma unidad y actividades; registra la entrada con ubicación válida y las condiciones solicitadas.",
+        "La visita activa aparece destacada en Inicio y Trabajo. Continuar visita abre su detalle. No puedes iniciar otra visita del mismo día mientras la anterior siga abierta.",
+        "Resuelve las actividades: registra realización u omisión permitida, motivo y evidencia requerida. Comprueba que las fotos pertenecen a la actividad o visita correcta.",
+        "Antes de registrar salida resuelve las actividades y evidencias exigidas. La salida registra el cierre real: revisa después el estado y la sincronización.",
+        "Una visita anterior sin finalizar no bloquea las de hoy. Conserva su estado, entrada y evidencias para revisión; no recibe salida, duración ni cumplimiento automático."
+      ]
+    },
+    {
+      "title": "6. Sin conexión y sincronización",
+      "steps": [
+        "Con cuenta previamente validada e información descargada puedes consultar y ejecutar el trabajo habilitado sin internet. La captura se guarda en la base local de esa cuenta.",
+        "Al recuperar red actualiza Trabajo y revisa Mis pendientes. Los eventos y las fotos pueden sincronizar en momentos diferentes. Espera la confirmación antes de asumir que llegaron al servidor.",
+        "La sincronización reutiliza las operaciones originales para evitar duplicados. Un rechazo definitivo requiere revisión: no elimines el registro ni fuerces reintentos para ocultar el problema.",
+        "Android administra el trabajo en segundo plano y puede retrasarlo por batería, conexión o restricciones. No se ejecuta a una hora exacta. Después de Forzar detención vuelve a abrir la app.",
+        "Cerrar sesión o cambiar de cuenta bloquea el acceso a los datos de la cuenta anterior. No desinstales ni borres almacenamiento con operaciones pendientes sin revisar antes cómo conservarlas."
+      ]
+    },
+    {
+      "title": "7. Agenda, vacaciones y coberturas",
+      "steps": [
+        "En Agenda consulta tareas, vencimientos y prioridades. Los responsables autorizados pueden asignar dentro de su alcance. Abre una tarea para comentar, agregar evidencia cuando corresponda y actualizar estado.",
+        "En vacaciones abre el calendario, elige inicio y término y confirma. Puedes seleccionar un solo día. Cancelar conserva el rango confirmado anteriormente.",
+        "Escribe el motivo o comentario y revisa las fechas antes de enviar. Solicitar no equivale a aprobar vacaciones. El envío y las decisiones necesitan conexión.",
+        "Una cobertura temporal sólo permite trabajar en las unidades y fechas autorizadas. Si la visita queda fuera de vigencia, corrige el plan o solicita revisión."
+      ]
+    },
+    {
+      "title": "8. Seguimiento y Mis pendientes",
+      "steps": [
+        "Seguimiento de visitas es una vista independiente de Aprobaciones. La jefatura autorizada ve visitas anteriores No realizada o Sin finalizar, con responsable, unidad y fecha.",
+        "Revisar plan abre el registro original. En web puedes buscar entre las visitas cargadas, filtrar estado y cargar más. Revisar no crea por sí mismo una aclaración ni un cierre.",
+        "Mis pendientes web reúne tareas y accesos a aprobación y seguimiento según el perfil. Las tareas se ordenan por vencimiento y prioridad. Un apartado que no pudo actualizarse muestra su error.",
+        "Mis pendientes de la APK muestra las colas locales de visitas, evidencias y agenda, sus fallos y antigüedad. Los pendientes locales no aparecen automáticamente en web antes de sincronizarse.",
+        "Los avisos y recordatorios existentes conservan sus reglas. La nueva bandeja no incorpora todavía nuevos escalados automáticos ni un flujo formal de aclaraciones."
+      ]
+    },
+    {
+      "title": "9. Indicadores y diagnóstico",
+      "steps": [
+        "En Indicadores y Reportes elige periodo y responsable. Verifica filtros antes de interpretar o exportar.",
+        "Las visitas por revisar no suman cumplimiento, cobertura ni horas completadas. Un cierre administrativo sin salida mantiene su significado de visita no finalizada.",
+        "Administración dispone de diagnóstico reciente del servidor: versión, estados, errores y tiempos. La retención es limitada y se reinicia al desplegar; no sustituye un historial externo permanente.",
+        "Para informar una falla anota versión de APK, modelo de teléfono, pantalla, hora, conexión y pasos para repetirla. Incluye la referencia de solicitud disponible. No envíes contraseñas ni tokens."
+      ]
+    },
+    {
+      "title": "10. Actualizaciones y solución de problemas",
+      "steps": [
+        "Las preview se distribuyen al grupo de prueba. Una compilación en Expo no se convierte automáticamente en la versión estable del actualizador.",
+        "La publicación estable requiere validar APK y firma con el proceso administrativo existente. Una actualización debe conservar la información local y evitar instalar versiones incompatibles.",
+        "Si no ves el plan confirma cuenta, periodo y aprobación, y actualiza Trabajo con internet. Si falta una unidad revisa filtros, asignación y cobertura. Si una foto no carga conserva el pendiente y revisa conexión y permisos.",
+        "Si se interrumpe el acceso registra el mensaje y valida con internet. Indica si coincide con el uso de otro dispositivo. No elimines información local para resolver un error de sesión.",
+        "Al terminar la jornada revisa visitas abiertas y sincronización. Los pendientes anteriores se atienden con la jefatura sin falsear registros."
+      ]
+    }
+  ],
+  "flow": [
+    "Ingresar y validar perfil",
+    "Preparar plan y actividades",
+    "Enviar a aprobación",
+    "Jefatura revisa",
+    "Si rechaza: corregir y reenviar",
+    "Si aprueba: descargar semana en APK",
+    "Ejecutar visitas de hoy",
+    "Registrar actividades, evidencias y salida",
+    "Sin red: conservar cola local",
+    "Con red: sincronizar sin duplicar",
+    "Revisar indicadores y pendientes anteriores"
+  ]
+}

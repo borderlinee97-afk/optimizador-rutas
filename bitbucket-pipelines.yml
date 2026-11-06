@@ -1,0 +1,33 @@
+image: node:22-bookworm
+
+pipelines:
+  default:
+    - step:
+        name: Compilación y regresiones aisladas
+        size: 2x
+        services:
+          - postgres
+        caches:
+          - node
+        script:
+          - apt-get update
+          - apt-get install -y --no-install-recommends default-jdk
+          - npm ci
+          - npm ci --prefix backend
+          - npm ci --prefix mobile
+          - npm run build
+          - node mobile/node_modules/typescript/bin/tsc --noEmit --incremental false --project mobile/tsconfig.json
+          - export DATABASE_URL=postgresql://postgres:test-only@127.0.0.1:5432/postgres
+          - export TEST_ADMIN_DATABASE_URL=$DATABASE_URL
+          - export TEST_PUEBLA_DATABASE_URL=$DATABASE_URL
+          - export SUPABASE_URL=http://127.0.0.1:54321
+          - export SUPABASE_ANON_KEY=local-test-placeholder
+          - node --test --test-concurrency=1 backend/tests/*.test.*
+          - node --test mobile/tests/*.test.cjs
+
+definitions:
+  services:
+    postgres:
+      image: postgres:17
+      variables:
+        POSTGRES_PASSWORD: test-only

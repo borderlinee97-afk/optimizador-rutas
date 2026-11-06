@@ -1,3 +1,4 @@
+import { EvidenceGallery } from '../../src/components/EvidenceGallery'
 import { useNetInfo } from '@react-native-community/netinfo'
 import { WorkPlanEditAccess, type EditAccess } from '../../src/components/WorkPlanEditAccess'
 import { KeyboardAwareScrollView as ScrollView } from '../../src/components/KeyboardAwareScrollView'
@@ -302,7 +303,6 @@ export default function WorkPlanDetailScreen() {
       false,
     )
 
-  const [catalogKind, setCatalogKind] = useState<'UNITS' | 'CEDIS' | 'REG_SAN'>('UNITS')
   const catalogRequest = useRef(0)
 
   const [
@@ -685,7 +685,7 @@ export default function WorkPlanDetailScreen() {
           const response =
             await getPharmacyCatalog(
               {
-                kind: catalogKind,
+
                 search:
                   searchValue
                     .trim() ||
@@ -726,7 +726,6 @@ export default function WorkPlanDetailScreen() {
       },
       [
         accessToken,
-        catalogKind,
       ],
     )
 
@@ -793,7 +792,7 @@ export default function WorkPlanDetailScreen() {
       'ADD',
     )
     ++catalogRequest.current
-    setCatalogKind('UNITS')
+
 
     setEditingItem(
       null,
@@ -849,7 +848,7 @@ export default function WorkPlanDetailScreen() {
       'EDIT',
     )
     ++catalogRequest.current
-    setCatalogKind(item.locationName?.trim().toUpperCase() === 'ALMACENES' ? 'CEDIS' : item.locationName?.trim().toUpperCase()==='REGIONES SANITARIAS'?'REG_SAN':'UNITS')
+
 
     setEditingItem(
       item,
@@ -2101,6 +2100,7 @@ export default function WorkPlanDetailScreen() {
                     index,
                   ) => (
                     <VisitCard
+                      accessToken={accessToken ?? ''}
                       key={
                         item.id
                       }
@@ -2327,31 +2327,8 @@ export default function WorkPlanDetailScreen() {
                 </Pressable>
               </View>
 
-              <View className="mt-5 flex-row gap-2">
-                {([{ kind: 'UNITS', label: 'Unidades asignadas' }, { kind: 'CEDIS', label: 'CEDIS' }, {kind:'REG_SAN',label:'Reg. sanitarias'}] as const).map(option => (
-                  <Pressable
-                    key={option.kind}
-                    accessibilityRole="button"
-                    accessibilityState={{ selected: catalogKind === option.kind }}
-                    className={`flex-1 items-center rounded-2xl border px-3 py-3 ${catalogKind === option.kind ? 'border-primary-600 bg-primary-600' : 'border-slate-200 bg-slate-50'}`}
-                    onPress={() => {
-                      if (catalogKind === option.kind) return
-                      ++catalogRequest.current
-                      setCatalogKind(option.kind)
-                      setCatalog([])
-                      setSelectedPharmacy(null)
-                      setSearch('')
-                      setCatalogLoading(true)
-                    }} android_ripple={{ color: "#096e9124" }}
-                  >
-                    <Text className={`text-sm font-semibold ${catalogKind === option.kind ? 'text-white' : 'text-slate-700'}`}>{option.label}</Text>
-                  </Pressable>
-                ))}
-              </View>
-
-              <Text className="mt-4 text-sm font-semibold text-slate-700">
-                {catalogKind === 'CEDIS' ? 'Buscar CEDIS' : 'Buscar unidad'}
-              </Text>
+              <Text className="mt-5 text-sm font-semibold text-slate-700">Filtro de unidades · opcional</Text>
+              <Text className="mt-1 text-xs leading-5 text-slate-500">Busca una coincidencia y selecciona una unidad. Incluye unidades, CEDIS y regiones sanitarias autorizadas.</Text>
 
               <View className="mt-2 flex-row items-center rounded-2xl border border-slate-200 bg-slate-50 px-4">
                 <Ionicons
@@ -2368,7 +2345,8 @@ export default function WorkPlanDetailScreen() {
                   onChangeText={
                     setSearch
                   }
-                  placeholder={catalogKind === 'CEDIS' ? 'Nombre o referencia del almacén...' : 'Nombre, CLUES, región, proyecto...'}
+                  placeholder="CLUES, nombre, dirección, región o proyecto"
+                  maxLength={150}
                   placeholderTextColor="#435667"
                   autoCapitalize="none"
                   autoCorrect={
@@ -2495,7 +2473,7 @@ export default function WorkPlanDetailScreen() {
                 <View className="mt-4 gap-3">
                   {catalog.length === 0 && !selectedPharmacy ? (
                     <Text className="py-4 text-center text-sm text-slate-500">
-                      {catalogKind === 'CEDIS' ? 'No hay CEDIS disponibles para tu cuenta con esta búsqueda.' : 'No hay unidades disponibles con esta búsqueda.'}
+                      No hay unidades disponibles con esta búsqueda.
                     </Text>
                   ) : null}
                   {(selectedPharmacy
@@ -3155,6 +3133,7 @@ function createDraftVisitActivity(
 }
 
 function VisitCard({
+  accessToken,
   item,
   position,
   editable,
@@ -3167,6 +3146,7 @@ function VisitCard({
   onMoveUp,
   onMoveDown,
 }: {
+  accessToken: string
   item:
     WorkPlanItem
 
@@ -3200,6 +3180,7 @@ function VisitCard({
   onMoveDown:
     () => void
 }) {
+  const [showEvidence, setShowEvidence] = useState(false)
   return (
     <View
       className={`rounded-3xl border bg-white p-5 ${
@@ -3419,6 +3400,9 @@ function VisitCard({
           ) : null}
         </View>
       </View>
+
+      <Pressable accessibilityRole="button" accessibilityState={{ expanded: showEvidence }} onPress={() => setShowEvidence(value => !value)} className="mb-3 min-h-[44px] justify-center rounded-xl bg-sky-50 px-3"><Text className="font-semibold text-sky-800">{showEvidence ? 'Ocultar evidencias' : 'Ver evidencias de la visita'}</Text></Pressable>
+      {showEvidence && accessToken ? <EvidenceGallery planItemId={item.id} accessToken={accessToken} /> : null}
 
       {editable ? (
         <View className="mt-5 border-t border-slate-100 pt-4">

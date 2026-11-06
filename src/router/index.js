@@ -32,6 +32,10 @@ const router =
       createWebHistory(),
 
     routes: [
+      {path:'/farmacias/seguimiento',name:'farmacias-seguimiento',component:()=>import('../views/farmacias/VisitFollowUpView.vue'),meta:{area:'FARMACIAS',roles:['GERENTE','COORDINADOR']}},
+      {path:'/farmacias/pendientes',name:'farmacias-pendientes',component:()=>import('../views/farmacias/PendingCenterView.vue'),meta:{area:'FARMACIAS',roles:['DIRECTOR','GERENTE','COORDINADOR','SUPERVISOR']}},
+      {path:'/farmacias/manual',name:'farmacias-manual',component:()=>import('../views/farmacias/UserManualView.vue'),meta:{area:'FARMACIAS',roles:['DIRECTOR','GERENTE','COORDINADOR','SUPERVISOR']}},
+      {path:'/admin/diagnostico',name:'admin-diagnostics',component:()=>import('../views/admin/DiagnosticsView.vue'),meta:{area:'FARMACIAS',adminOnly:true}},
       {path:'/admin/actualizaciones',name:'admin-android-updates',component:()=>import('../views/admin/AndroidUpdatesView.vue'),meta:{adminOnly:true,area:'FARMACIAS'}},
       { path:'/farmacias/indicadores',name:'farmacias-indicadores',component:FarmaciasReportsView,props:{mode:'indicators'},meta:{area:'FARMACIAS',roles:['DIRECTOR','GERENTE','COORDINADOR']} },
       { path:'/farmacias/reportes',name:'farmacias-reportes',component:FarmaciasReportsView,props:{mode:'reports'},meta:{area:'FARMACIAS',roles:['DIRECTOR','GERENTE','COORDINADOR']} },

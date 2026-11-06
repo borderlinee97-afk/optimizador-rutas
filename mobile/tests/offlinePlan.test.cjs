@@ -48,6 +48,94 @@ function visit(id = 'visit-a') {
   }, { get: (object, key) => object[key] ?? null })
 }
 
+function extraStop(id, order = 2) {
+  const item = visit(id)
+  Object.assign(item, { source: 'SUPERVISOR_ADHOC', itemType: 'EXTRA_STOP', activities: [], order })
+  return item
+}
+
+function onlineProvider(h) {
+  const runner = hooks()
+  const auth = { session: { user: { id: A }, access_token: 'token-a' }, profile: { id: 'profile-a', area: 'FARMACIAS', rol: 'SUPERVISOR' }, loading: false, accessState: 'online', refreshProfile: async () => {}, invalidateProfile: async () => {} }
+  const provider = loadTs('src/context/PlanContext.tsx', {
+    ...runner.modules, './AuthContext': { useAuth: () => auth }, '../lib/api': { ApiError },
+    '@react-native-community/netinfo': { default: { addEventListener: () => () => {} } },
+    '../services/workPlanCache': { downloadWorkPlanScreens: async () => {} },
+    '../lib/supabase': { supabase: { auth: { getSession: async () => ({ data: { session: auth.session } }) } } },
+    '../services/planSync': h.planSync, '../../storage/db': h.storage,
+    '../services/executionSync': { syncVisitExecution: async () => {} },
+    '../services/evidenceSync': { syncPendingEvidence: async () => ({ synced: 0, failed: 1 }) },
+    '../services/profileCache': { isAuthorizationFailure: () => false, isNetworkFailure: () => false },
+    'react-native': { AppState: { currentState: 'active', addEventListener: () => ({ remove() {} }) } }
+  }, { setInterval: () => 1, clearInterval: () => {} })
+  runner.mount(provider.PlanProvider)
+  return runner
+}
+
+test('PlanProvider exposes the new stop while warning that earlier photos remain pending', async () => {
+  const h = sqliteHarness(); h.storage.activateUserDatabase(A)
+  h.setResponse({ plan: { id: 'plan-a' }, items: [visit()] }); await h.planSync.syncTodayPlan('token-a')
+  h.storage.db.runSync(`INSERT INTO evidence_queue (evidence_id,idempotency_key,plan_item_id,local_uri,mime_type,byte_size,captured_at,latitude,longitude,accuracy_m,status,created_at,updated_at)
+    VALUES ('photo','photo','visit-a','file:///photo.jpg','image/jpeg',3,'now',1,1,1,'FAILED',1,1)`)
+  h.setResponse({ plan: { id: 'plan-a' }, items: [visit(), extraStop('stop-3')] })
+  const runner = onlineProvider(h); await runner.flush()
+  assert.equal(runner.value.items.length, 2)
+  assert.equal(runner.value.items[1].id, 'stop-3')
+  assert.match(runner.value.error, /Se conservan las evidencias/)
+  assert.equal(h.storage.db.getFirstSync('SELECT status FROM evidence_queue').status, 'FAILED')
+  runner.stop(); h.close()
+})
+
+test('creating a stop during an older download queues a second refresh instead of dropping it', async () => {
+  const h = sqliteHarness(); h.storage.activateUserDatabase(A)
+  let release
+  h.defer(new Promise(resolve => { release = resolve }))
+  const runner = onlineProvider(h); await runner.flush()
+  h.defer(null)
+  h.setResponse({ plan: { id: 'plan-a' }, items: [visit(), extraStop('stop-3')] })
+  await runner.value.refresh()
+  release({ plan: { id: 'plan-a' }, items: [visit()] })
+  await runner.flush()
+  assert.equal(h.tokens.length, 2)
+  assert.equal(runner.value.items.length, 2)
+  assert.equal(runner.value.items[1].id, 'stop-3')
+  runner.stop(); h.close()
+})
+
+test('a queued plan refresh never runs for the previous account after switching databases', async () => {
+  const h = sqliteHarness(); h.storage.activateUserDatabase(A)
+  let release
+  h.defer(new Promise(resolve => { release = resolve }))
+  const runner = onlineProvider(h); await runner.flush()
+  await runner.value.refresh()
+  h.storage.activateUserDatabase(B)
+  release({ plan: { id: 'plan-a' }, items: [extraStop('stop-3')] })
+  await runner.flush()
+  assert.equal(h.tokens.length, 1)
+  assert.equal(h.storage.db.getAllSync('SELECT * FROM plan_items').length, 0)
+  runner.stop(); h.close()
+})
+
+test('third additional stop is downloaded while earlier photos remain queued, without replacing their visits', async () => {
+  for (const status of ['PENDING', 'UPLOADING', 'FAILED']) {
+    const h = sqliteHarness(); h.storage.activateUserDatabase(A)
+    const stop = n => new Proxy({ ...visit('stop-' + n), source: 'SUPERVISOR_ADHOC', itemType: 'EXTRA_STOP', activities: [], order: n }, { get: (object, key) => object[key] ?? null })
+    h.setResponse({ plan: { id: 'plan-a' }, items: [stop(1), stop(2)] })
+    await h.planSync.syncTodayPlan('token-a')
+    h.storage.db.runSync("UPDATE plan_items SET status='DONE', notes='captura local' WHERE id='stop-1'")
+    h.storage.db.runSync(`INSERT INTO evidence_queue (evidence_id,idempotency_key,plan_item_id,local_uri,mime_type,byte_size,captured_at,latitude,longitude,accuracy_m,status,created_at,updated_at)
+      VALUES ('photo-11','photo-11','stop-1','file:///photo-11.jpg','image/jpeg',3,'now',1,1,1,?,1,1)`, [status])
+    const before = JSON.stringify(h.storage.db.getAllSync('SELECT * FROM evidence_queue'))
+    h.setResponse({ plan: { id: 'plan-a' }, items: [stop(1), stop(2), stop(3), stop(4)] })
+    await assert.rejects(h.planSync.syncTodayPlan('token-a'), error => error.code === 'LOCAL_PENDING_OPERATIONS')
+    assert.equal(h.planSync.readCachedTodayPlan().items.length, 4)
+    assert.equal(h.planSync.readCachedTodayPlan().items[2].id, 'stop-3')
+    assert.equal(h.storage.db.getFirstSync("SELECT status FROM plan_items WHERE id='stop-1'").status, 'DONE')
+    assert.equal(JSON.stringify(h.storage.db.getAllSync('SELECT * FROM evidence_queue')), before)
+    h.close()
+  }
+})
+
 test('B/D/F: real SQLite downloads plan + activities, restores them and replaces them after reconnection', async () => {
   const h = sqliteHarness(); h.storage.activateUserDatabase(A)
   h.setResponse({ plan: { id: 'plan-a', status: 'APPROVED', planType: 'ORDINARY', periodStart: '2026-10-12', periodEnd: '2026-10-18' }, items: [visit()] })
@@ -308,6 +396,17 @@ test('cached plan consultation never bypasses 401/403, and an in-flight response
   resolve({plan:{id:A},items:[]})
   await assert.rejects(pending,/cuenta cambió/)
   h.close()
+})
+
+test('a rejected plan operation revalidates the profile instead of globally invalidating the mobile account',async()=>{
+ for(const status of [401,403]){
+  const h=sqliteHarness();h.storage.activateUserDatabase(A);h.fail(new ApiError('Rechazo de recurso',status));const runner=hooks();let validations=0,invalidations=0
+  const auth={session:{user:{id:A},access_token:'token'},profile:{id:'persona',area:'FARMACIAS',rol:'SUPERVISOR'},loading:false,accessState:'online',refreshProfile:async()=>{validations++},invalidateProfile:async()=>{invalidations++}}
+  const provider=loadTs('src/context/PlanContext.tsx',{
+   ...runner.modules,'./AuthContext':{useAuth:()=>auth},'../lib/api':{ApiError},'@react-native-community/netinfo':{default:{addEventListener:()=>()=>{}}},'../services/workPlanCache':{downloadWorkPlanScreens:async()=>{}},'../lib/supabase':{supabase:{auth:{getSession:async()=>({data:{session:auth.session}})}}},'../services/planSync':h.planSync,'../../storage/db':h.storage,'../services/executionSync':{syncVisitExecution:async()=>{}},'../services/evidenceSync':{syncPendingEvidence:async()=>({synced:0})},'../services/profileCache':{isAuthorizationFailure:e=>[401,403].includes(e.status),isNetworkFailure:()=>false},'react-native':{AppState:{currentState:'active',addEventListener:()=>({remove(){}})}},
+  },{setInterval:()=>1,clearInterval:()=>{}})
+  runner.mount(provider.PlanProvider);await runner.flush();assert.ok(validations>0);assert.equal(invalidations,0);assert.equal(h.storage.isDatabaseActive(A),true);assert.equal(auth.profile.id,'persona');runner.stop();h.close()
+ }
 })
 
 test('PlanProvider downloads an approved plan when connection returns and on the foreground timer', async () => {

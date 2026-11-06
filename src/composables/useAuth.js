@@ -27,6 +27,7 @@ const user =
 
 const profile =
   ref(null)
+let profileOwnerId = null
 
 const loading =
   ref(true)
@@ -357,6 +358,8 @@ function normalizeProfile(
  */
 
 async function loadProfile() {
+  const owner = session.value?.user?.id
+  const previousProfile = profile.value
   if (
     !session.value
   ) {
@@ -426,6 +429,8 @@ async function loadProfile() {
         webContext?.profile
       )
 
+    if (session.value?.user?.id !== owner) return null
+    profileOwnerId = owner
     profile.value =
       mergedProfile
 
@@ -446,8 +451,14 @@ async function loadProfile() {
       requestError
     )
 
-    profile.value =
-      null
+    if (session.value?.user?.id !== owner) throw requestError
+    if (previousProfile && profileOwnerId === owner && ![401, 403].includes(requestError?.status)) {
+      profile.value = previousProfile
+      setActiveWebArea(previousProfile.area)
+      throw requestError
+    }
+    profile.value = null
+    profileOwnerId = null
 
     setActiveWebArea(
       null
@@ -915,7 +926,7 @@ async function signIn(
       try {
         await supabase
           .auth
-          .signOut()
+          .signOut({ scope: 'local' })
       } catch {}
     }
 
@@ -949,7 +960,7 @@ async function signOut() {
     } =
       await supabase
         .auth
-        .signOut()
+        .signOut({ scope: 'local' })
 
     if (
       signOutError
